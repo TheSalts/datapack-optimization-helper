@@ -1,3 +1,1 @@
-execute as @e[tag=test] run say test
-return fail
-kill @s
+execute as @a at @s at @n[x=0,tag=a,tag=s,tag=n,type=zombie] at @n[x=0,tag=a,tag=s,tag=n,type=zombie]

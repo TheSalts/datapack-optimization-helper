@@ -3,12 +3,12 @@ import { McfunctionCodeActionProvider } from "./codeActions/provider";
 import { analyzeCommand } from "./rules";
 import { isTerminatingCommand, createUnreachableDiagnostics } from "./unreachable";
 import { registerRenameHandler } from "./refactor/renameHandler";
+import { getPackMeta, watchPackMeta } from "./utils/packMeta";
+import { checkExecuteGroup } from "./rules/executeGroup";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log("datapack-optimization is now active!");
-
     diagnosticCollection = vscode.languages.createDiagnosticCollection("datapack-optimization");
     context.subscriptions.push(diagnosticCollection);
 
@@ -25,6 +25,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => diagnosticCollection.delete(doc.uri)));
 
     registerRenameHandler(context);
+    watchPackMeta(context);
+    getPackMeta();
 
     vscode.workspace.textDocuments.forEach(analyzeDocument);
 }
@@ -40,7 +42,7 @@ function analyzeDocument(document: vscode.TextDocument) {
 
     const diagnostics: vscode.Diagnostic[] = [];
     const text = document.getText();
-    const lines = text.split("\n");
+    const lines = text.split(/\r?\n/);
 
     let unreachableFrom: number | null = null;
 
@@ -68,6 +70,8 @@ function analyzeDocument(document: vscode.TextDocument) {
         const unreachableDiagnostics = createUnreachableDiagnostics(lines, unreachableFrom);
         diagnostics.push(...unreachableDiagnostics);
     }
+
+    diagnostics.push(...checkExecuteGroup(lines));
 
     diagnosticCollection.set(document.uri, diagnostics);
 }

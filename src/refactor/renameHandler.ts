@@ -1,10 +1,9 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import { getPackFormat } from "../utils/packMeta";
 
 export function registerRenameHandler(context: vscode.ExtensionContext) {
-    context.subscriptions.push(
-        vscode.workspace.onWillRenameFiles(handleRename)
-    );
+    context.subscriptions.push(vscode.workspace.onWillRenameFiles(handleRename));
 }
 
 async function handleRename(event: vscode.FileWillRenameEvent) {
@@ -36,8 +35,12 @@ async function handleRename(event: vscode.FileWillRenameEvent) {
 function extractFunctionReference(filePath: string): string | null {
     const normalized = filePath.replace(/\\/g, "/");
 
-    // data/<namespace>/function(s)/<path>.mcfunction 패턴 찾기
-    const match = normalized.match(/data\/([^/]+)\/functions?\/(.+)\.mcfunction$/);
+    let functionPath = "function";
+    const packFormat = getPackFormat();
+    if (packFormat !== null && packFormat < 32) {
+        functionPath = "functions";
+    }
+    const match = normalized.match(new RegExp(`data/([^/]+)/${functionPath}/(.+)\\.mcfunction$`));
     if (!match) {
         return null;
     }
@@ -53,10 +56,7 @@ interface ReferenceUpdate {
     newText: string;
 }
 
-async function findAndReplaceReferences(
-    oldRef: string,
-    newRef: string
-): Promise<ReferenceUpdate[]> {
+async function findAndReplaceReferences(oldRef: string, newRef: string): Promise<ReferenceUpdate[]> {
     const updates: ReferenceUpdate[] = [];
 
     const files = await vscode.workspace.findFiles("**/*.mcfunction");
@@ -69,8 +69,6 @@ async function findAndReplaceReferences(
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
 
-            // function 명령어 또는 $로 시작하는 매크로 function 찾기
-            // 예: function namespace:path, $function namespace:path
             const patterns = [
                 new RegExp(`(\\$?function\\s+)${escapeRegex(oldRef)}\\b`, "g"),
                 new RegExp(`(\\$?schedule\\s+function\\s+)${escapeRegex(oldRef)}\\b`, "g"),
@@ -98,4 +96,3 @@ async function findAndReplaceReferences(
 function escapeRegex(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-

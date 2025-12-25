@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
+import { t } from "../utils/i18n";
 
 export function isTerminatingCommand(line: string): boolean {
     return /^return\b/.test(line);
@@ -17,11 +18,7 @@ export function createUnreachableDiagnostics(lines: string[], startLine: number)
         }
 
         const range = new vscode.Range(i, 0, i, line.length);
-        const diagnostic = new vscode.Diagnostic(
-            range,
-            "이 코드는 실행되지 않습니다.",
-            vscode.DiagnosticSeverity.Hint
-        );
+        const diagnostic = new vscode.Diagnostic(range, t("unreachableCode"), vscode.DiagnosticSeverity.Hint);
         diagnostic.source = DIAGNOSTIC_SOURCE;
         diagnostic.code = "unreachable-code";
         diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
@@ -30,4 +27,3 @@ export function createUnreachableDiagnostics(lines: string[], startLine: number)
 
     return diagnostics;
 }
-
