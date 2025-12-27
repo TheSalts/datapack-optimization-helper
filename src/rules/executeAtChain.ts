@@ -20,14 +20,23 @@ export function checkExecuteAtChain(lineIndex: number, line: string): vscode.Dia
     }
 
     for (let i = 0; i < atTokens.length - 1; i++) {
+        const currentToken = atTokens[i];
         const nextToken = atTokens[i + 1];
+
+        const betweenText = line.substring(
+            currentToken.startIndex + currentToken.fullMatch.length,
+            nextToken.startIndex
+        );
+        if (hasAsBetween(betweenText)) {
+            continue;
+        }
 
         if (!hasSortNearestOrLimit(nextToken.selector)) {
             const range = new vscode.Range(
                 lineIndex,
-                atTokens[i].startIndex,
+                currentToken.startIndex,
                 lineIndex,
-                atTokens[i].startIndex + atTokens[i].fullMatch.length
+                currentToken.startIndex + currentToken.fullMatch.length
             );
             const diagnostic = new vscode.Diagnostic(range, t("executeAtChainRedundant"), vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
@@ -66,5 +75,9 @@ function hasSortNearestOrLimit(selector: string): boolean {
         return true;
     }
     return false;
+}
+
+function hasAsBetween(text: string): boolean {
+    return /(?<!\w)as\s+@/.test(text);
 }
 

@@ -8,7 +8,7 @@ export function checkExecuteAsS(lineIndex: number, line: string): vscode.Diagnos
         return null;
     }
 
-    const match = trimmed.match(/\bas\s+@s(?![[\w])/);
+    const match = trimmed.match(/(?<!positioned\s)\bas\s+@s(?![[\w])/);
     if (match) {
         const startIndex = line.indexOf(match[0]);
         const range = new vscode.Range(lineIndex, startIndex, lineIndex, startIndex + match[0].length);

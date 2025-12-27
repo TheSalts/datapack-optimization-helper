@@ -70,7 +70,7 @@ function createGroupFromLines(executeLines: ExecuteLine[]): ExecuteGroup | null 
         return null;
     }
 
-    const allTokens = executeLines.map((e) => tokenizeExecute(e.fullLine));
+    const allTokens = executeLines.map((e) => tokenizeExecuteNormalized(e.fullLine));
     const { commonPrefix, commonTokenCount } = findCommonExecutePrefix(allTokens);
 
     if (!commonPrefix) {
@@ -127,12 +127,54 @@ function findCommonExecutePrefix(allTokens: string[][]): { commonPrefix: string 
     const lastRunIndex = findLastRunIndex(commonTokens);
 
     if (lastRunIndex === -1) {
-        const prefix = commonTokens.join(" ") + " run ";
-        return { commonPrefix: prefix, commonTokenCount: commonLength };
+        return { commonPrefix: null, commonTokenCount: 0 };
     }
 
     const prefixTokens = commonTokens.slice(0, lastRunIndex + 1);
     return { commonPrefix: prefixTokens.join(" ") + " ", commonTokenCount: lastRunIndex + 1 };
+}
+
+function normalizeSelector(selector: string): string {
+    const match = selector.match(/^(@[aepnrs])(\[([^\]]*)\])?$/);
+    if (!match) {
+        return selector;
+    }
+
+    const base = match[1];
+    const argsStr = match[3];
+
+    if (!argsStr) {
+        return selector;
+    }
+
+    const args: string[] = [];
+    let current = "";
+    let depth = 0;
+
+    for (let i = 0; i < argsStr.length; i++) {
+        const char = argsStr[i];
+        if (char === "{" || char === "[") {
+            depth++;
+            current += char;
+        } else if (char === "}" || char === "]") {
+            depth--;
+            current += char;
+        } else if (char === "," && depth === 0) {
+            if (current.trim()) {
+                args.push(current.trim());
+            }
+            current = "";
+        } else {
+            current += char;
+        }
+    }
+
+    if (current.trim()) {
+        args.push(current.trim());
+    }
+
+    args.sort();
+    return `${base}[${args.join(",")}]`;
 }
 
 function tokenizeExecute(line: string): string[] {
@@ -168,6 +210,16 @@ function tokenizeExecute(line: string): string[] {
     }
 
     return tokens;
+}
+
+function tokenizeExecuteNormalized(line: string): string[] {
+    const tokens = tokenizeExecute(line);
+    return tokens.map((token) => {
+        if (token.startsWith("@")) {
+            return normalizeSelector(token);
+        }
+        return token;
+    });
 }
 
 function findLastRunIndex(tokens: string[]): number {

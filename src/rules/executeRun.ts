@@ -2,7 +2,8 @@ import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
 
-export function checkExecuteRun(lineIndex: number, line: string): vscode.Diagnostic | null {
+export function checkExecuteRun(lineIndex: number, line: string): vscode.Diagnostic[] {
+    const diagnostics: vscode.Diagnostic[] = [];
     const trimmed = line.trim();
 
     if (/^execute\s+run\s+/.test(trimmed)) {
@@ -12,9 +13,18 @@ export function checkExecuteRun(lineIndex: number, line: string): vscode.Diagnos
         const diagnostic = new vscode.Diagnostic(range, t("executeRunRedundant"), vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
         diagnostic.code = "execute-run-redundant";
-        return diagnostic;
+        diagnostics.push(diagnostic);
     }
 
-    return null;
-}
+    const nestedMatch = trimmed.match(/run\s+(execute\s+run\s+)/);
+    if (nestedMatch) {
+        const matchIndex = line.indexOf(nestedMatch[1]);
+        const range = new vscode.Range(lineIndex, matchIndex, lineIndex, matchIndex + nestedMatch[1].length - 1);
+        const diagnostic = new vscode.Diagnostic(range, t("executeRunRedundant"), vscode.DiagnosticSeverity.Warning);
+        diagnostic.source = DIAGNOSTIC_SOURCE;
+        diagnostic.code = "execute-run-redundant-nested";
+        diagnostics.push(diagnostic);
+    }
 
+    return diagnostics;
+}

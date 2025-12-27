@@ -3,7 +3,7 @@
   "displayName": "Datapack Optimization",
   "description": "An extension about datapack(mcfunction) optimization",
   "version": "0.0.1",
-  "publisher": "TheSalt_",
+  "publisher": "TheSalt",
   "engines": {
     "vscode": "^1.75.0"
   },

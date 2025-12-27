@@ -35,7 +35,21 @@ export function checkExecuteRedundant(lineIndex: number, line: string): vscode.D
 
 function parseExecuteTokens(line: string): ExecuteToken[] {
     const tokens: ExecuteToken[] = [];
-    const subcommands = ["as", "at", "positioned", "rotated", "facing", "align", "anchored", "in", "summon", "on", "if", "unless", "store"];
+    const subcommands = [
+        "as",
+        "at",
+        "positioned",
+        "rotated",
+        "facing",
+        "align",
+        "anchored",
+        "in",
+        "summon",
+        "on",
+        "if",
+        "unless",
+        "store",
+    ];
 
     const words = tokenizeLine(line);
     if (words[0] !== "execute") {
@@ -51,8 +65,14 @@ function parseExecuteTokens(line: string): ExecuteToken[] {
         }
 
         if (subcommands.includes(word)) {
-            const subcommand = word;
-            const argsStart = i + 1;
+            let subcommand = word;
+            let argsStart = i + 1;
+
+            if ((word === "positioned" || word === "rotated") && words[argsStart] === "as") {
+                subcommand = `${word} as`;
+                argsStart = i + 2;
+            }
+
             let argsEnd = argsStart;
 
             while (argsEnd < words.length && !subcommands.includes(words[argsEnd]) && words[argsEnd] !== "run") {
@@ -184,4 +204,3 @@ export function getOptimizedExecute(line: string): string | null {
 
     return `execute ${keptTokens.map((t) => t.raw).join(" ")}${runPart}`;
 }
-

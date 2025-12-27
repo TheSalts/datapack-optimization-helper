@@ -5,10 +5,12 @@ import { isTerminatingCommand, createUnreachableDiagnostics } from "./unreachabl
 import { registerRenameHandler } from "./refactor/renameHandler";
 import { getPackMeta, watchPackMeta } from "./utils/packMeta";
 import { checkExecuteGroup } from "./rules/executeGroup";
+import { checkUnreachableCondition } from "./rules/unreachableCondition";
+import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     diagnosticCollection = vscode.languages.createDiagnosticCollection("datapack-optimization");
     context.subscriptions.push(diagnosticCollection);
 
@@ -27,6 +29,9 @@ export function activate(context: vscode.ExtensionContext) {
     registerRenameHandler(context);
     watchPackMeta(context);
     getPackMeta();
+    watchMcfunctionFiles(context);
+
+    await indexWorkspace();
 
     vscode.workspace.textDocuments.forEach(analyzeDocument);
 }
@@ -72,6 +77,15 @@ function analyzeDocument(document: vscode.TextDocument) {
     }
 
     diagnostics.push(...checkExecuteGroup(lines));
+    const conditionResult = checkUnreachableCondition(lines, document.uri.fsPath);
+    diagnostics.push(...conditionResult.diagnostics);
+
+    if (conditionResult.alwaysReturns.length > 0 && unreachableFrom === null) {
+        const firstReturn = conditionResult.alwaysReturns[0];
+        unreachableFrom = firstReturn.line + 1;
+        const unreachableDiagnostics = createUnreachableDiagnostics(lines, unreachableFrom);
+        diagnostics.push(...unreachableDiagnostics);
+    }
 
     diagnosticCollection.set(document.uri, diagnostics);
 }
