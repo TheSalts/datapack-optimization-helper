@@ -6,11 +6,14 @@ import { registerRenameHandler } from "./refactor/renameHandler";
 import { getPackMeta, watchPackMeta } from "./utils/packMeta";
 import { checkExecuteGroup } from "./rules/executeGroup";
 import { checkUnreachableCondition } from "./rules/unreachableCondition";
+import { checkAlwaysPassCondition } from "./rules/alwaysPassCondition";
 import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
+import { getRuleConfig } from "./utils/config";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
 export async function activate(context: vscode.ExtensionContext) {
+    console.log("Datapack Optimization extension activated");
     diagnosticCollection = vscode.languages.createDiagnosticCollection("datapack-optimization");
     context.subscriptions.push(diagnosticCollection);
 
@@ -25,6 +28,18 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(analyzeDocument));
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((e) => analyzeDocument(e.document)));
     context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => diagnosticCollection.delete(doc.uri)));
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration("datapackOptimization")) {
+                console.log("Configuration changed, reanalyzing documents");
+                const mcfunctionDocs = vscode.workspace.textDocuments.filter((doc) => isMcfunction(doc));
+                console.log(`Found ${mcfunctionDocs.length} mcfunction documents`);
+                mcfunctionDocs.forEach((doc) => {
+                    analyzeDocument(doc);
+                });
+            }
+        })
+    );
 
     registerRenameHandler(context);
     watchPackMeta(context);
@@ -71,18 +86,27 @@ function analyzeDocument(document: vscode.TextDocument) {
         diagnostics.push(...lineDiagnostics);
     }
 
-    if (unreachableFrom !== null) {
-        const unreachableDiagnostics = createUnreachableDiagnostics(lines, unreachableFrom);
-        diagnostics.push(...unreachableDiagnostics);
+    const config = getRuleConfig();
+    if (config.executeGroup) {
+        diagnostics.push(...checkExecuteGroup(lines));
+    }
+    if (config.unreachableCondition) {
+        diagnostics.push(...checkUnreachableCondition(lines, document.uri.fsPath));
+        
+        const alwaysPassResult = checkAlwaysPassCondition(lines, document.uri.fsPath);
+        diagnostics.push(...alwaysPassResult.diagnostics);
+
+        if (alwaysPassResult.alwaysReturns.length > 0) {
+            const firstReturn = alwaysPassResult.alwaysReturns[0];
+            const alwaysPassUnreachableFrom = firstReturn.line + 1;
+            
+            if (unreachableFrom === null || alwaysPassUnreachableFrom < unreachableFrom) {
+                unreachableFrom = alwaysPassUnreachableFrom;
+            }
+        }
     }
 
-    diagnostics.push(...checkExecuteGroup(lines));
-    const conditionResult = checkUnreachableCondition(lines, document.uri.fsPath);
-    diagnostics.push(...conditionResult.diagnostics);
-
-    if (conditionResult.alwaysReturns.length > 0 && unreachableFrom === null) {
-        const firstReturn = conditionResult.alwaysReturns[0];
-        unreachableFrom = firstReturn.line + 1;
+    if (unreachableFrom !== null) {
         const unreachableDiagnostics = createUnreachableDiagnostics(lines, unreachableFrom);
         diagnostics.push(...unreachableDiagnostics);
     }
