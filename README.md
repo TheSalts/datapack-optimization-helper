@@ -4,7 +4,7 @@ Vscode Extension for minecraft datapack optimization.
 
 ## Features
 
-![Example](https://github.com/TheSalts/datapack-optimization-helper/blob/master/image/codes.png)
+![Example](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/codes.png)
 
 1. Add lint warnings for optimizations
 
