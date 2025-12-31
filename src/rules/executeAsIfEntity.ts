@@ -3,6 +3,7 @@ import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
 
 const DUPLICABLE_KEYS = ["predicate", "tag", "nbt"];
+const COMPLEX_KEYS = ["scores", "advancements"];
 
 function parseArgs(argsStr: string): { key: string; raw: string }[] {
     if (!argsStr) {
@@ -41,7 +42,7 @@ function parseArgs(argsStr: string): { key: string; raw: string }[] {
     return args;
 }
 
-function canMerge(asArgsStr: string, sArgsStr: string): boolean {
+function analyzeMerge(asArgsStr: string, sArgsStr: string): "SAFE" | "CONFLICT" | "COMPLEX" {
     const asArgs = parseArgs(asArgsStr);
     const sArgs = parseArgs(sArgsStr);
 
@@ -55,6 +56,8 @@ function canMerge(asArgsStr: string, sArgsStr: string): boolean {
         sMap.set(arg.key, arg.raw);
     }
 
+    let isComplex = false;
+
     for (const [key, asRaw] of asMap.entries()) {
         if (DUPLICABLE_KEYS.includes(key)) {
             continue;
@@ -63,11 +66,15 @@ function canMerge(asArgsStr: string, sArgsStr: string): boolean {
         const sRaw = sMap.get(key);
         if (sRaw !== undefined) {
             if (asRaw !== sRaw) {
-                return false;
+                if (COMPLEX_KEYS.includes(key)) {
+                    isComplex = true;
+                } else {
+                    return "CONFLICT";
+                }
             }
         }
     }
-    return true;
+    return isComplex ? "COMPLEX" : "SAFE";
 }
 
 export function checkExecuteAsIfEntity(lineIndex: number, line: string): vscode.Diagnostic | null {
@@ -92,14 +99,22 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string): vscode.
     const range = new vscode.Range(lineIndex, startIndex, lineIndex, line.length);
 
     if (entityBase === "@s") {
-        const asArgsStr = asMatch[2] ? asMatch[2].slice(1, -1) : "";
+        const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
         const sArgsStr = ifEntityMatch[3] ? ifEntityMatch[3].slice(1, -1) : "";
 
-        if (canMerge(asArgsStr, sArgsStr)) {
+        const status = analyzeMerge(asArgsStr, sArgsStr);
+
+        if (status === "SAFE") {
             const message = t("executeAsIfEntitySMerge");
             const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = "execute-as-if-entity-s-merge";
+            return diagnostic;
+        } else if (status === "CONFLICT") {
+            const message = t("unreachableCondition");
+            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+            diagnostic.source = DIAGNOSTIC_SOURCE;
+            diagnostic.code = "unreachable-condition";
             return diagnostic;
         } else {
             const message = t("executeAsIfEntitySConvert");
