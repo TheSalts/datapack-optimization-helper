@@ -1,9 +1,17 @@
 # Change Log
 
-All notable changes to the "datapack-optimization" extension will be documented in this file.
+## 1.0.3
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+Fixed quick fix of 'if entity'
 
-## [Unreleased]
+## 1.0.2
 
-- Initial release
+Edited icon
+
+## 1.0.1
+
+Edited README
+
+## 1.0.0
+
+first init
