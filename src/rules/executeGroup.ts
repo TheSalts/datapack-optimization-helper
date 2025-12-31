@@ -20,14 +20,22 @@ export function findExecuteGroups(lines: string[]): ExecuteGroup[] {
     const executeLines: ExecuteLine[] = [];
 
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+        const line = lines[i];
+        const trimmed = line.trim();
 
-        if (line === "" || line.startsWith("#")) {
+        if (trimmed === "" || trimmed.startsWith("#")) {
+            if (executeLines.length >= 2) {
+                const group = createGroupFromLines(executeLines);
+                if (group) {
+                    groups.push(group);
+                }
+            }
+            executeLines.length = 0;
             continue;
         }
 
-        if (line.startsWith("execute ")) {
-            executeLines.push({ lineIndex: i, fullLine: line });
+        if (trimmed.startsWith("execute ")) {
+            executeLines.push({ lineIndex: i, fullLine: trimmed });
         } else {
             if (executeLines.length >= 2) {
                 const group = createGroupFromLines(executeLines);
@@ -237,7 +245,8 @@ export function checkExecuteGroup(lines: string[]): vscode.Diagnostic[] {
 
     for (const group of groups) {
         const range = new vscode.Range(group.startLine, 0, group.endLine, lines[group.endLine].length);
-        const diagnostic = new vscode.Diagnostic(range, t("executeGroup"), vscode.DiagnosticSeverity.Warning);
+        const message = t("executeGroup");
+        const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
         diagnostic.code = "execute-group";
         diagnostics.push(diagnostic);

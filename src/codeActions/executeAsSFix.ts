@@ -9,7 +9,7 @@ export function createExecuteAsSRedundantFix(
     action.diagnostics = [diagnostic];
 
     const line = document.lineAt(diagnostic.range.start.line).text;
-    let optimized = line.replace(/(?<!positioned\s)\bas\s+@s\s+/, "");
+    let optimized = line.replace(/(?<!(positioned|rotated)\s)\bas\s+@s\s+/, "");
 
     if (/^execute\s+run\s+/.test(optimized.trim())) {
         optimized = optimized.replace(/execute\s+run\s+/, "");

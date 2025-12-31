@@ -47,11 +47,10 @@ export function createExecuteAsIfEntitySMergeFix(
 
     const line = document.lineAt(diagnostic.range.start.line).text;
 
-    const asMatch = line.match(/(?<!positioned\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
+    const asMatch = line.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
     const ifEntityMatch = line.match(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?/);
 
     if (asMatch && ifEntityMatch) {
-        const ifOrUnless = ifEntityMatch[1];
         const asBase = asMatch[1];
         const asArgsStr = asMatch[2] ? asMatch[2].slice(1, -1) : "";
         const sArgsStr = ifEntityMatch[2] ? ifEntityMatch[2].slice(1, -1) : "";
@@ -63,11 +62,8 @@ export function createExecuteAsIfEntitySMergeFix(
         const mergedArgs = allArgs.length > 0 ? `[${allArgs.join(",")}]` : "";
         const mergedSelector = `${asBase}${mergedArgs}`;
 
-        let optimized = line.replace(/(?<!positioned\s)\bas\s+@[aepnrs](\[[^\]]*\])?\s*/, "");
-        optimized = optimized.replace(
-            /\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?/,
-            `${ifOrUnless} entity ${mergedSelector}`
-        );
+        let optimized = line.replace(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?\s*/, "");
+        optimized = optimized.replace(/(?<!(positioned|rotated)\s)\bas\s+@[aepnrs](\[[^\]]*\])?/, `as ${mergedSelector}`);
         optimized = optimized.replace(/\s+/g, " ").trim();
 
         action.edit = new vscode.WorkspaceEdit();
@@ -89,11 +85,32 @@ export function createExecuteAsIfEntitySConvertFix(
     action.diagnostics = [diagnostic];
 
     const line = document.lineAt(diagnostic.range.start.line).text;
-    const asMatch = line.match(/(?<!positioned\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
+    const asMatch = line.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
+    const ifEntityMatch = line.match(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?/);
 
-    if (asMatch) {
-        const asSelector = asMatch[1] + (asMatch[2] || "");
-        let optimized = line.replace(/(?<!positioned\s)\bas\s+@[aepnrs](\[[^\]]*\])?/, `if entity ${asSelector}`);
+    if (asMatch && ifEntityMatch) {
+        const asBase = asMatch[1];
+        const asArgsStr = asMatch[2] ? asMatch[2].slice(1, -1) : "";
+        const sArgsStr = ifEntityMatch[2] ? ifEntityMatch[2].slice(1, -1) : "";
+
+        const asArgsParsed = parseArgs(asArgsStr);
+        const sArgsParsed = parseArgs(sArgsStr);
+
+        const asKeys = asArgsParsed.map((a) => a.key);
+        const mergedArgs: string[] = [];
+
+        for (const sArg of sArgsParsed) {
+            if (!asKeys.includes(sArg.key)) {
+                mergedArgs.push(sArg.raw);
+            }
+        }
+
+        const allArgs = [...asArgsParsed.map((a) => a.raw), ...mergedArgs];
+        const mergedArgsStr = allArgs.length > 0 ? `[${allArgs.join(",")}]` : "";
+        const mergedSelector = `${asBase}${mergedArgsStr}`;
+
+        let optimized = line.replace(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?\s*/, "");
+        optimized = optimized.replace(/(?<!(positioned|rotated)\s)\bas\s+@[aepnrs](\[[^\]]*\])?/, `as ${mergedSelector}`);
         optimized = optimized.replace(/\s+/g, " ").trim();
 
         action.edit = new vscode.WorkspaceEdit();
@@ -115,7 +132,7 @@ export function createExecuteAsIfEntityRemoveAsFix(
     action.diagnostics = [diagnostic];
 
     const line = document.lineAt(diagnostic.range.start.line).text;
-    let optimized = line.replace(/(?<!positioned\s)\bas\s+@[aepnrs](\[[^\]]*\])?\s*/, "");
+    let optimized = line.replace(/(?<!(positioned|rotated)\s)\bas\s+@[aepnrs](\[[^\]]*\])?\s*/, "");
     optimized = optimized.replace(/\s+/g, " ").trim();
 
     action.edit = new vscode.WorkspaceEdit();

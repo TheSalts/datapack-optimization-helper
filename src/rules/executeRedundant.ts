@@ -24,7 +24,8 @@ export function checkExecuteRedundant(lineIndex: number, line: string): vscode.D
 
     if (duplicates.length > 0) {
         const range = new vscode.Range(lineIndex, 0, lineIndex, line.length);
-        const diagnostic = new vscode.Diagnostic(range, t("executeDuplicate"), vscode.DiagnosticSeverity.Warning);
+        const message = t("executeDuplicate");
+        const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
         diagnostic.code = "execute-duplicate";
         diagnostics.push(diagnostic);

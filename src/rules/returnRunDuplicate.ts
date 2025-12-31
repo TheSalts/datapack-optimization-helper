@@ -9,7 +9,8 @@ export function checkReturnRunDuplicate(lineIndex: number, line: string): vscode
     if (match) {
         const startIndex = line.indexOf("return");
         const range = new vscode.Range(lineIndex, startIndex, lineIndex, line.length);
-        const diagnostic = new vscode.Diagnostic(range, t("returnRunDuplicate"), vscode.DiagnosticSeverity.Warning);
+        const message = t("returnRunDuplicate");
+        const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
         diagnostic.code = "return-run-duplicate";
         return diagnostic;

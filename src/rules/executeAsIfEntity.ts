@@ -5,7 +5,9 @@ import { t } from "../utils/i18n";
 const DUPLICABLE_KEYS = ["predicate", "tag", "nbt"];
 
 function parseArgs(argsStr: string): { key: string; raw: string }[] {
-    if (!argsStr) return [];
+    if (!argsStr) {
+        return [];
+    }
     const args: { key: string; raw: string }[] = [];
     let current = "";
     let depth = 0;
@@ -43,12 +45,26 @@ function canMerge(asArgsStr: string, sArgsStr: string): boolean {
     const asArgs = parseArgs(asArgsStr);
     const sArgs = parseArgs(sArgsStr);
 
-    const asKeys = asArgs.map(a => a.key).filter(k => !DUPLICABLE_KEYS.includes(k));
-    const sKeys = sArgs.map(a => a.key).filter(k => !DUPLICABLE_KEYS.includes(k));
+    const asMap = new Map<string, string>();
+    const sMap = new Map<string, string>();
 
-    for (const key of asKeys) {
-        if (sKeys.includes(key)) {
-            return false;
+    for (const arg of asArgs) {
+        asMap.set(arg.key, arg.raw);
+    }
+    for (const arg of sArgs) {
+        sMap.set(arg.key, arg.raw);
+    }
+
+    for (const [key, asRaw] of asMap.entries()) {
+        if (DUPLICABLE_KEYS.includes(key)) {
+            continue;
+        }
+
+        const sRaw = sMap.get(key);
+        if (sRaw !== undefined) {
+            if (asRaw !== sRaw) {
+                return false;
+            }
         }
     }
     return true;
@@ -61,7 +77,7 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string): vscode.
         return null;
     }
 
-    const asMatch = trimmed.match(/(?<!positioned\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
+    const asMatch = trimmed.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
     if (!asMatch) {
         return null;
     }
@@ -80,21 +96,19 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string): vscode.
         const sArgsStr = ifEntityMatch[3] ? ifEntityMatch[3].slice(1, -1) : "";
 
         if (canMerge(asArgsStr, sArgsStr)) {
-            const diagnostic = new vscode.Diagnostic(range, t("executeAsIfEntitySMerge"), vscode.DiagnosticSeverity.Warning);
+            const message = t("executeAsIfEntitySMerge");
+            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = "execute-as-if-entity-s-merge";
             return diagnostic;
         } else {
-            const diagnostic = new vscode.Diagnostic(range, t("executeAsIfEntitySConvert"), vscode.DiagnosticSeverity.Warning);
+            const message = t("executeAsIfEntitySConvert");
+            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = "execute-as-if-entity-s-convert";
             return diagnostic;
         }
-    } else {
-        const diagnostic = new vscode.Diagnostic(range, t("executeAsIfEntityRemoveAs"), vscode.DiagnosticSeverity.Warning);
-        diagnostic.source = DIAGNOSTIC_SOURCE;
-        diagnostic.code = "execute-as-if-entity-remove-as";
-        return diagnostic;
     }
-}
 
+    return null;
+}

@@ -39,7 +39,7 @@ export function parseSelectors(line: string): ParsedSelector[] {
     return selectors;
 }
 
-function parseArguments(argsRaw: string): SelectorArgument[] {
+export function parseArguments(argsRaw: string): SelectorArgument[] {
     if (!argsRaw || argsRaw === "[]") {
         return [];
     }
@@ -108,38 +108,42 @@ export function checkTargetSelector(lineIndex: number, line: string): vscode.Dia
         const keys = selector.arguments.map((arg) => arg.key);
         const hasType = keys.includes("type");
         const hasDimension = DIMENSION_KEYS.some((key) => keys.includes(key));
-        const typeIndex = keys.indexOf("type");
 
         const range = new vscode.Range(lineIndex, selector.startIndex, lineIndex, selector.endIndex);
 
         if (!hasType) {
-            const diagnostic = new vscode.Diagnostic(
-                range,
-                t("targetSelectorNoType"),
-                vscode.DiagnosticSeverity.Warning
-            );
+            const message = t("targetSelectorNoType");
+            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = "target-selector-no-type";
             diagnostics.push(diagnostic);
         }
 
         if (!hasDimension) {
-            const diagnostic = new vscode.Diagnostic(
-                range,
-                t("targetSelectorNoDimension"),
-                vscode.DiagnosticSeverity.Warning
-            );
+            const message = t("targetSelectorNoDimension");
+            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = "target-selector-no-dimension";
             diagnostics.push(diagnostic);
         }
+    }
+
+    return diagnostics;
+}
+
+export function checkTargetSelectorTypeOrder(lineIndex: number, line: string): vscode.Diagnostic[] {
+    const selectors = parseSelectors(line);
+    const diagnostics: vscode.Diagnostic[] = [];
+
+    for (const selector of selectors) {
+        const keys = selector.arguments.map((arg) => arg.key);
+        const hasType = keys.includes("type");
+        const typeIndex = keys.indexOf("type");
 
         if (hasType && typeIndex !== selector.arguments.length - 1) {
-            const diagnostic = new vscode.Diagnostic(
-                range,
-                t("targetSelectorTypeOrder"),
-                vscode.DiagnosticSeverity.Warning
-            );
+            const range = new vscode.Range(lineIndex, selector.startIndex, lineIndex, selector.endIndex);
+            const message = t("targetSelectorTypeOrder");
+            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = "target-selector-type-order";
             diagnostics.push(diagnostic);

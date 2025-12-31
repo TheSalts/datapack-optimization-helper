@@ -38,7 +38,8 @@ export function checkExecuteAtChain(lineIndex: number, line: string): vscode.Dia
                 lineIndex,
                 currentToken.startIndex + currentToken.fullMatch.length
             );
-            const diagnostic = new vscode.Diagnostic(range, t("executeAtChainRedundant"), vscode.DiagnosticSeverity.Warning);
+            const message = t("executeAtChainRedundant");
+            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = "execute-at-chain-redundant";
             return diagnostic;

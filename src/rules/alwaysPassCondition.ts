@@ -41,8 +41,16 @@ function matchesRange(value: number, range: ScoreRange): boolean {
     return true;
 }
 
-export function checkUnreachableCondition(lines: string[], filePath?: string): vscode.Diagnostic[] {
+export interface AlwaysReturnInfo {
+    line: number;
+}
+
+export function checkAlwaysPassCondition(
+    lines: string[],
+    filePath?: string
+): { diagnostics: vscode.Diagnostic[]; alwaysReturns: AlwaysReturnInfo[] } {
     const diagnostics: vscode.Diagnostic[] = [];
+    const alwaysReturns: AlwaysReturnInfo[] = [];
     const scoreStates: Map<string, ScoreState> = new Map();
 
     if (filePath && isIndexInitialized()) {
@@ -133,9 +141,11 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
 
         const conditionRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
         let match;
-        let hasUnreachableCondition = false;
+        let allConditionsAlwaysPass = true;
+        let hasScoreCondition = false;
 
         while ((match = conditionRegex.exec(trimmed)) !== null) {
+            hasScoreCondition = true;
             const condType = match[1];
             const target = match[2];
             const objective = match[3];
@@ -144,49 +154,83 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
 
             const state = scoreStates.get(key);
             if (state) {
-                let unreachable = false;
+                let alwaysPass = false;
 
                 if (state.value === null) {
-                    if (condType === "if") {
-                        unreachable = true;
+                    if (condType === "unless") {
+                        alwaysPass = true;
+                    } else {
+                        allConditionsAlwaysPass = false;
                     }
                 } else {
                     const range = parseRange(rangeStr);
                     const matches = matchesRange(state.value, range);
 
                     if (condType === "if") {
-                        if (!matches) {
-                            unreachable = true;
+                        if (matches) {
+                            alwaysPass = true;
+                        } else {
+                            allConditionsAlwaysPass = false;
                         }
                     } else {
-                        if (matches) {
-                            unreachable = true;
+                        if (!matches) {
+                            alwaysPass = true;
+                        } else {
+                            allConditionsAlwaysPass = false;
                         }
                     }
                 }
 
-                if (unreachable) {
-                    hasUnreachableCondition = true;
+                if (alwaysPass) {
                     const startIndex = line.indexOf(match[0]);
                     const endIndex = startIndex + match[0].length;
                     const diagRange = new vscode.Range(i, startIndex, i, endIndex);
 
-                    const message = t("unreachableCondition");
+                    const message = t("alwaysPassCondition");
                     const diagnostic = new vscode.Diagnostic(
                         diagRange,
                         message,
                         vscode.DiagnosticSeverity.Warning
                     );
                     diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "unreachable-condition";
+                    diagnostic.code = "always-pass-condition";
                     diagnostics.push(diagnostic);
+                }
+            } else {
+                if (condType === "unless") {
+                    const startIndex = line.indexOf(match[0]);
+                    const endIndex = startIndex + match[0].length;
+                    const diagRange = new vscode.Range(i, startIndex, i, endIndex);
+
+                    const message = t("alwaysPassCondition");
+                    const diagnostic = new vscode.Diagnostic(
+                        diagRange,
+                        message,
+                        vscode.DiagnosticSeverity.Warning
+                    );
+                    diagnostic.source = DIAGNOSTIC_SOURCE;
+                    diagnostic.code = "always-pass-condition";
+                    diagnostics.push(diagnostic);
+                } else {
+                    allConditionsAlwaysPass = false;
                 }
             }
         }
 
-        if (trimmed.match(/\b(if|unless)\b/)) {
-            if (hasUnreachableCondition) {
-                continue;
+        if (hasScoreCondition && allConditionsAlwaysPass && trimmed.startsWith("execute ")) {
+            const hasAs = /(?<!positioned\s)\bas\s+@[aepnrs]/.test(trimmed);
+            const hasReturn = /\srun\s+return\b/.test(trimmed);
+
+            if (hasReturn && !hasAs) {
+                const allScoreConditions = Array.from(
+                    trimmed.matchAll(/\b(if|unless)\s+score\s+\S+\s+\S+\s+matches\s+\S+/g)
+                );
+                const allConditions = Array.from(trimmed.matchAll(/\b(if|unless)\s+\S+/g));
+                const hasOtherCondition = allConditions.length > allScoreConditions.length;
+
+                if (!hasOtherCondition) {
+                    alwaysReturns.push({ line: i });
+                }
             }
         }
 
@@ -194,9 +238,6 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
         const ifFunctionMatch = trimmed.match(/\b(if|unless)\s+function\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
 
         if (functionMatch && isIndexInitialized()) {
-            if (hasUnreachableCondition) {
-                continue;
-            }
             const calledFunctionPath = functionMatch[1];
             const calledFuncInfo = getFunctionInfo(calledFunctionPath);
 
@@ -233,47 +274,45 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
                 }
             }
         } else if (ifFunctionMatch && isIndexInitialized()) {
-            if (hasUnreachableCondition) {
-                continue;
-            }
+            if (!hasScoreCondition || allConditionsAlwaysPass) {
+                const calledFunctionPath = ifFunctionMatch[2];
+                const calledFuncInfo = getFunctionInfo(calledFunctionPath);
 
-            const calledFunctionPath = ifFunctionMatch[2];
-            const calledFuncInfo = getFunctionInfo(calledFunctionPath);
+                if (calledFuncInfo) {
+                    for (const change of calledFuncInfo.scoreChanges) {
+                        const key = `${change.target}:${change.objective}`;
 
-            if (calledFuncInfo) {
-                for (const change of calledFuncInfo.scoreChanges) {
-                    const key = `${change.target}:${change.objective}`;
-
-                    if (change.operation === "set") {
-                        scoreStates.set(key, {
-                            target: change.target,
-                            objective: change.objective,
-                            value: change.value,
-                            line: i,
-                        });
-                    } else if (change.operation === "reset") {
-                        if (change.objective === "*") {
-                            for (const [k, state] of scoreStates.entries()) {
-                                if (k.startsWith(`${change.target}:`)) {
-                                    state.value = null;
-                                    state.line = i;
-                                }
-                            }
-                        } else {
+                        if (change.operation === "set") {
                             scoreStates.set(key, {
                                 target: change.target,
                                 objective: change.objective,
-                                value: null,
+                                value: change.value,
                                 line: i,
                             });
+                        } else if (change.operation === "reset") {
+                            if (change.objective === "*") {
+                                for (const [k, state] of scoreStates.entries()) {
+                                    if (k.startsWith(`${change.target}:`)) {
+                                        state.value = null;
+                                        state.line = i;
+                                    }
+                                }
+                            } else {
+                                scoreStates.set(key, {
+                                    target: change.target,
+                                    objective: change.objective,
+                                    value: null,
+                                    line: i,
+                                });
+                            }
+                        } else if (change.operation === "unknown") {
+                            scoreStates.delete(key);
                         }
-                    } else if (change.operation === "unknown") {
-                        scoreStates.delete(key);
                     }
                 }
             }
         }
     }
 
-    return diagnostics;
+    return { diagnostics, alwaysReturns };
 }

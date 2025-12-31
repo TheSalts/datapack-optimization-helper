@@ -1,6 +1,6 @@
 {
   "name": "datapack-optimization",
-  "displayName": "Datapack Optimization",
+  "displayName": "Datapack Optimization Helper",
   "description": "An extension about datapack(mcfunction) optimization",
   "version": "0.0.1",
   "publisher": "TheSalt",
@@ -11,7 +11,9 @@
     "Linters",
     "Programming Languages"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:mcfunction"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
@@ -26,7 +28,38 @@
         ],
         "configuration": "./language-configuration.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Datapack Optimization",
+      "properties": {
+        "datapackOptimization.rules.disabled": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "targetSelector",
+              "targetSelectorTypeOrder",
+              "executeRedundant",
+              "executeRun",
+              "executeAsS",
+              "executeAtChain",
+              "executeReturn",
+              "executeAsIfEntity",
+              "returnRunDuplicate",
+              "scoreboardFakePlayer",
+              "executeGroup",
+              "unreachableCondition",
+              "nbtItems"
+            ]
+          },
+          "default": [
+            "targetSelectorTypeOrder"
+          ],
+          "description": "Blacklist rules",
+          "uniqueItems": true
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

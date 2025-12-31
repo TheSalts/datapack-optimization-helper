@@ -32,7 +32,7 @@ export function createExecuteReturnWithAsFix(
     action.diagnostics = [diagnostic];
 
     const line = document.lineAt(diagnostic.range.start.line).text;
-    const asMatch = line.match(/(?<!positioned\s)\bas\s+(@[aepnrs](?:\[[^\]]*\])?)/);
+    const asMatch = line.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs](?:\[[^\]]*\])?)/);
     const runMatch = line.match(/\srun\s+(return\s.*)$/);
 
     if (asMatch && runMatch) {

@@ -19,17 +19,19 @@ export function checkExecuteReturn(lineIndex: number, line: string): vscode.Diag
         return null;
     }
 
-    const hasAs = /(?<!positioned\s)\bas\s+@[aepnrs]/.test(trimmed);
+    const hasAs = /(?<!(positioned|rotated)\s)\bas\s+@[aepnrs]/.test(trimmed);
     const startIndex = line.indexOf("execute");
     const range = new vscode.Range(lineIndex, startIndex, lineIndex, line.length);
 
     if (hasAs) {
-        const diagnostic = new vscode.Diagnostic(range, t("executeReturnWithAs"), vscode.DiagnosticSeverity.Warning);
+        const message = t("executeReturnWithAs");
+        const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
         diagnostic.code = "execute-return-with-as";
         return diagnostic;
     } else {
-        const diagnostic = new vscode.Diagnostic(range, t("executeReturnRedundant"), vscode.DiagnosticSeverity.Warning);
+        const message = t("executeReturnRedundant");
+        const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
         diagnostic.code = "execute-return-redundant";
         return diagnostic;

@@ -10,7 +10,8 @@ export function checkExecuteRun(lineIndex: number, line: string): vscode.Diagnos
         const startIndex = line.indexOf("execute");
         const runIndex = line.indexOf("run", startIndex);
         const range = new vscode.Range(lineIndex, startIndex, lineIndex, runIndex + 4);
-        const diagnostic = new vscode.Diagnostic(range, t("executeRunRedundant"), vscode.DiagnosticSeverity.Warning);
+        const message = t("executeRunRedundant");
+        const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
         diagnostic.code = "execute-run-redundant";
         diagnostics.push(diagnostic);
@@ -20,10 +21,25 @@ export function checkExecuteRun(lineIndex: number, line: string): vscode.Diagnos
     if (nestedMatch) {
         const matchIndex = line.indexOf(nestedMatch[1]);
         const range = new vscode.Range(lineIndex, matchIndex, lineIndex, matchIndex + nestedMatch[1].length - 1);
-        const diagnostic = new vscode.Diagnostic(range, t("executeRunRedundant"), vscode.DiagnosticSeverity.Warning);
+        const message = t("executeRunRedundant");
+        const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
         diagnostic.code = "execute-run-redundant-nested";
         diagnostics.push(diagnostic);
+    }
+
+    const runExecuteMatch = trimmed.match(/(?<!return\s)run\s+(execute\s+)/);
+    if (runExecuteMatch) {
+        const matchText = runExecuteMatch[0];
+        const matchIndex = line.indexOf(matchText);
+        if (matchIndex !== -1) {
+            const range = new vscode.Range(lineIndex, matchIndex, lineIndex, matchIndex + matchText.length - 1);
+            const message = t("executeRunRedundantRunExecute");
+            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+            diagnostic.source = DIAGNOSTIC_SOURCE;
+            diagnostic.code = "execute-run-redundant-run-execute";
+            diagnostics.push(diagnostic);
+        }
     }
 
     return diagnostics;

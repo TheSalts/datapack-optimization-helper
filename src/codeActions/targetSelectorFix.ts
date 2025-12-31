@@ -18,10 +18,10 @@ export function createTargetSelectorNoDimensionFix(
     if (selector) {
         let newSelector: string;
         if (selector.arguments.length === 0) {
-            newSelector = `@${selector.type}[x=0]`;
+            newSelector = `@${selector.type}[distance=0..]`;
         } else {
             const argsStr = selector.arguments.map((a) => a.raw).join(",");
-            newSelector = `@${selector.type}[x=0,${argsStr}]`;
+            newSelector = `@${selector.type}[distance=0..,${argsStr}]`;
         }
 
         action.edit = new vscode.WorkspaceEdit();
