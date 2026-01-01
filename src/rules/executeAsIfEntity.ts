@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
+import { RuleConfig, getRuleConfig } from "../utils/config";
 
 const DUPLICABLE_KEYS = ["predicate", "tag", "nbt"];
 const COMPLEX_KEYS = ["scores", "advancements"];
@@ -77,7 +78,7 @@ function analyzeMerge(asArgsStr: string, sArgsStr: string): "SAFE" | "CONFLICT" 
     return isComplex ? "COMPLEX" : "SAFE";
 }
 
-export function checkExecuteAsIfEntity(lineIndex: number, line: string): vscode.Diagnostic | null {
+export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic | null {
     const trimmed = line.trim();
 
     if (!trimmed.startsWith("execute ")) {
@@ -96,7 +97,17 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string): vscode.
 
     const entityBase = ifEntityMatch[2];
     const startIndex = line.indexOf("execute");
+
+    // Check for 'on' subcommand between 'as' and 'if entity'
+    const asEndIndex = asMatch.index! + asMatch[0].length;
+    const ifIndex = ifEntityMatch.index!;
+    const between = trimmed.substring(asEndIndex, ifIndex);
+    if (/\bon\s/.test(between)) {
+        return null;
+    }
+
     const range = new vscode.Range(lineIndex, startIndex, lineIndex, line.length);
+    const effectiveConfig = config || getRuleConfig();
 
     if (entityBase === "@s") {
         const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
@@ -105,23 +116,29 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string): vscode.
         const status = analyzeMerge(asArgsStr, sArgsStr);
 
         if (status === "SAFE") {
-            const message = t("executeAsIfEntitySMerge");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "execute-as-if-entity-s-merge";
-            return diagnostic;
+            if (effectiveConfig.executeAsIfEntitySMerge) {
+                const message = t("executeAsIfEntitySMerge");
+                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+                diagnostic.source = DIAGNOSTIC_SOURCE;
+                diagnostic.code = "execute-as-if-entity-s-merge";
+                return diagnostic;
+            }
         } else if (status === "CONFLICT") {
-            const message = t("unreachableCondition");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "unreachable-condition";
-            return diagnostic;
+            if (effectiveConfig.unreachableCondition) {
+                const message = t("unreachableCondition");
+                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+                diagnostic.source = DIAGNOSTIC_SOURCE;
+                diagnostic.code = "unreachable-condition";
+                return diagnostic;
+            }
         } else {
-            const message = t("executeAsIfEntitySConvert");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "execute-as-if-entity-s-convert";
-            return diagnostic;
+            if (effectiveConfig.executeAsIfEntitySConvert) {
+                const message = t("executeAsIfEntitySConvert");
+                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+                diagnostic.source = DIAGNOSTIC_SOURCE;
+                diagnostic.code = "execute-as-if-entity-s-convert";
+                return diagnostic;
+            }
         }
     }
 

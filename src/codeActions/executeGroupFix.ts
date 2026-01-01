@@ -31,7 +31,12 @@ export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic:
     const newFunctionRef = namespace ? `${namespace}:${functionPath}${newFunctionName}` : `pack:${newFunctionName}`;
 
     const newFileContent = group.suffixes.join("\n") + "\n";
-    const newLine = `${group.commonPrefix}function ${newFunctionRef}`;
+    
+    let prefix = group.commonPrefix;
+    if (!prefix.trim().endsWith("run")) {
+        prefix += "run ";
+    }
+    const newLine = `${prefix}function ${newFunctionRef}`;
 
     action.edit = new vscode.WorkspaceEdit();
 

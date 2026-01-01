@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
+import { RuleConfig, getRuleConfig } from "../utils/config";
 
 export interface SelectorArgument {
     key: string;
@@ -100,31 +101,35 @@ function parseArgument(arg: string): SelectorArgument | null {
 
 const DIMENSION_KEYS = ["x", "y", "z", "distance"];
 
-export function checkTargetSelector(lineIndex: number, line: string): vscode.Diagnostic[] {
+export function checkTargetSelector(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
     const selectors = parseSelectors(line);
     const diagnostics: vscode.Diagnostic[] = [];
+    const effectiveConfig = config || getRuleConfig();
 
     for (const selector of selectors) {
         const keys = selector.arguments.map((arg) => arg.key);
-        const hasType = keys.includes("type");
-        const hasDimension = DIMENSION_KEYS.some((key) => keys.includes(key));
-
         const range = new vscode.Range(lineIndex, selector.startIndex, lineIndex, selector.endIndex);
 
-        if (!hasType) {
-            const message = t("targetSelectorNoType");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "target-selector-no-type";
-            diagnostics.push(diagnostic);
+        if (effectiveConfig.targetSelectorNoType) {
+            const hasType = keys.includes("type");
+            if (!hasType) {
+                const message = t("targetSelectorNoType");
+                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+                diagnostic.source = DIAGNOSTIC_SOURCE;
+                diagnostic.code = "target-selector-no-type";
+                diagnostics.push(diagnostic);
+            }
         }
 
-        if (!hasDimension) {
-            const message = t("targetSelectorNoDimension");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "target-selector-no-dimension";
-            diagnostics.push(diagnostic);
+        if (effectiveConfig.targetSelectorNoDimension) {
+            const hasDimension = DIMENSION_KEYS.some((key) => keys.includes(key));
+            if (!hasDimension) {
+                const message = t("targetSelectorNoDimension");
+                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
+                diagnostic.source = DIAGNOSTIC_SOURCE;
+                diagnostic.code = "target-selector-no-dimension";
+                diagnostics.push(diagnostic);
+            }
         }
     }
 

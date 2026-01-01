@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
+import { RuleConfig, getRuleConfig } from "../utils/config";
 
 const SCOREBOARD_PLAYERS_PATTERN = /scoreboard\s+players\s+(add|remove|set|reset|get|list|operation)\s+/i;
 
@@ -9,8 +10,13 @@ function isTargetSelector(name: string): boolean {
     return /^@[aeprs](\[[^\]]*\])?$/.test(trimmed);
 }
 
-export function checkScoreboardFakePlayer(lineIndex: number, line: string): vscode.Diagnostic[] {
+export function checkScoreboardFakePlayer(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
     const diagnostics: vscode.Diagnostic[] = [];
+    const effectiveConfig = config || getRuleConfig();
+    if (!effectiveConfig.scoreboardFakePlayerMissingHash) {
+        return diagnostics;
+    }
+
     const trimmed = line.trim();
 
     if (!SCOREBOARD_PLAYERS_PATTERN.test(trimmed)) {

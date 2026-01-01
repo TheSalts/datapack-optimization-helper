@@ -1,8 +1,14 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
+import { RuleConfig, getRuleConfig } from "../utils/config";
 
-export function checkExecuteAsS(lineIndex: number, line: string): vscode.Diagnostic | null {
+export function checkExecuteAsS(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic | null {
+    const effectiveConfig = config || getRuleConfig();
+    if (!effectiveConfig.executeAsSRedundant) {
+        return null;
+    }
+
     const trimmed = line.trim();
     if (!trimmed.startsWith("execute ")) {
         return null;

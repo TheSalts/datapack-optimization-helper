@@ -6,12 +6,10 @@ import { createExecuteGroupFix } from "./executeGroupFix";
 import { createExecuteDuplicateFix } from "./executeRedundantFix";
 import { createExecuteRunRedundantFix, createExecuteRunRedundantNestedFix, createExecuteRunRedundantRunExecuteFix } from "./executeRunFix";
 import { createExecuteAsSRedundantFix } from "./executeAsSFix";
-import { createExecuteAtChainRedundantFix } from "./executeAtChainFix";
-import { createExecuteReturnRedundantFix, createExecuteReturnWithAsFix } from "./executeReturnFix";
 import { createExecuteAsIfEntitySMergeFix, createExecuteAsIfEntitySConvertFix } from "./executeAsIfEntityFix";
 import { createUnreachableConditionFix, createAlwaysPassConditionFix } from "./unreachableConditionFix";
-import { createReturnRunDuplicateFix } from "./returnRunDuplicateFix";
 import { createScoreboardFakePlayerFix } from "./scoreboardFakePlayerFix";
+import { createReturnRunDuplicateFix } from "./returnRunDuplicateFix";
 
 export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
     provideCodeActions(
@@ -26,9 +24,13 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
                 continue;
             }
 
-            const action = this.createFixForDiagnostic(document, diagnostic);
-            if (action) {
-                actions.push(action);
+            const actionOrActions = this.createFixForDiagnostic(document, diagnostic);
+            if (actionOrActions) {
+                if (Array.isArray(actionOrActions)) {
+                    actions.push(...actionOrActions);
+                } else {
+                    actions.push(actionOrActions);
+                }
             }
         }
 
@@ -38,7 +40,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
     private createFixForDiagnostic(
         document: vscode.TextDocument,
         diagnostic: vscode.Diagnostic
-    ): vscode.CodeAction | undefined {
+    ): vscode.CodeAction | vscode.CodeAction[] | undefined {
         switch (diagnostic.code) {
             case "unreachable-code":
                 return createRemoveUnreachableFix(document, diagnostic);
@@ -58,12 +60,6 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
                 return createExecuteDuplicateFix(document, diagnostic);
             case "execute-as-s-redundant":
                 return createExecuteAsSRedundantFix(document, diagnostic);
-            case "execute-at-chain-redundant":
-                return createExecuteAtChainRedundantFix(document, diagnostic);
-            case "execute-return-redundant":
-                return createExecuteReturnRedundantFix(document, diagnostic);
-            case "execute-return-with-as":
-                return createExecuteReturnWithAsFix(document, diagnostic);
             case "execute-as-if-entity-s-merge":
                 return createExecuteAsIfEntitySMergeFix(document, diagnostic);
             case "execute-as-if-entity-s-convert":
@@ -72,10 +68,10 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
                 return createUnreachableConditionFix(document, diagnostic);
             case "always-pass-condition":
                 return createAlwaysPassConditionFix(document, diagnostic);
-            case "return-run-duplicate":
-                return createReturnRunDuplicateFix(document, diagnostic);
             case "scoreboard-fake-player-missing-hash":
                 return createScoreboardFakePlayerFix(document, diagnostic);
+            case "return-run-duplicate":
+                return createReturnRunDuplicateFix(document, diagnostic);
             default:
                 return undefined;
         }

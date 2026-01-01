@@ -92,7 +92,9 @@ function analyzeDocument(document: vscode.TextDocument) {
     }
     if (config.unreachableCondition) {
         diagnostics.push(...checkUnreachableCondition(lines, document.uri.fsPath));
-        
+    }
+    
+    if (config.alwaysPassCondition) {
         const alwaysPassResult = checkAlwaysPassCondition(lines, document.uri.fsPath);
         diagnostics.push(...alwaysPassResult.diagnostics);
 
@@ -106,7 +108,7 @@ function analyzeDocument(document: vscode.TextDocument) {
         }
     }
 
-    if (unreachableFrom !== null) {
+    if (config.unreachableCode && unreachableFrom !== null) {
         const unreachableDiagnostics = createUnreachableDiagnostics(lines, unreachableFrom);
         diagnostics.push(...unreachableDiagnostics);
     }

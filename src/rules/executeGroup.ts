@@ -13,6 +13,7 @@ export interface ExecuteGroup {
 interface ExecuteLine {
     lineIndex: number;
     fullLine: string;
+    tokens: string[];
 }
 
 export function findExecuteGroups(lines: string[]): ExecuteGroup[] {
@@ -24,37 +25,67 @@ export function findExecuteGroups(lines: string[]): ExecuteGroup[] {
         const trimmed = line.trim();
 
         if (trimmed === "" || trimmed.startsWith("#")) {
-            if (executeLines.length >= 2) {
-                const group = createGroupFromLines(executeLines);
-                if (group) {
-                    groups.push(group);
-                }
-            }
-            executeLines.length = 0;
             continue;
         }
 
         if (trimmed.startsWith("execute ")) {
-            executeLines.push({ lineIndex: i, fullLine: trimmed });
+            executeLines.push({
+                lineIndex: i,
+                fullLine: trimmed,
+                tokens: tokenizeExecuteNormalized(trimmed)
+            });
         } else {
             if (executeLines.length >= 2) {
-                const group = createGroupFromLines(executeLines);
-                if (group) {
-                    groups.push(group);
-                }
+                groups.push(...extractGroupsFromBlock(executeLines));
             }
             executeLines.length = 0;
         }
     }
 
     if (executeLines.length >= 2) {
-        const group = createGroupFromLines(executeLines);
-        if (group) {
-            groups.push(group);
-        }
+        groups.push(...extractGroupsFromBlock(executeLines));
     }
 
     return groups;
+}
+
+function extractGroupsFromBlock(lines: ExecuteLine[]): ExecuteGroup[] {
+    const results: ExecuteGroup[] = [];
+    if (lines.length < 2) {
+        return results;
+    }
+
+    let currentBatch: ExecuteLine[] = [lines[0]];
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Check if adding this line maintains a valid group
+        const testBatch = [...currentBatch, line];
+        const testTokens = testBatch.map(l => l.tokens);
+        const { commonPrefix } = findCommonExecutePrefix(testTokens);
+
+        if (commonPrefix !== null) {
+            currentBatch.push(line);
+        } else {
+            if (currentBatch.length >= 2) {
+                const group = createGroupFromLines(currentBatch);
+                if (group) {
+                    results.push(group);
+                }
+            }
+            currentBatch = [line];
+        }
+    }
+
+    if (currentBatch.length >= 2) {
+        const group = createGroupFromLines(currentBatch);
+        if (group) {
+            results.push(group);
+        }
+    }
+
+    return results;
 }
 
 const EXECUTE_SUBCOMMANDS = [
@@ -78,7 +109,7 @@ function createGroupFromLines(executeLines: ExecuteLine[]): ExecuteGroup | null 
         return null;
     }
 
-    const allTokens = executeLines.map((e) => tokenizeExecuteNormalized(e.fullLine));
+    const allTokens = executeLines.map(e => e.tokens);
     const { commonPrefix, commonTokenCount } = findCommonExecutePrefix(allTokens);
 
     if (!commonPrefix) {
@@ -127,19 +158,40 @@ function findCommonExecutePrefix(allTokens: string[][]): { commonPrefix: string 
         }
     }
 
-    if (commonLength < 2) {
-        return { commonPrefix: null, commonTokenCount: 0 };
+    while (commonLength > 0) {
+        const commonTokens = allTokens[0].slice(0, commonLength);
+        const lastRunIndex = findLastRunIndex(commonTokens);
+
+        if (lastRunIndex !== -1) {
+            const prefixTokens = commonTokens.slice(0, lastRunIndex + 1);
+            return { commonPrefix: prefixTokens.join(" ") + " ", commonTokenCount: lastRunIndex + 1 };
+        }
+
+        const validNextTokens = [...EXECUTE_SUBCOMMANDS, "run"];
+        let isValid = true;
+
+        for (const tokens of allTokens) {
+            if (tokens.length <= commonLength) {
+                isValid = false;
+                break;
+            }
+            const nextToken = tokens[commonLength];
+            if (!validNextTokens.includes(nextToken)) {
+                isValid = false;
+                break;
+            }
+        }
+
+        if (isValid) {
+            if (commonLength >= 2) {
+                return { commonPrefix: commonTokens.join(" ") + " ", commonTokenCount: commonLength };
+            }
+        }
+
+        commonLength--;
     }
 
-    const commonTokens = allTokens[0].slice(0, commonLength);
-    const lastRunIndex = findLastRunIndex(commonTokens);
-
-    if (lastRunIndex === -1) {
-        return { commonPrefix: null, commonTokenCount: 0 };
-    }
-
-    const prefixTokens = commonTokens.slice(0, lastRunIndex + 1);
-    return { commonPrefix: prefixTokens.join(" ") + " ", commonTokenCount: lastRunIndex + 1 };
+    return { commonPrefix: null, commonTokenCount: 0 };
 }
 
 function normalizeSelector(selector: string): string {

@@ -1,8 +1,14 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
+import { RuleConfig, getRuleConfig } from "../utils/config";
 
-export function checkReturnRunDuplicate(lineIndex: number, line: string): vscode.Diagnostic | null {
+export function checkReturnRunDuplicate(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic | null {
+    const effectiveConfig = config || getRuleConfig();
+    if (!effectiveConfig.returnRunDuplicate) {
+        return null;
+    }
+
     const trimmed = line.trim();
 
     const match = trimmed.match(/\breturn\s+run\s+.*\breturn\b/);
@@ -18,4 +24,3 @@ export function checkReturnRunDuplicate(lineIndex: number, line: string): vscode
 
     return null;
 }
-

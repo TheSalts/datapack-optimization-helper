@@ -2,12 +2,18 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 
+export interface FunctionCall {
+    functionName: string;
+    line: number;
+}
+
 export interface ScoreChange {
     target: string;
     objective: string;
     operation: "set" | "add" | "remove" | "reset" | "unknown";
     value: number | null;
     line: number;
+    isConditional: boolean;
 }
 
 export interface FunctionInfo {
@@ -15,7 +21,7 @@ export interface FunctionInfo {
     path: string;
     fullPath: string;
     filePath: string;
-    calls: string[];
+    calls: FunctionCall[];
     scoreChanges: ScoreChange[];
 }
 
@@ -25,8 +31,13 @@ interface DatapackRoot {
     functionsPath: string;
 }
 
+interface CallerInfo {
+    callerPath: string;
+    line: number;
+}
+
 let functionIndex: Map<string, FunctionInfo> = new Map();
-let callerGraph: Map<string, Set<string>> = new Map();
+let callerGraph: Map<string, CallerInfo[]> = new Map();
 let fileToFunction: Map<string, string> = new Map();
 let initialized = false;
 let indexing = false;
@@ -48,9 +59,9 @@ export function getFunctionInfoByFile(filePath: string): FunctionInfo | undefine
     return undefined;
 }
 
-export function getCallers(functionPath: string): string[] {
+export function getCallers(functionPath: string): CallerInfo[] {
     const callers = callerGraph.get(functionPath);
-    return callers ? Array.from(callers) : [];
+    return callers ? callers : [];
 }
 
 function normalizePath(p: string): string {
@@ -159,61 +170,69 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
 
             const functionMatch = trimmed.match(/\bfunction\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
             if (functionMatch) {
-                info.calls.push(functionMatch[1]);
+                info.calls.push({ functionName: functionMatch[1], line: i });
             }
 
             const setMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/ 
             );
             if (setMatch) {
+                const isConditional = trimmed.startsWith("execute");
                 info.scoreChanges.push({
                     target: setMatch[1],
                     objective: setMatch[2],
                     operation: "set",
                     value: parseInt(setMatch[3], 10),
                     line: i,
+                    isConditional,
                 });
                 continue;
             }
 
             const addMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/ 
             );
             if (addMatch) {
+                const isConditional = trimmed.startsWith("execute");
                 info.scoreChanges.push({
                     target: addMatch[2],
                     objective: addMatch[3],
                     operation: addMatch[1] as "add" | "remove",
                     value: parseInt(addMatch[4], 10),
                     line: i,
+                    isConditional,
                 });
                 continue;
             }
 
             const resetMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/ 
             );
             if (resetMatch) {
+                const isConditional = trimmed.startsWith("execute");
                 info.scoreChanges.push({
                     target: resetMatch[1],
                     objective: resetMatch[2] || "*",
                     operation: "reset",
                     value: null,
                     line: i,
+                    isConditional,
                 });
                 continue;
             }
 
             const operationMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/ 
             );
             if (operationMatch) {
+                const isConditional = trimmed.startsWith("execute");
                 info.scoreChanges.push({
                     target: operationMatch[1],
                     objective: operationMatch[2],
                     operation: "unknown",
                     value: null,
                     line: i,
+                    isConditional,
                 });
             }
         }
@@ -228,11 +247,12 @@ function buildCallerGraph() {
     callerGraph.clear();
 
     for (const [funcPath, info] of functionIndex) {
-        for (const calledFunc of info.calls) {
+        for (const call of info.calls) {
+            const calledFunc = call.functionName;
             if (!callerGraph.has(calledFunc)) {
-                callerGraph.set(calledFunc, new Set());
+                callerGraph.set(calledFunc, []);
             }
-            callerGraph.get(calledFunc)!.add(funcPath);
+            callerGraph.get(calledFunc)!.push({ callerPath: funcPath, line: call.line });
         }
     }
 }
@@ -271,10 +291,15 @@ export function reindexFile(filePath: string): void {
     if (existingFuncPath) {
         const oldInfo = functionIndex.get(existingFuncPath);
         if (oldInfo) {
-            for (const calledFunc of oldInfo.calls) {
-                const callers = callerGraph.get(calledFunc);
+            for (const call of oldInfo.calls) {
+                const callers = callerGraph.get(call.functionName);
                 if (callers) {
-                    callers.delete(existingFuncPath);
+                    const newCallers = callers.filter(c => c.callerPath !== existingFuncPath);
+                    if (newCallers.length === 0) {
+                        callerGraph.delete(call.functionName);
+                    } else {
+                        callerGraph.set(call.functionName, newCallers);
+                    }
                 }
             }
         }
@@ -291,11 +316,12 @@ export function reindexFile(filePath: string): void {
                 functionIndex.set(info.fullPath, info);
                 fileToFunction.set(normalizedPath, info.fullPath);
 
-                for (const calledFunc of info.calls) {
+                for (const call of info.calls) {
+                    const calledFunc = call.functionName;
                     if (!callerGraph.has(calledFunc)) {
-                        callerGraph.set(calledFunc, new Set());
+                        callerGraph.set(calledFunc, []);
                     }
-                    callerGraph.get(calledFunc)!.add(info.fullPath);
+                    callerGraph.get(calledFunc)!.push({ callerPath: info.fullPath, line: call.line });
                 }
             }
             break;
@@ -310,10 +336,15 @@ export function removeFileFromIndex(filePath: string): void {
     if (funcPath) {
         const info = functionIndex.get(funcPath);
         if (info) {
-            for (const calledFunc of info.calls) {
-                const callers = callerGraph.get(calledFunc);
+            for (const call of info.calls) {
+                const callers = callerGraph.get(call.functionName);
                 if (callers) {
-                    callers.delete(funcPath);
+                    const newCallers = callers.filter(c => c.callerPath !== funcPath);
+                    if (newCallers.length === 0) {
+                        callerGraph.delete(call.functionName);
+                    } else {
+                        callerGraph.set(call.functionName, newCallers);
+                    }
                 }
             }
         }
@@ -345,23 +376,40 @@ export function collectScoreStatesFromCallers(
         return result;
     }
 
-    for (const callerPath of callers) {
+    for (const caller of callers) {
+        const callerPath = caller.callerPath;
+        const callLine = caller.line;
         const callerInfo = functionIndex.get(callerPath);
-        if (!callerInfo) continue;
+        if (!callerInfo) {continue;}
 
         const parentStates = collectScoreStatesFromCallers(callerPath, new Set(visited));
 
         const stateMap: Map<string, ScoreState> = new Map();
 
         for (const [key, states] of parentStates) {
-            if (states.length === 1) {
-                stateMap.set(key, { ...states[0] });
+            if (states.length > 0) {
+                const firstVal = states[0].value;
+                if (states.every(s => s.value === firstVal)) {
+                     stateMap.set(key, { ...states[0] });
+                }
             }
         }
 
         for (const change of callerInfo.scoreChanges) {
+            // Apply changes ONLY up to the call line
+            if (change.line >= callLine) {break;}
+
             const key = `${change.target}:${change.objective}`;
             const existing = stateMap.get(key);
+
+            if (change.isConditional) {
+                stateMap.set(key, {
+                    target: change.target,
+                    objective: change.objective,
+                    value: null,
+                });
+                continue;
+            }
 
             if (change.operation === "set") {
                 stateMap.set(key, {
@@ -378,7 +426,7 @@ export function collectScoreStatesFromCallers(
                     for (const [k] of stateMap) {
                         if (k.startsWith(`${change.target}:`)) {
                             const s = stateMap.get(k);
-                            if (s) s.value = null;
+                            if (s) {s.value = null;}
                         }
                     }
                 } else {
@@ -409,7 +457,7 @@ export function getConsensusScoreStates(functionPath: string): Map<string, Score
     const consensus: Map<string, ScoreState> = new Map();
 
     for (const [key, states] of allStates) {
-        if (states.length === 0) continue;
+        if (states.length === 0) {continue;}
 
         const firstValue = states[0].value;
         const allSame = states.every((s) => s.value === firstValue);

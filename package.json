@@ -2,20 +2,18 @@
   "name": "datapack-optimization",
   "displayName": "Datapack Optimization Helper",
   "description": "An extension about datapack(mcfunction) optimization",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "publisher": "TheSalt",
   "repository": "https://github.com/TheSalts/datapack-optimization-helper",
   "icon": "image/icon.png",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Linters",
     "Programming Languages"
   ],
-  "activationEvents": [
-    "onLanguage:mcfunction"
-  ],
+  "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
@@ -39,23 +37,62 @@
           "items": {
             "type": "string",
             "enum": [
-              "targetSelector",
-              "targetSelectorTypeOrder",
-              "executeRedundant",
-              "executeRun",
-              "executeAsS",
-              "executeAtChain",
-              "executeReturn",
-              "executeAsIfEntity",
-              "returnRunDuplicate",
-              "scoreboardFakePlayer",
-              "executeGroup",
-              "unreachableCondition",
-              "nbtItems"
+              "always-pass-condition",
+              "execute-as-if-entity-s-convert",
+              "execute-as-if-entity-s-merge",
+              "execute-as-s-redundant",
+              "execute-duplicate",
+              "execute-group",
+              "execute-run-redundant",
+              "execute-run-redundant-run-execute",
+              "nbt-items-use-if-items",
+              "return-run-duplicate",
+              "scoreboard-fake-player-missing-hash",
+              "target-selector-no-dimension",
+              "target-selector-no-type",
+              "target-selector-type-order",
+              "unreachable-code",
+              "unreachable-condition"
+            ],
+            "markdownEnumDescriptions": [
+              "%config.rules.disabled.alwaysPassCondition.description%",
+              "%config.rules.disabled.executeAsIfEntitySConvert.description%",
+              "%config.rules.disabled.executeAsIfEntitySMerge.description%",
+              "%config.rules.disabled.executeAsSRedundant.description%",
+              "%config.rules.disabled.executeDuplicate.description%",
+              "%config.rules.disabled.executeGroup.description%",
+              "%config.rules.disabled.executeRunRedundant.description%",
+              "%config.rules.disabled.executeRunRedundantRunExecute.description%",
+              "%config.rules.disabled.nbtItemsUseIfItems.description%",
+              "%config.rules.disabled.returnRunDuplicate.description%",
+              "%config.rules.disabled.scoreboardFakePlayerMissingHash.description%",
+              "%config.rules.disabled.targetSelectorNoDimension.description%",
+              "%config.rules.disabled.targetSelectorNoType.description%",
+              "%config.rules.disabled.targetSelectorTypeOrder.description%",
+              "%config.rules.disabled.unreachableCode.description%",
+              "%config.rules.disabled.unreachableCondition.description%"
+            ],
+            "enumItemLabels": [
+              "%config.rules.disabled.alwaysPassCondition.label%",
+              "%config.rules.disabled.executeAsIfEntitySConvert.label%",
+              "%config.rules.disabled.executeAsIfEntitySMerge.label%",
+              "%config.rules.disabled.executeAsSRedundant.label%",
+              "%config.rules.disabled.executeDuplicate.label%",
+              "%config.rules.disabled.executeGroup.label%",
+              "%config.rules.disabled.executeRunRedundant.label%",
+              "%config.rules.disabled.executeRunRedundantRunExecute.label%",
+              "%config.rules.disabled.nbtItemsUseIfItems.label%",
+              "%config.rules.disabled.returnRunDuplicate.label%",
+              "%config.rules.disabled.scoreboardFakePlayerMissingHash.label%",
+              "%config.rules.disabled.targetSelectorNoDimension.label%",
+              "%config.rules.disabled.targetSelectorNoType.label%",
+              "%config.rules.disabled.targetSelectorTypeOrder.label%",
+              "%config.rules.disabled.unreachableCode.label%",
+              "%config.rules.disabled.unreachableCondition.label%"
             ]
           },
           "default": [
-            "targetSelectorTypeOrder"
+            "scoreboard-fake-player-missing-hash"
           ],
           "description": "Blacklist rules",
           "uniqueItems": true

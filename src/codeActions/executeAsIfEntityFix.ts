@@ -135,24 +135,3 @@ export function createExecuteAsIfEntitySConvertFix(
 
     return action;
 }
-
-export function createExecuteAsIfEntityRemoveAsFix(
-    document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic
-): vscode.CodeAction {
-    const action = new vscode.CodeAction(t("executeAsIfEntityRemoveAsFix"), vscode.CodeActionKind.QuickFix);
-    action.diagnostics = [diagnostic];
-
-    const line = document.lineAt(diagnostic.range.start.line).text;
-    let optimized = line.replace(/(?<!(positioned|rotated)\s)\bas\s+@[aepnrs](\[[^\]]*\])?\s*/, "");
-    optimized = optimized.replace(/\s+/g, " ").trim();
-
-    action.edit = new vscode.WorkspaceEdit();
-    action.edit.replace(
-        document.uri,
-        new vscode.Range(diagnostic.range.start.line, 0, diagnostic.range.start.line, line.length),
-        optimized
-    );
-
-    return action;
-}
