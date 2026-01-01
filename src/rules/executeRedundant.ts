@@ -11,9 +11,16 @@ interface ExecuteToken {
     range: vscode.Range;
 }
 
+type RedundancyReason = "duplicate" | "unnecessary";
+
+interface RedundantToken {
+    token: ExecuteToken;
+    reason: RedundancyReason;
+}
+
 export function checkExecuteRedundant(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
     const effectiveConfig = config || getRuleConfig();
-    if (!effectiveConfig.executeDuplicate) {
+    if (!effectiveConfig.executeDuplicate && !effectiveConfig.executeUnnecessary) {
         return [];
     }
 
@@ -28,13 +35,21 @@ export function checkExecuteRedundant(lineIndex: number, line: string, config?: 
 
     const diagnostics: vscode.Diagnostic[] = [];
     const tokens = parseExecuteTokens(lineIndex, line);
-    const duplicates = findRedundantSubcommands(tokens);
+    const redundants = findRedundantSubcommands(tokens);
 
-    for (const token of duplicates) {
-        const message = t("executeDuplicate");
+    for (const { token, reason } of redundants) {
+        if (reason === "duplicate" && !effectiveConfig.executeDuplicate) {
+            continue;
+        }
+        if (reason === "unnecessary" && !effectiveConfig.executeUnnecessary) {
+            continue;
+        }
+
+        const messageKey = reason === "duplicate" ? "executeDuplicate" : "executeUnnecessary";
+        const message = t(messageKey);
         const diagnostic = new vscode.Diagnostic(token.range, message, vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
-        diagnostic.code = "execute-duplicate";
+        diagnostic.code = reason === "duplicate" ? "execute-duplicate" : "execute-unnecessary";
         diagnostics.push(diagnostic);
     }
 
@@ -86,16 +101,20 @@ function parseExecuteTokens(lineIndex: number, line: string): ExecuteToken[] {
             }
 
             let argsEnd = argsStart;
-            while (argsEnd < words.length && !subcommands.includes(words[argsEnd].text) && words[argsEnd].text !== "run") {
+            while (
+                argsEnd < words.length &&
+                !subcommands.includes(words[argsEnd].text) &&
+                words[argsEnd].text !== "run"
+            ) {
                 argsEnd++;
             }
 
             const argTokens = words.slice(argsStart, argsEnd);
-            const args = argTokens.map(t => t.text).join(" ");
-            
+            const args = argTokens.map((t) => t.text).join(" ");
+
             // Calculate range
             const endChar = argTokens.length > 0 ? argTokens[argTokens.length - 1].end : words[i].end;
-            
+
             tokens.push({
                 subcommand,
                 args,
@@ -159,11 +178,50 @@ function tokenizeLine(line: string): TokenInfo[] {
     return tokens;
 }
 
-type StateComponent = 'executor' | 'position' | 'rotation' | 'dimension' | 'anchor';
+type StateComponent = "executor" | "position" | "rotation" | "dimension" | "anchor";
 
-function findRedundantSubcommands(tokens: ExecuteToken[]): ExecuteToken[] {
-    const redundantTokens: ExecuteToken[] = [];
-    const required = new Set<StateComponent>(['executor', 'position', 'rotation', 'dimension', 'anchor']);
+function getSubcommandSets(sub: string): StateComponent[] {
+    const sets: StateComponent[] = [];
+    switch (sub) {
+        case "as":
+            sets.push("executor");
+            break;
+        case "at":
+            sets.push("position", "rotation", "dimension");
+            break;
+        case "positioned":
+        case "positioned as":
+            sets.push("position");
+            break;
+        case "rotated":
+        case "rotated as":
+        case "facing":
+        case "facing entity":
+            sets.push("rotation");
+            break;
+        case "align":
+            sets.push("position");
+            break;
+        case "anchored":
+            sets.push("anchor");
+            break;
+        case "in":
+            sets.push("dimension");
+            break;
+        case "summon":
+            sets.push("executor", "position", "rotation", "dimension");
+            break;
+        case "on":
+            sets.push("executor");
+            break;
+    }
+    return sets;
+}
+
+function findRedundantSubcommands(tokens: ExecuteToken[]): RedundantToken[] {
+    const redundantTokens: RedundantToken[] = [];
+    const required = new Set<StateComponent>(["executor", "position", "rotation", "dimension", "anchor"]);
+    const seenSubcommands = new Set<string>();
 
     for (let i = tokens.length - 1; i >= 0; i--) {
         const token = tokens[i];
@@ -171,75 +229,49 @@ function findRedundantSubcommands(tokens: ExecuteToken[]): ExecuteToken[] {
         const args = token.args;
 
         const uses: StateComponent[] = [];
-        
+
         // Analyze usages
         if (args.includes("~")) {
-            uses.push('position');
+            uses.push("position");
         }
         if (args.includes("^")) {
-            uses.push('position', 'rotation');
+            uses.push("position", "rotation");
         }
         if (args.includes("@s")) {
-            uses.push('executor');
+            uses.push("executor");
         }
         if (
-            args.includes("@p") || 
-            args.includes("@n") || 
-            args.includes("@r") || 
+            args.includes("@p") ||
+            args.includes("@n") ||
+            args.includes("@r") ||
             args.match(/\bdistance=/) ||
             args.match(/\bd[xyz]=/) ||
+            args.match(/\b[xyz]=/) ||
             args.match(/\bsort=(nearest|furthest)/)
         ) {
-            uses.push('position', 'dimension');
+            uses.push("position", "dimension");
         }
 
         // Subcommand-specific usage
         if (sub === "facing entity") {
-            uses.push('position');
+            uses.push("position");
         } else if (sub === "align") {
-            uses.push('position');
+            uses.push("position");
         } else if (sub === "positioned as" || sub === "rotated as") {
-            uses.push('executor');
+            uses.push("executor");
         } else if (sub === "on") {
-            uses.push('executor');
+            uses.push("executor");
         }
 
         // Determine Provided Components (Sets)
-        const sets: StateComponent[] = [];
-        if (sub === "as") {
-            sets.push('executor');
-        } else if (sub === "at") {
-            sets.push('position', 'rotation', 'dimension');
-        } else if (sub === "positioned") {
-            sets.push('position');
-        } else if (sub === "positioned as") {
-            sets.push('position');
-        } else if (sub === "rotated") {
-            sets.push('rotation');
-        } else if (sub === "rotated as") {
-            sets.push('rotation');
-        } else if (sub === "facing") {
-            sets.push('rotation');
-        } else if (sub === "facing entity") {
-            sets.push('rotation');
-        } else if (sub === "align") {
-            sets.push('position');
-        } else if (sub === "anchored") {
-            sets.push('anchor');
-        } else if (sub === "in") {
-            sets.push('dimension');
-        } else if (sub === "summon") {
-            sets.push('executor', 'position', 'rotation', 'dimension');
-        } else if (sub === "on") {
-            sets.push('executor');
-        }
+        const sets = getSubcommandSets(sub);
 
         const isSetter = sets.length > 0;
         let isValid = !isSetter; // Non-setters are always valid
 
         if (isSetter) {
             // Valid if it provides at least one required component
-            if (sets.some(comp => required.has(comp))) {
+            if (sets.some((comp) => required.has(comp))) {
                 isValid = true;
             }
         }
@@ -254,28 +286,33 @@ function findRedundantSubcommands(tokens: ExecuteToken[]): ExecuteToken[] {
             for (const comp of uses) {
                 required.add(comp);
             }
+            seenSubcommands.add(sub);
         } else {
-            redundantTokens.push(token);
+            const reason: RedundancyReason = seenSubcommands.has(sub) ? "duplicate" : "unnecessary";
+            redundantTokens.push({ token, reason });
         }
     }
 
     return redundantTokens.reverse();
 }
 
-export function getOptimizedExecute(line: string, strategy: 'preserve-semantics' | 'remove' = 'preserve-semantics'): string | null {
+export function getOptimizedExecute(
+    line: string,
+    strategy: "preserve-semantics" | "remove" = "preserve-semantics"
+): string | null {
     const tokens = parseExecuteTokens(0, line);
-    const duplicates = findRedundantSubcommands(tokens);
-    
-    if (duplicates.length === 0) {
+    const redundants = findRedundantSubcommands(tokens);
+
+    if (redundants.length === 0) {
         return null;
     }
 
-    const redundantIndices = new Set(duplicates.map(t => t.index));
+    const redundantIndices = new Set(redundants.map((r) => r.token.index));
     const newTokens: string[] = [];
 
     for (const token of tokens) {
         if (redundantIndices.has(token.index)) {
-            if (strategy === 'preserve-semantics') {
+            if (strategy === "preserve-semantics") {
                 const sub = token.subcommand;
                 let selector = "";
 
@@ -294,9 +331,9 @@ export function getOptimizedExecute(line: string, strategy: 'preserve-semantics'
             newTokens.push(token.raw);
         }
     }
-    
+
     const runMatch = line.match(/\s+run\s+(.+)$/);
     const runPart = runMatch ? ` run ${runMatch[1]}` : "";
-    
+
     return `execute ${newTokens.join(" ")}${runPart}`;
 }

@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.5
+
+Fixed [Incorrect warning with execute in](https://github.com/TheSalts/datapack-optimization-helper/issues/2)
+
 ## 1.0.4
 
 ### Features
@@ -30,4 +34,4 @@ Edited README
 
 ## 1.0.0
 
-first init
+first release

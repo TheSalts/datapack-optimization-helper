@@ -15,6 +15,8 @@
     "config.rules.disabled.executeRunRedundant.label": "불필요한 'execute run'",
     "config.rules.disabled.executeRunRedundantRunExecute.description": "불필요한 'run execute'",
     "config.rules.disabled.executeRunRedundantRunExecute.label": "불필요한 'run execute'",
+    "config.rules.disabled.executeUnnecessary.description": "불필요한 'execute' 서브커맨드",
+    "config.rules.disabled.executeUnnecessary.label": "불필요한 'execute' 서브커맨드",
     "config.rules.disabled.nbtItemsUseIfItems.description": "아이템 nbt 대신 'if items' 구문 사용 권장",
     "config.rules.disabled.nbtItemsUseIfItems.label": "'if items' 사용",
     "config.rules.disabled.returnRunDuplicate.description": "중복된 'return' 구문",

@@ -3,7 +3,7 @@ import { DIAGNOSTIC_SOURCE } from "../constants";
 import { createRemoveUnreachableFix } from "./unreachableFix";
 import { createTargetSelectorNoDimensionFix, createTargetSelectorTypeOrderFix } from "./targetSelectorFix";
 import { createExecuteGroupFix } from "./executeGroupFix";
-import { createExecuteDuplicateFix } from "./executeRedundantFix";
+import { createExecuteDuplicateFix, createExecuteUnnecessaryFix } from "./executeRedundantFix";
 import { createExecuteRunRedundantFix, createExecuteRunRedundantNestedFix, createExecuteRunRedundantRunExecuteFix } from "./executeRunFix";
 import { createExecuteAsSRedundantFix } from "./executeAsSFix";
 import { createExecuteAsIfEntitySMergeFix, createExecuteAsIfEntitySConvertFix } from "./executeAsIfEntityFix";
@@ -58,6 +58,8 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
                 return createExecuteRunRedundantRunExecuteFix(document, diagnostic);
             case "execute-duplicate":
                 return createExecuteDuplicateFix(document, diagnostic);
+            case "execute-unnecessary":
+                return createExecuteUnnecessaryFix(document, diagnostic);
             case "execute-as-s-redundant":
                 return createExecuteAsSRedundantFix(document, diagnostic);
             case "execute-as-if-entity-s-merge":

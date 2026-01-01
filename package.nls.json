@@ -15,6 +15,8 @@
     "config.rules.disabled.executeRunRedundant.label": "Redundant 'execute run'",
     "config.rules.disabled.executeRunRedundantRunExecute.description": "Redundant 'run execute'",
     "config.rules.disabled.executeRunRedundantRunExecute.label": "Redundant 'run execute'",
+    "config.rules.disabled.executeUnnecessary.description": "Unnecessary 'execute' subcommands",
+    "config.rules.disabled.executeUnnecessary.label": "Unnecessary Subcommand",
     "config.rules.disabled.nbtItemsUseIfItems.description": "Recommend using 'if items' instead of item nbt",
     "config.rules.disabled.nbtItemsUseIfItems.label": "Use 'if items'",
     "config.rules.disabled.returnRunDuplicate.description": "Duplicate 'return run'",

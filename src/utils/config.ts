@@ -1,48 +1,42 @@
 import * as vscode from "vscode";
 
 export type RuleName =
-    | "target-selector-type-order"
-    | "execute-group"
-    | "unreachable-condition"
     | "always-pass-condition"
-    | "unreachable-code"
-    | "target-selector-no-type"
-    | "target-selector-no-dimension"
-    | "execute-run-redundant"
-    | "execute-duplicate"
-    | "execute-as-s-redundant"
-    | "execute-as-if-entity-s-merge"
     | "execute-as-if-entity-s-convert"
-    | "return-run-duplicate"
+    | "execute-as-if-entity-s-merge"
+    | "execute-as-s-redundant"
+    | "execute-duplicate"
+    | "execute-group"
+    | "execute-run-redundant"
     | "execute-run-redundant-run-execute"
+    | "execute-unnecessary"
+    | "nbt-items-use-if-items"
+    | "return-run-duplicate"
     | "scoreboard-fake-player-missing-hash"
-    | "nbt-items-use-if-items";
+    | "target-selector-no-dimension"
+    | "target-selector-no-type"
+    | "target-selector-type-order"
+    | "unreachable-code"
+    | "unreachable-condition";
 
 export interface RuleConfig {
-    // Individual Rules
-    targetSelectorNoType: boolean;
-    targetSelectorNoDimension: boolean;
-    targetSelectorTypeOrder: boolean;
-    
+    alwaysPassCondition: boolean;
+    executeAsIfEntitySConvert: boolean;
+    executeAsIfEntitySMerge: boolean;
+    executeAsSRedundant: boolean;
     executeDuplicate: boolean;
-    
+    executeGroup: boolean;
     executeRunRedundant: boolean;
     executeRunRedundantRunExecute: boolean;
-    
-    executeAsSRedundant: boolean;
-    
-    executeAsIfEntitySMerge: boolean;
-    executeAsIfEntitySConvert: boolean;
-    
-    scoreboardFakePlayerMissingHash: boolean;
+    executeUnnecessary: boolean;
     nbtItemsUseIfItems: boolean;
-    
-    executeGroup: boolean;
-    unreachableCondition: boolean;
-    alwaysPassCondition: boolean;
-    unreachableCode: boolean;
-    
     returnRunDuplicate: boolean;
+    scoreboardFakePlayerMissingHash: boolean;
+    targetSelectorNoDimension: boolean;
+    targetSelectorNoType: boolean;
+    targetSelectorTypeOrder: boolean;
+    unreachableCode: boolean;
+    unreachableCondition: boolean;
 }
 
 export function getRuleConfig(): RuleConfig {
@@ -51,28 +45,22 @@ export function getRuleConfig(): RuleConfig {
     const disabledSet = new Set(disabledRules);
 
     return {
-        targetSelectorNoType: !disabledSet.has("target-selector-no-type"),
-        targetSelectorNoDimension: !disabledSet.has("target-selector-no-dimension"),
-        targetSelectorTypeOrder: !disabledSet.has("target-selector-type-order"),
-
+        alwaysPassCondition: !disabledSet.has("always-pass-condition"),
+        executeAsIfEntitySConvert: !disabledSet.has("execute-as-if-entity-s-convert"),
+        executeAsIfEntitySMerge: !disabledSet.has("execute-as-if-entity-s-merge"),
+        executeAsSRedundant: !disabledSet.has("execute-as-s-redundant"),
         executeDuplicate: !disabledSet.has("execute-duplicate"),
-
+        executeGroup: !disabledSet.has("execute-group"),
         executeRunRedundant: !disabledSet.has("execute-run-redundant"),
         executeRunRedundantRunExecute: !disabledSet.has("execute-run-redundant-run-execute"),
-
-        executeAsSRedundant: !disabledSet.has("execute-as-s-redundant"),
-
-        executeAsIfEntitySMerge: !disabledSet.has("execute-as-if-entity-s-merge"),
-        executeAsIfEntitySConvert: !disabledSet.has("execute-as-if-entity-s-convert"),
-
-        scoreboardFakePlayerMissingHash: !disabledSet.has("scoreboard-fake-player-missing-hash"),
+        executeUnnecessary: !disabledSet.has("execute-unnecessary"),
         nbtItemsUseIfItems: !disabledSet.has("nbt-items-use-if-items"),
-
-        executeGroup: !disabledSet.has("execute-group"),
-        unreachableCondition: !disabledSet.has("unreachable-condition"),
-        alwaysPassCondition: !disabledSet.has("always-pass-condition"),
-        unreachableCode: !disabledSet.has("unreachable-code"),
-        
         returnRunDuplicate: !disabledSet.has("return-run-duplicate"),
+        scoreboardFakePlayerMissingHash: !disabledSet.has("scoreboard-fake-player-missing-hash"),
+        targetSelectorNoDimension: !disabledSet.has("target-selector-no-dimension"),
+        targetSelectorNoType: !disabledSet.has("target-selector-no-type"),
+        targetSelectorTypeOrder: !disabledSet.has("target-selector-type-order"),
+        unreachableCode: !disabledSet.has("unreachable-code"),
+        unreachableCondition: !disabledSet.has("unreachable-condition"),
     };
 }
