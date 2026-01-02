@@ -32,7 +32,7 @@ export function findExecuteGroups(lines: string[]): ExecuteGroup[] {
             executeLines.push({
                 lineIndex: i,
                 fullLine: trimmed,
-                tokens: tokenizeExecuteNormalized(trimmed)
+                tokens: tokenizeExecuteNormalized(trimmed),
             });
         } else {
             if (executeLines.length >= 2) {
@@ -59,10 +59,10 @@ function extractGroupsFromBlock(lines: ExecuteLine[]): ExecuteGroup[] {
 
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
-        
+
         // Check if adding this line maintains a valid group
         const testBatch = [...currentBatch, line];
-        const testTokens = testBatch.map(l => l.tokens);
+        const testTokens = testBatch.map((l) => l.tokens);
         const { commonPrefix } = findCommonExecutePrefix(testTokens);
 
         if (commonPrefix !== null) {
@@ -109,7 +109,7 @@ function createGroupFromLines(executeLines: ExecuteLine[]): ExecuteGroup | null 
         return null;
     }
 
-    const allTokens = executeLines.map(e => e.tokens);
+    const allTokens = executeLines.map((e) => e.tokens);
     const { commonPrefix, commonTokenCount } = findCommonExecutePrefix(allTokens);
 
     if (!commonPrefix) {
@@ -183,7 +183,18 @@ function findCommonExecutePrefix(allTokens: string[][]): { commonPrefix: string 
         }
 
         if (isValid) {
-            if (commonLength >= 2) {
+            const lastToken = commonTokens[commonTokens.length - 1];
+            if (lastToken === "positioned" || lastToken === "rotated") {
+                const nextTokens = allTokens.map((tokens) => tokens[commonLength]);
+                if (nextTokens.every((t) => t === "as")) {
+                    const selectorTokens = allTokens.map((tokens) => tokens[commonLength + 1]);
+                    if (!selectorTokens.every((t) => t === selectorTokens[0])) {
+                        isValid = false;
+                    }
+                }
+            }
+
+            if (isValid && commonLength >= 2) {
                 return { commonPrefix: commonTokens.join(" ") + " ", commonTokenCount: commonLength };
             }
         }
