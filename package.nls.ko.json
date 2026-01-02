@@ -1,4 +1,5 @@
 {
+    "config.rules.disabled.description": "제외할 검사 규칙들을 설정합니다",
     "config.rules.disabled.alwaysPassCondition.description": "조건이 항상 통과함",
     "config.rules.disabled.alwaysPassCondition.label": "항상 통과하는 조건",
     "config.rules.disabled.executeAsIfEntitySConvert.description": "'if entity'를 'as'로 병합하여 최적화 가능",

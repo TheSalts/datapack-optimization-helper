@@ -7,7 +7,7 @@
   "repository": "https://github.com/TheSalts/datapack-optimization-helper",
   "icon": "image/icon.png",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.89.0"
   },
   "categories": [
     "Linters",
@@ -30,7 +30,7 @@
       }
     ],
     "configuration": {
-      "title": "Datapack Optimization",
+      "title": "Datapack Optimization Helper",
       "properties": {
         "datapackOptimization.rules.disabled": {
           "type": "array",
@@ -55,25 +55,6 @@
               "unreachable-code",
               "unreachable-condition"
             ],
-            "markdownEnumDescriptions": [
-              "%config.rules.disabled.alwaysPassCondition.description%",
-              "%config.rules.disabled.executeAsIfEntitySConvert.description%",
-              "%config.rules.disabled.executeAsIfEntitySMerge.description%",
-              "%config.rules.disabled.executeAsSRedundant.description%",
-              "%config.rules.disabled.executeDuplicate.description%",
-              "%config.rules.disabled.executeGroup.description%",
-              "%config.rules.disabled.executeRunRedundant.description%",
-              "%config.rules.disabled.executeRunRedundantRunExecute.description%",
-              "%config.rules.disabled.executeUnnecessary.description%",
-              "%config.rules.disabled.nbtItemsUseIfItems.description%",
-              "%config.rules.disabled.returnRunDuplicate.description%",
-              "%config.rules.disabled.scoreboardFakePlayerMissingHash.description%",
-              "%config.rules.disabled.targetSelectorNoDimension.description%",
-              "%config.rules.disabled.targetSelectorNoType.description%",
-              "%config.rules.disabled.targetSelectorTypeOrder.description%",
-              "%config.rules.disabled.unreachableCode.description%",
-              "%config.rules.disabled.unreachableCondition.description%"
-            ],
             "enumItemLabels": [
               "%config.rules.disabled.alwaysPassCondition.label%",
               "%config.rules.disabled.executeAsIfEntitySConvert.label%",
@@ -92,12 +73,31 @@
               "%config.rules.disabled.targetSelectorTypeOrder.label%",
               "%config.rules.disabled.unreachableCode.label%",
               "%config.rules.disabled.unreachableCondition.label%"
+            ],
+            "markdownEnumDescriptions": [
+              "%config.rules.disabled.alwaysPassCondition.description%",
+              "%config.rules.disabled.executeAsIfEntitySConvert.description%",
+              "%config.rules.disabled.executeAsIfEntitySMerge.description%",
+              "%config.rules.disabled.executeAsSRedundant.description%",
+              "%config.rules.disabled.executeDuplicate.description%",
+              "%config.rules.disabled.executeGroup.description%",
+              "%config.rules.disabled.executeRunRedundant.description%",
+              "%config.rules.disabled.executeRunRedundantRunExecute.description%",
+              "%config.rules.disabled.executeUnnecessary.description%",
+              "%config.rules.disabled.nbtItemsUseIfItems.description%",
+              "%config.rules.disabled.returnRunDuplicate.description%",
+              "%config.rules.disabled.scoreboardFakePlayerMissingHash.description%",
+              "%config.rules.disabled.targetSelectorNoDimension.description%",
+              "%config.rules.disabled.targetSelectorNoType.description%",
+              "%config.rules.disabled.targetSelectorTypeOrder.description%",
+              "%config.rules.disabled.unreachableCode.description%",
+              "%config.rules.disabled.unreachableCondition.description%"
             ]
           },
           "default": [
             "scoreboard-fake-player-missing-hash"
           ],
-          "description": "Blacklist rules",
+          "description": "%config.rules.disabled.description%",
           "uniqueItems": true
         }
       }

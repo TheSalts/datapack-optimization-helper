@@ -1,4 +1,5 @@
 {
+    "config.rules.disabled.description": "Blacklist Rules",
     "config.rules.disabled.alwaysPassCondition.description": "Always Pass Condition Check",
     "config.rules.disabled.alwaysPassCondition.label": "Always Pass Condition",
     "config.rules.disabled.executeAsIfEntitySConvert.description": "Merge 'if entity' into 'as' for optimization",
