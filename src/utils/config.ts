@@ -64,3 +64,13 @@ export function getRuleConfig(): RuleConfig {
         unreachableCondition: !disabledSet.has("unreachable-condition"),
     };
 }
+
+export function getExecuteGroupOutputPath(): string {
+    const config = vscode.workspace.getConfiguration("datapackOptimization");
+    return config.get<string>("executeGroup.outputPath", "{dir}");
+}
+
+export function getExecuteGroupOutputName(): string {
+    const config = vscode.workspace.getConfiguration("datapackOptimization");
+    return config.get<string>("executeGroup.outputName", "{name}_line_{line}");
+}

@@ -1,4 +1,6 @@
 {
+    "config.executeGroup.outputPath.markdownDescription": "함수 그룹화 (빠른 수정) 시 설정할 경로입니다.\n\n**변수:**\n- `{root}`: `data/<namespace>/function(s)/` 폴더\n- `{dir}`: 현재 파일이 위치한 폴더",
+    "config.executeGroup.outputName.markdownDescription": "함수 그룹화 (빠른 수정) 시 설정할 파일명입니다.\n\n**변수:**\n- `{name}`: 현재 파일명\n- `{line}`: 라인 번호",
     "config.rules.disabled.description": "제외할 검사 규칙들을 설정합니다",
     "config.rules.disabled.alwaysPassCondition.description": "조건이 항상 통과함",
     "config.rules.disabled.alwaysPassCondition.label": "항상 통과하는 조건",

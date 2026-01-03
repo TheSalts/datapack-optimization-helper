@@ -2,7 +2,7 @@
   "name": "datapack-optimization",
   "displayName": "Datapack Optimization Helper",
   "description": "An extension for datapack(mcfunction) optimization",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "publisher": "TheSalt",
   "repository": "https://github.com/TheSalts/datapack-optimization-helper",
   "icon": "image/icon.png",
@@ -99,6 +99,16 @@
           ],
           "description": "%config.rules.disabled.description%",
           "uniqueItems": true
+        },
+        "datapackOptimization.executeGroup.outputPath": {
+          "type": "string",
+          "default": "{dir}",
+          "markdownDescription": "%config.executeGroup.outputPath.markdownDescription%"
+        },
+        "datapackOptimization.executeGroup.outputName": {
+          "type": "string",
+          "default": "{name}_line_{line}",
+          "markdownDescription": "%config.executeGroup.outputName.markdownDescription%"
         }
       }
     }

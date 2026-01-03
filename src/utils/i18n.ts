@@ -17,9 +17,11 @@ type MessageKey =
     | "executeDuplicate"
     | "executeDuplicateFix"
     | "executeDuplicateRemoveFix"
+    | "executeDuplicateFixNoSelector"
     | "executeUnnecessary"
     | "executeUnnecessaryFix"
     | "executeUnnecessaryRemoveFix"
+    | "executeUnnecessaryFixNoSelector"
     | "executeAsSRedundant"
     | "executeAsSRedundantFix"
     | "executeAtChainRedundant"
@@ -62,7 +64,11 @@ function getLanguage(): string {
 function getMessage(key: string, lang: string): string {
     const data = messages[lang];
 
-    if (key.endsWith("Fix")) {
+    // Handle fix keys: executeDuplicateFix, executeDuplicateRemoveFix, executeDuplicateFixNoSelector, etc.
+    if (key.includes("Fix")) {
+        // executeDuplicateFixNoSelector -> executeDuplicateNoSelector
+        // executeDuplicateFix -> executeDuplicate
+        // executeDuplicateRemoveFix -> executeDuplicateRemove
         const baseKey = key.replace("Fix", "");
         return data.fix[baseKey] || "";
     }

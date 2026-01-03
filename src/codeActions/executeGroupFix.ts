@@ -4,6 +4,7 @@ import * as fs from "fs";
 import { t } from "../utils/i18n";
 import { findExecuteGroups } from "../rules/executeGroup";
 import { getPackFormat } from "../utils/packMeta";
+import { getExecuteGroupOutputPath, getExecuteGroupOutputName } from "../utils/config";
 
 export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic: vscode.Diagnostic): vscode.CodeAction {
     const action = new vscode.CodeAction(t("executeGroupFix"), vscode.CodeActionKind.QuickFix);
@@ -20,18 +21,19 @@ export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic:
     }
 
     const filePath = document.uri.fsPath;
-    const dirPath = path.dirname(filePath);
+    const currentDir = path.dirname(filePath);
     const baseFileName = path.basename(filePath, ".mcfunction");
 
-    const newFunctionName = findAvailableName(dirPath, baseFileName, group.startLine);
-    const newFilePath = path.join(dirPath, `${newFunctionName}.mcfunction`);
+    const outputPath = resolveOutputPath(filePath, currentDir);
+    const newFunctionName = findAvailableName(outputPath, baseFileName, group.startLine);
+    const newFilePath = path.join(outputPath, `${newFunctionName}.mcfunction`);
     const newFileUri = vscode.Uri.file(newFilePath);
 
-    const { namespace, functionPath } = extractNamespaceAndPath(filePath);
+    const { namespace, functionPath } = extractNamespaceAndPath(newFilePath);
     const newFunctionRef = namespace ? `${namespace}:${functionPath}${newFunctionName}` : `pack:${newFunctionName}`;
 
     const newFileContent = group.suffixes.join("\n") + "\n";
-    
+
     let prefix = group.commonPrefix;
     if (!prefix.trim().endsWith("run")) {
         prefix += "run ";
@@ -66,8 +68,37 @@ export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic:
     return action;
 }
 
+function resolveOutputPath(filePath: string, currentDir: string): string {
+    const template = getExecuteGroupOutputPath();
+
+    if (template === "{dir}") {
+        return currentDir;
+    }
+
+    const normalized = filePath.replace(/\\/g, "/");
+    const packFormat = getPackFormat();
+    const functionsFolder = packFormat !== null && packFormat < 32 ? "functions" : "function";
+
+    // Find root (data/<namespace>/function(s)/)
+    const match = normalized.match(new RegExp(`(.*?/data/[^/]+/${functionsFolder})/`));
+    const rootPath = match ? match[1].replace(/\//g, path.sep) : currentDir;
+
+    let resolved = template.replace(/\{root\}/g, rootPath).replace(/\{dir\}/g, currentDir);
+
+    // Ensure directory exists
+    if (!fs.existsSync(resolved)) {
+        fs.mkdirSync(resolved, { recursive: true });
+    }
+
+    return resolved;
+}
+
 function findAvailableName(dirPath: string, baseFileName: string, startLine: number): string {
-    const baseName = `${baseFileName}_line_${startLine}`;
+    const template = getExecuteGroupOutputName();
+    const lineNumber = startLine + 1; // Convert 0-based to 1-based
+
+    const baseName = template.replace(/\{name\}/g, baseFileName).replace(/\{line\}/g, String(lineNumber));
+
     let candidate = baseName;
     let counter = 1;
 

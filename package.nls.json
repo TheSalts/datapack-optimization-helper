@@ -1,4 +1,6 @@
 {
+    "config.executeGroup.outputPath.markdownDescription": "Output path for grouped functions (Quick fix)\n\n**Variables:**\n- `{root}`: `data/<namespace>/function(s)/` folder\n- `{dir}`: Current file's directory",
+    "config.executeGroup.outputName.markdownDescription": "Output file name for grouped functions (Quick fix)\n\n**Variables:**\n- `{name}`: Current file name\n- `{line}`: Line number",
     "config.rules.disabled.description": "Blacklist Rules",
     "config.rules.disabled.alwaysPassCondition.description": "Always Pass Condition Check",
     "config.rules.disabled.alwaysPassCondition.label": "Always Pass Condition",
