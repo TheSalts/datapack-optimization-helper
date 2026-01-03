@@ -2,6 +2,8 @@
 
 ## 1.0.7
 
+Added configuration options for function grouping quick fix
+
 Fixed [`positioned` subproperties are considered duplicates for `execute-duplicate`](https://github.com/TheSalts/datapack-optimization-helper/issues/4)
 
 ## 1.0.6
