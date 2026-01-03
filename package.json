@@ -2,7 +2,7 @@
   "name": "datapack-optimization",
   "displayName": "Datapack Optimization Helper",
   "description": "An extension for datapack(mcfunction) optimization",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "publisher": "TheSalt",
   "repository": "https://github.com/TheSalts/datapack-optimization-helper",
   "icon": "image/icon.png",

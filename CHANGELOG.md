@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.9
+
+Added Function References feature
+
+Fixed [Scoreboard tracking is broken when using function with `execute if/unless`](https://github.com/TheSalts/datapack-optimization-helper/issues/5)
+
 ## 1.0.8
 
 Fixed README images

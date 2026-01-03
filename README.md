@@ -6,9 +6,13 @@ Vscode Extension for minecraft datapack optimization.
 
 ![Example](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/codes.png)
 
-1. Add lint warnings for optimizations
+-   Add lint warnings for optimizations
 
-2. Add some quick fixes
+-   Add some quick fixes
+
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/func_ref.png)
+
+-   Show function references with CodeLens
 
 ## Configuration
 
