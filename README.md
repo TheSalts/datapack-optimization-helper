@@ -14,19 +14,19 @@ Vscode Extension for minecraft datapack optimization.
 
 ### Disable Rules
 
-[image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/disable_rule.png)
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/disable_rule.png)
 
 default: `scoreboard-fake-player-missing-hash`
 
 ### Output path for function grouping
 
-[image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/output_path.png)
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/output_path.png)
 
 default: `{dir}`
 
 ### Output name for function grouping
 
-[image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/output_name.png)
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/output_name.png)
 
 default: `{name}_line_{line}`
 
