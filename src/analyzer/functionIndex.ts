@@ -5,6 +5,7 @@ import * as fs from "fs";
 export interface FunctionCall {
     functionName: string;
     line: number;
+    isConditional: boolean;
 }
 
 export interface ScoreChange {
@@ -34,6 +35,7 @@ interface DatapackRoot {
 interface CallerInfo {
     callerPath: string;
     line: number;
+    isConditional: boolean;
 }
 
 let functionIndex: Map<string, FunctionInfo> = new Map();
@@ -170,11 +172,16 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
 
             const functionMatch = trimmed.match(/\bfunction\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
             if (functionMatch) {
-                info.calls.push({ functionName: functionMatch[1], line: i });
+                const isConditionalCall =
+                    trimmed.startsWith("execute") &&
+                    (/\b(if|unless)\b/.test(trimmed) ||
+                        /\bon\s/.test(trimmed) ||
+                        /\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed));
+                info.calls.push({ functionName: functionMatch[1], line: i, isConditional: isConditionalCall });
             }
 
             const setMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/ 
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/
             );
             if (setMatch) {
                 const isConditional = trimmed.startsWith("execute");
@@ -190,7 +197,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
             }
 
             const addMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/ 
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/
             );
             if (addMatch) {
                 const isConditional = trimmed.startsWith("execute");
@@ -206,7 +213,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
             }
 
             const resetMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/ 
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/
             );
             if (resetMatch) {
                 const isConditional = trimmed.startsWith("execute");
@@ -222,7 +229,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
             }
 
             const operationMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/ 
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/
             );
             if (operationMatch) {
                 const isConditional = trimmed.startsWith("execute");
@@ -252,7 +259,9 @@ function buildCallerGraph() {
             if (!callerGraph.has(calledFunc)) {
                 callerGraph.set(calledFunc, []);
             }
-            callerGraph.get(calledFunc)!.push({ callerPath: funcPath, line: call.line });
+            callerGraph
+                .get(calledFunc)!
+                .push({ callerPath: funcPath, line: call.line, isConditional: call.isConditional });
         }
     }
 }
@@ -294,7 +303,7 @@ export function reindexFile(filePath: string): void {
             for (const call of oldInfo.calls) {
                 const callers = callerGraph.get(call.functionName);
                 if (callers) {
-                    const newCallers = callers.filter(c => c.callerPath !== existingFuncPath);
+                    const newCallers = callers.filter((c) => c.callerPath !== existingFuncPath);
                     if (newCallers.length === 0) {
                         callerGraph.delete(call.functionName);
                     } else {
@@ -321,7 +330,9 @@ export function reindexFile(filePath: string): void {
                     if (!callerGraph.has(calledFunc)) {
                         callerGraph.set(calledFunc, []);
                     }
-                    callerGraph.get(calledFunc)!.push({ callerPath: info.fullPath, line: call.line });
+                    callerGraph
+                        .get(calledFunc)!
+                        .push({ callerPath: info.fullPath, line: call.line, isConditional: call.isConditional });
                 }
             }
             break;
@@ -339,7 +350,7 @@ export function removeFileFromIndex(filePath: string): void {
             for (const call of info.calls) {
                 const callers = callerGraph.get(call.functionName);
                 if (callers) {
-                    const newCallers = callers.filter(c => c.callerPath !== funcPath);
+                    const newCallers = callers.filter((c) => c.callerPath !== funcPath);
                     if (newCallers.length === 0) {
                         callerGraph.delete(call.functionName);
                     } else {
@@ -377,10 +388,15 @@ export function collectScoreStatesFromCallers(
     }
 
     for (const caller of callers) {
+        if (caller.isConditional) {
+            continue;
+        }
         const callerPath = caller.callerPath;
         const callLine = caller.line;
         const callerInfo = functionIndex.get(callerPath);
-        if (!callerInfo) {continue;}
+        if (!callerInfo) {
+            continue;
+        }
 
         const parentStates = collectScoreStatesFromCallers(callerPath, new Set(visited));
 
@@ -389,15 +405,17 @@ export function collectScoreStatesFromCallers(
         for (const [key, states] of parentStates) {
             if (states.length > 0) {
                 const firstVal = states[0].value;
-                if (states.every(s => s.value === firstVal)) {
-                     stateMap.set(key, { ...states[0] });
+                if (states.every((s) => s.value === firstVal)) {
+                    stateMap.set(key, { ...states[0] });
                 }
             }
         }
 
         for (const change of callerInfo.scoreChanges) {
             // Apply changes ONLY up to the call line
-            if (change.line >= callLine) {break;}
+            if (change.line >= callLine) {
+                break;
+            }
 
             const key = `${change.target}:${change.objective}`;
             const existing = stateMap.get(key);
@@ -426,7 +444,9 @@ export function collectScoreStatesFromCallers(
                     for (const [k] of stateMap) {
                         if (k.startsWith(`${change.target}:`)) {
                             const s = stateMap.get(k);
-                            if (s) {s.value = null;}
+                            if (s) {
+                                s.value = null;
+                            }
                         }
                     }
                 } else {
@@ -457,7 +477,9 @@ export function getConsensusScoreStates(functionPath: string): Map<string, Score
     const consensus: Map<string, ScoreState> = new Map();
 
     for (const [key, states] of allStates) {
-        if (states.length === 0) {continue;}
+        if (states.length === 0) {
+            continue;
+        }
 
         const firstValue = states[0].value;
         const allSame = states.every((s) => s.value === firstValue);

@@ -60,6 +60,49 @@ function isConditionUnreachable(state: ScoreState, condType: string, rangeStr: s
     return false;
 }
 
+function isConditionAlwaysTrue(state: ScoreState, condType: string, rangeStr: string): boolean {
+    if (state.type !== "known" || state.value === null) {
+        return false;
+    }
+
+    const range = parseRange(rangeStr);
+    const matches = matchesRange(state.value, range);
+    return condType === "if" ? matches : !matches;
+}
+
+function isExecuteConditional(trimmed: string, scoreStates: Map<string, ScoreState>): boolean {
+    if (!trimmed.startsWith("execute")) {
+        return false;
+    }
+
+    if (/\bon\s/.test(trimmed)) {
+        return true;
+    }
+
+    if (/\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed)) {
+        return true;
+    }
+
+    if (/\b(if|unless)\s+(?!score\b)/.test(trimmed)) {
+        return true;
+    }
+
+    if (/\b(if|unless)\s+score\b/.test(trimmed)) {
+        const scoreCondRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
+        let condMatch;
+        while ((condMatch = scoreCondRegex.exec(trimmed)) !== null) {
+            const [, condType, target, objective, rangeStr] = condMatch;
+            const key = `${target}:${objective}`;
+            const state = scoreStates.get(key);
+            if (!state || !isConditionAlwaysTrue(state, condType, rangeStr)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 function applyScoreChange(
     scoreStates: Map<string, ScoreState>,
     change: { target: string; objective: string; operation: string; value: number | null; isConditional: boolean },
@@ -327,8 +370,9 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
         if (functionMatch && isIndexInitialized()) {
             const calledFuncInfo = getFunctionInfo(functionMatch[1]);
             if (calledFuncInfo) {
+                const isConditionalCall = isExecuteConditional(trimmed, scoreStates);
                 for (const change of calledFuncInfo.scoreChanges) {
-                    applyScoreChange(scoreStates, change, i);
+                    applyScoreChange(scoreStates, isConditionalCall ? { ...change, isConditional: true } : change, i);
                 }
             }
         } else if (ifFunctionMatch && isIndexInitialized()) {

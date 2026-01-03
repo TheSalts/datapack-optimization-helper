@@ -49,6 +49,43 @@ function matchesRange(value: number, range: ScoreRange): boolean {
     return true;
 }
 
+function isConditionAlwaysTrue(state: ScoreState, condType: string, rangeStr: string): boolean {
+    if (state.type !== "known" || state.value === null) {
+        return false;
+    }
+    const range = parseRange(rangeStr);
+    const matches = matchesRange(state.value, range);
+    return condType === "if" ? matches : !matches;
+}
+
+function isExecuteConditional(trimmed: string, scoreStates: Map<string, ScoreState>): boolean {
+    if (!trimmed.startsWith("execute")) {
+        return false;
+    }
+    if (/\bon\s/.test(trimmed)) {
+        return true;
+    }
+    if (/\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed)) {
+        return true;
+    }
+    if (/\b(if|unless)\s+(?!score\b)/.test(trimmed)) {
+        return true;
+    }
+    if (/\b(if|unless)\s+score\b/.test(trimmed)) {
+        const scoreCondRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
+        let condMatch;
+        while ((condMatch = scoreCondRegex.exec(trimmed)) !== null) {
+            const [, condType, target, objective, rangeStr] = condMatch;
+            const key = `${target}:${objective}`;
+            const state = scoreStates.get(key);
+            if (!state || !isConditionAlwaysTrue(state, condType, rangeStr)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 export interface AlwaysReturnInfo {
     line: number;
 }
@@ -314,10 +351,11 @@ export function checkAlwaysPassCondition(
             const calledFuncInfo = getFunctionInfo(calledFunctionPath);
 
             if (calledFuncInfo) {
+                const isConditionalCall = isExecuteConditional(trimmed, scoreStates);
                 for (const change of calledFuncInfo.scoreChanges) {
                     const key = `${change.target}:${change.objective}`;
 
-                    if (change.isConditional) {
+                    if (change.isConditional || isConditionalCall) {
                         scoreStates.set(key, {
                             target: change.target,
                             objective: change.objective,
