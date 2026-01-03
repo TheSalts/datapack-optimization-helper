@@ -44,9 +44,12 @@ type MessageKey =
     | "executeRunRedundantRunExecuteFix"
     | "scoreboardFakePlayerMissingHash"
     | "scoreboardFakePlayerMissingHashFix"
-    | "nbtItemsUseIfItems";
+    | "nbtItemsUseIfItems"
+    | "codeLens.noReferences"
+    | "codeLens.references";
 
 interface I18nData {
+    codeLens?: Record<string, string>;
     message: Record<string, string>;
     fix: Record<string, string>;
 }
@@ -64,11 +67,12 @@ function getLanguage(): string {
 function getMessage(key: string, lang: string): string {
     const data = messages[lang];
 
-    // Handle fix keys: executeDuplicateFix, executeDuplicateRemoveFix, executeDuplicateFixNoSelector, etc.
+    if (key.startsWith("codeLens.")) {
+        const subKey = key.replace("codeLens.", "");
+        return data.codeLens?.[subKey] || "";
+    }
+
     if (key.includes("Fix")) {
-        // executeDuplicateFixNoSelector -> executeDuplicateNoSelector
-        // executeDuplicateFix -> executeDuplicate
-        // executeDuplicateRemoveFix -> executeDuplicateRemove
         const baseKey = key.replace("Fix", "");
         return data.fix[baseKey] || "";
     }
@@ -76,13 +80,19 @@ function getMessage(key: string, lang: string): string {
     return data.message[key] || "";
 }
 
-export function t(key: MessageKey): string {
+export function t(key: MessageKey, params?: Record<string, string | number>): string {
     const lang = getLanguage();
-    const message = getMessage(key, lang);
+    let message = getMessage(key, lang);
 
     if (!message) {
         const fallbackLang = lang === "ko" ? "en" : "ko";
-        return getMessage(key, fallbackLang) || key;
+        message = getMessage(key, fallbackLang) || key;
+    }
+
+    if (params) {
+        for (const [paramKey, value] of Object.entries(params)) {
+            message = message.replace(`{${paramKey}}`, String(value));
+        }
     }
 
     return message;

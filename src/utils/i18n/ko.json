@@ -1,4 +1,8 @@
 {
+    "codeLens": {
+        "noReferences": "참조 없음",
+        "references": "{count}개 참조"
+    },
     "message": {
         "unreachableCode": "실행되지 않는 코드",
         "targetSelectorNoType": "'type' 인자 사용 권장",

@@ -1,4 +1,8 @@
 {
+  "codeLens": {
+    "noReferences": "No references",
+    "references": "{count} reference(s)"
+  },
   "message": {
     "unreachableCode": "Unreachable code",
     "targetSelectorNoType": "Recommend using 'type' argument",

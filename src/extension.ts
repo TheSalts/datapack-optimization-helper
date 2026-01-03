@@ -9,6 +9,7 @@ import { checkUnreachableCondition } from "./rules/unreachableCondition";
 import { checkAlwaysPassCondition } from "./rules/alwaysPassCondition";
 import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
 import { getRuleConfig } from "./utils/config";
+import { registerReferencesCodeLens } from "./providers/referencesCodeLens";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -46,7 +47,11 @@ export async function activate(context: vscode.ExtensionContext) {
     getPackMeta();
     watchMcfunctionFiles(context);
 
+    const codeLensProvider = registerReferencesCodeLens(context);
+
     await indexWorkspace();
+
+    codeLensProvider.refresh();
 
     vscode.workspace.textDocuments.forEach(analyzeDocument);
 }
