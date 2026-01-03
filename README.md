@@ -36,6 +36,6 @@ default: `{name}_line_{line}`
 
 ## Contributing
 
-If you want to add an optimization rule, please make an [issue](https://github.com/TheSalts/datapack-optimization-helper/issues)
+If you want to add an optimization rule, or report a bug, please make an [issue](https://github.com/TheSalts/datapack-optimization-helper/issues)
 
 And any contributions are welcome!
