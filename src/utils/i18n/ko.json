@@ -4,6 +4,7 @@
         "references": "{count}개 참조"
     },
     "message": {
+        "initializing": "Datapack Optimization Helper 초기화 중...",
         "unreachableCode": "실행되지 않는 코드",
         "targetSelectorNoType": "'type' 인자 사용 권장",
         "targetSelectorNoDimension": "x, y, z 또는 distance 사용 권장",

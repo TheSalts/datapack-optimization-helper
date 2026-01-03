@@ -10,6 +10,7 @@ import { checkAlwaysPassCondition } from "./rules/alwaysPassCondition";
 import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
 import { getRuleConfig } from "./utils/config";
 import { registerReferencesCodeLens } from "./providers/referencesCodeLens";
+import { t } from "./utils/i18n";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -49,11 +50,17 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const codeLensProvider = registerReferencesCodeLens(context);
 
-    await indexWorkspace();
-
-    codeLensProvider.refresh();
-
-    vscode.workspace.textDocuments.forEach(analyzeDocument);
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            title: t("initializing"),
+        },
+        async () => {
+            await indexWorkspace();
+            codeLensProvider.refresh();
+            vscode.workspace.textDocuments.forEach(analyzeDocument);
+        }
+    );
 }
 
 function isMcfunction(document: vscode.TextDocument): boolean {
@@ -98,7 +105,7 @@ function analyzeDocument(document: vscode.TextDocument) {
     if (config.unreachableCondition) {
         diagnostics.push(...checkUnreachableCondition(lines, document.uri.fsPath));
     }
-    
+
     if (config.alwaysPassCondition) {
         const alwaysPassResult = checkAlwaysPassCondition(lines, document.uri.fsPath);
         diagnostics.push(...alwaysPassResult.diagnostics);
@@ -106,7 +113,7 @@ function analyzeDocument(document: vscode.TextDocument) {
         if (alwaysPassResult.alwaysReturns.length > 0) {
             const firstReturn = alwaysPassResult.alwaysReturns[0];
             const alwaysPassUnreachableFrom = firstReturn.line + 1;
-            
+
             if (unreachableFrom === null || alwaysPassUnreachableFrom < unreachableFrom) {
                 unreachableFrom = alwaysPassUnreachableFrom;
             }

@@ -4,6 +4,7 @@
     "references": "{count} reference(s)"
   },
   "message": {
+    "initializing": "Initializing Datapack Optimization Helper...",
     "unreachableCode": "Unreachable code",
     "targetSelectorNoType": "Recommend using 'type' argument",
     "targetSelectorNoDimension": "Recommend using x, y, z, or distance",

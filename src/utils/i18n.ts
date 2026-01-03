@@ -3,6 +3,7 @@ import koData from "./i18n/ko.json";
 import enData from "./i18n/en.json";
 
 type MessageKey =
+    | "initializing"
     | "unreachableCode"
     | "unreachableCodeFix"
     | "targetSelectorNoType"
