@@ -180,6 +180,40 @@ function tokenizeLine(line: string): TokenInfo[] {
 
 type StateComponent = "executor" | "position" | "rotation" | "dimension" | "anchor";
 
+function hasRelativeCoordinate(args: string): boolean {
+    return args.includes("~") || args.includes("^");
+}
+
+function hasLocalCoordinate(args: string): boolean {
+    return args.includes("^");
+}
+
+function hasNearestSelector(args: string): boolean {
+    return args.includes("@p") || args.includes("@n") || /\bsort=(nearest|furthest)/.test(args);
+}
+
+function hasNearestSelectorDependency(tokens: ExecuteToken[], index: number): boolean {
+    const token = tokens[index];
+    const args = token.args;
+
+    if (!hasNearestSelector(args)) {
+        return false;
+    }
+
+    // Check if preceded by "positioned as" or "at"
+    const prevToken = index > 0 ? tokens[index - 1] : null;
+    const isAfterPositionSetter =
+        prevToken && (prevToken.subcommand === "positioned as" || prevToken.subcommand === "at");
+
+    if (!isAfterPositionSetter) {
+        // Not after position setter, has position dependency
+        return true;
+    }
+
+    // After position setter - inherit dependency from previous token's chain
+    return hasNearestSelectorDependency(tokens, index - 1);
+}
+
 function getSubcommandSets(sub: string): StateComponent[] {
     const sets: StateComponent[] = [];
     switch (sub) {
@@ -230,25 +264,44 @@ function findRedundantSubcommands(tokens: ExecuteToken[]): RedundantToken[] {
 
         const uses: StateComponent[] = [];
 
-        // Analyze usages
-        if (args.includes("~")) {
-            uses.push("position");
+        // Analyze usages based on subcommand type
+        if (sub === "positioned") {
+            // "positioned over ..." uses current x, z position
+            if (args.startsWith("over ")) {
+                uses.push("position");
+            } else if (hasRelativeCoordinate(args)) {
+                uses.push("position");
+                if (hasLocalCoordinate(args)) {
+                    uses.push("rotation");
+                }
+            }
+        } else if (sub === "rotated") {
+            // "rotated X Y" with relative rotation
+            if (hasRelativeCoordinate(args)) {
+                uses.push("rotation");
+            }
+        } else {
+            // For other subcommands, check args for coordinate dependencies
+            if (args.includes("~")) {
+                uses.push("position");
+            }
+            if (args.includes("^")) {
+                uses.push("position", "rotation");
+            }
         }
-        if (args.includes("^")) {
-            uses.push("position", "rotation");
-        }
+
         if (args.includes("@s")) {
             uses.push("executor");
         }
-        if (
-            args.includes("@p") ||
-            args.includes("@n") ||
-            args.includes("@r") ||
-            args.match(/\bdistance=/) ||
-            args.match(/\bd[xyz]=/) ||
-            args.match(/\b[xyz]=/) ||
-            args.match(/\bsort=(nearest|furthest)/)
-        ) {
+        // @p, @n, sort=nearest/furthest → HAS position dependency (different entity may be selected based on position)
+        // Exception: if preceded by "positioned as" or "at", distance becomes 0 and same entity is re-selected
+        // But we need to check the chain - inherit position dependency from previous positioned as/at
+        // @r = sort=random → no position dependency (random is position-independent)
+        if (args.match(/\bdistance=/) || args.match(/\bd[xyz]=/) || args.match(/\b[xyz]=/)) {
+            uses.push("position", "dimension");
+        }
+        // @p, @n, sort=nearest/furthest - check chain for position dependency
+        if (hasNearestSelectorDependency(tokens, i)) {
             uses.push("position", "dimension");
         }
 
