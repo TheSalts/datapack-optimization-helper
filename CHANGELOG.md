@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.8
+
+Fixed README images
+
 ## 1.0.7
 
 Added configuration options for function grouping quick fix
