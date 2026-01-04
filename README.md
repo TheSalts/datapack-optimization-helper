@@ -14,6 +14,10 @@ Vscode Extension for minecraft datapack optimization.
 
 -   Show function references with CodeLens
 
+-   Automatically update function references when renaming `.mcfunction` files
+    -   Updates `function` and `schedule function` commands
+    -   Optionally updates references in comments
+
 ## Configuration
 
 ### Disable Rules
@@ -33,6 +37,15 @@ default: `{dir}`
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/output_name.png)
 
 default: `{name}_line_{line}`
+
+### Rename Behavior
+
+Controls how function references are updated when renaming `.mcfunction` files.
+
+-   `ask`: Show a dialog to choose (default)
+-   `codeOnly`: Only update code references
+-   `includeComments`: Update code and comment references
+-   `skip`: Don't update references
 
 ## Contributing
 
