@@ -118,15 +118,17 @@ function createGroupFromLines(executeLines: ExecuteLine[]): ExecuteGroup | null 
 
     const suffixes = allTokens.map((tokens) => {
         let suffixTokens = tokens.slice(commonTokenCount);
+        let hadRun = false;
         if (suffixTokens[0] === "run") {
             suffixTokens = suffixTokens.slice(1);
+            hadRun = true;
         }
         const suffix = suffixTokens.join(" ");
         if (!suffix) {
             return "";
         }
         const firstToken = suffixTokens[0];
-        if (EXECUTE_SUBCOMMANDS.includes(firstToken)) {
+        if (!hadRun && EXECUTE_SUBCOMMANDS.includes(firstToken)) {
             return `execute ${suffix}`;
         }
         return suffix;

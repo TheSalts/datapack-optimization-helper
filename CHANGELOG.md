@@ -1,8 +1,16 @@
 # Change Log
 
+## 1.0.12
+
+Fixed [Function grouping is broken with `execute summon`](https://github.com/TheSalts/datapack-optimization-helper/issues/7)
+
 ## 1.0.11
 
 Fixed [Wrong merge `as` with `unless entity`](https://github.com/TheSalts/datapack-optimization-helper/issues/6)
+
+Fixed warning message now correctly displays `if` or `unless`
+
+Fixed quick fix merge now places `type` at the end of selector
 
 ## 1.0.10
 
