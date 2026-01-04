@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.11
+
+Fixed [Wrong merge `as` with `unless entity`](https://github.com/TheSalts/datapack-optimization-helper/issues/6)
+
 ## 1.0.10
 
 Fixed dx,dy,dz limit dimension but unexpected
