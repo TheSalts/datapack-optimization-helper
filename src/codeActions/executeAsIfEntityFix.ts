@@ -38,19 +38,42 @@ function parseArgs(argsStr: string): { key: string; raw: string }[] {
     return args;
 }
 
+function negateArg(raw: string): string {
+    const eqIndex = raw.indexOf("=");
+    if (eqIndex === -1) {
+        return raw;
+    }
+    const key = raw.slice(0, eqIndex);
+    let value = raw.slice(eqIndex + 1);
+    if (value.startsWith("!")) {
+        value = value.slice(1);
+    } else {
+        value = "!" + value;
+    }
+    return `${key}=${value}`;
+}
+
 function getMergedSelector(
     asBase: string,
     asArgsParsed: { key: string; raw: string }[],
-    sArgsParsed: { key: string; raw: string }[]
+    sArgsParsed: { key: string; raw: string }[],
+    isUnless: boolean
 ): string {
     const combined = [...asArgsParsed];
 
     for (const sArg of sArgsParsed) {
-        const isDuplicate = combined.some((a) => a.raw === sArg.raw);
+        const finalRaw = isUnless ? negateArg(sArg.raw) : sArg.raw;
+        const isDuplicate = combined.some((a) => a.raw === finalRaw);
         if (!isDuplicate) {
-            combined.push(sArg);
+            combined.push({ key: sArg.key, raw: finalRaw });
         }
     }
+
+    combined.sort((a, b) => {
+        if (a.key === "type" && b.key !== "type") return 1;
+        if (a.key !== "type" && b.key === "type") return -1;
+        return 0;
+    });
 
     const allRaw = combined.map((a) => a.raw);
     const mergedArgs = allRaw.length > 0 ? `[${allRaw.join(",")}]` : "";
@@ -73,11 +96,12 @@ export function createExecuteAsIfEntitySMergeFix(
         const asBase = asMatch[2];
         const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
         const sArgsStr = ifEntityMatch[2] ? ifEntityMatch[2].slice(1, -1) : "";
+        const isUnless = ifEntityMatch[1] === "unless";
 
         const asArgsParsed = parseArgs(asArgsStr);
         const sArgsParsed = parseArgs(sArgsStr);
 
-        const mergedSelector = getMergedSelector(asBase, asArgsParsed, sArgsParsed);
+        const mergedSelector = getMergedSelector(asBase, asArgsParsed, sArgsParsed, isUnless);
 
         let optimized = line.replace(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?\s*/, "");
         optimized = optimized.replace(
@@ -112,11 +136,12 @@ export function createExecuteAsIfEntitySConvertFix(
         const asBase = asMatch[2];
         const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
         const sArgsStr = ifEntityMatch[2] ? ifEntityMatch[2].slice(1, -1) : "";
+        const isUnless = ifEntityMatch[1] === "unless";
 
         const asArgsParsed = parseArgs(asArgsStr);
         const sArgsParsed = parseArgs(sArgsStr);
 
-        const mergedSelector = getMergedSelector(asBase, asArgsParsed, sArgsParsed);
+        const mergedSelector = getMergedSelector(asBase, asArgsParsed, sArgsParsed, isUnless);
 
         let optimized = line.replace(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?\s*/, "");
         optimized = optimized.replace(

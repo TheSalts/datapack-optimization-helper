@@ -112,12 +112,13 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
     if (entityBase === "@s") {
         const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
         const sArgsStr = ifEntityMatch[3] ? ifEntityMatch[3].slice(1, -1) : "";
+        const condition = ifEntityMatch[1];
 
         const status = analyzeMerge(asArgsStr, sArgsStr);
 
         if (status === "SAFE") {
             if (effectiveConfig.executeAsIfEntitySMerge) {
-                const message = t("executeAsIfEntitySMerge");
+                const message = t("executeAsIfEntitySMerge", { condition });
                 const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
                 diagnostic.source = DIAGNOSTIC_SOURCE;
                 diagnostic.code = "execute-as-if-entity-s-merge";
@@ -133,7 +134,7 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
             }
         } else {
             if (effectiveConfig.executeAsIfEntitySConvert) {
-                const message = t("executeAsIfEntitySConvert");
+                const message = t("executeAsIfEntitySConvert", { condition });
                 const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
                 diagnostic.source = DIAGNOSTIC_SOURCE;
                 diagnostic.code = "execute-as-if-entity-s-convert";
