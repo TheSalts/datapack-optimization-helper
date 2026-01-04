@@ -1,5 +1,5 @@
 {
-    "config.executeGroup.outputPath.markdownDescription": "함수 그룹화 (빠른 수정) 시 설정할 경로입니다.\n\n**변수:**\n- `{root}`: `data/<namespace>/function(s)/` 폴더\n- `{dir}`: 현재 파일이 위치한 폴더",
+    "config.executeGroup.outputPath.markdownDescription": "함수 그룹화 (빠른 수정) 시 설정할 경로입니다.\n\n**변수:**\n- `{root}`: `data/<namespace>/function(s)/` 폴더\n- `{dir}`: 현재 파일이 위치한 폴더\n- `{subdir}`: function 폴더 기준 중간 경로 (예: data/namespace/function`/folder1/folder2/`run.mcfunction)",
     "config.executeGroup.outputName.markdownDescription": "함수 그룹화 (빠른 수정) 시 설정할 파일명입니다.\n\n**변수:**\n- `{name}`: 현재 파일명\n- `{line}`: 라인 번호",
     "config.rules.disabled.description": "제외할 검사 규칙들을 설정합니다",
     "config.rules.disabled.alwaysPassCondition.description": "조건이 항상 통과함",
@@ -35,5 +35,10 @@
     "config.rules.disabled.unreachableCode.description": "실행되지 않는 코드",
     "config.rules.disabled.unreachableCode.label": "실행되지 않는 코드",
     "config.rules.disabled.unreachableCondition.description": "조건이 항상 실패함",
-    "config.rules.disabled.unreachableCondition.label": "항상 실패하는 조건"
+    "config.rules.disabled.unreachableCondition.label": "항상 실패하는 조건",
+    "config.rename.behavior.markdownDescription": "함수 파일 이름 변경 시 리팩토링 동작",
+    "config.rename.behavior.ask.label": "매번 물어보기",
+    "config.rename.behavior.codeOnly.label": "코드 참조만",
+    "config.rename.behavior.includeComments.label": "주석 포함",
+    "config.rename.behavior.skip.label": "건너뛰기"
 }

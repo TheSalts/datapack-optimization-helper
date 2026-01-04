@@ -3,6 +3,20 @@
     "noReferences": "No references",
     "references": "{count} reference(s)"
   },
+  "rename": {
+    "title": "Rename: {old} → {new}",
+    "placeholder": "Select refactoring scope",
+    "codeOnly": "Code references only",
+    "codeOnlyDesc": "{count} reference(s) in code",
+    "includeComments": "Include comments",
+    "includeCommentsDesc": "{count} total reference(s)",
+    "skip": "Skip",
+    "skipDesc": "Do not update references",
+    "codeOnlyRemember": "Code only (Don't ask again)",
+    "includeCommentsRemember": "Include comments (Don't ask again)",
+    "skipRemember": "Skip (Don't ask again)",
+    "rememberDesc": "Save this choice to settings"
+  },
   "message": {
     "initializing": "Initializing Datapack Optimization Helper...",
     "unreachableCode": "Unreachable code",

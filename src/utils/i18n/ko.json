@@ -3,6 +3,20 @@
         "noReferences": "참조 없음",
         "references": "{count}개 참조"
     },
+    "rename": {
+        "title": "이름 변경: {old} → {new}",
+        "placeholder": "리팩토링 범위 선택",
+        "codeOnly": "코드 참조만",
+        "codeOnlyDesc": "코드에서 {count}개 참조",
+        "includeComments": "주석 포함",
+        "includeCommentsDesc": "총 {count}개 참조",
+        "skip": "건너뛰기",
+        "skipDesc": "참조를 업데이트하지 않음",
+        "codeOnlyRemember": "코드만 (다시 묻지 않기)",
+        "includeCommentsRemember": "주석 포함 (다시 묻지 않기)",
+        "skipRemember": "건너뛰기 (다시 묻지 않기)",
+        "rememberDesc": "설정에 저장"
+    },
     "message": {
         "initializing": "Datapack Optimization Helper 초기화 중...",
         "unreachableCode": "실행되지 않는 코드",

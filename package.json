@@ -13,7 +13,9 @@
     "Linters",
     "Programming Languages"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:**/*.mcfunction"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
@@ -103,12 +105,33 @@
         "datapackOptimization.executeGroup.outputPath": {
           "type": "string",
           "default": "{dir}",
+          "pattern": "^(\\{dir\\}|\\{root\\}|[a-zA-Z]:|\\.)([/\\\\]?[a-zA-Z0-9_\\-{}. ]+)*$",
+          "patternErrorMessage": "Path must be a valid directory path or use placeholders: {dir}, {root}, {subdir}",
           "markdownDescription": "%config.executeGroup.outputPath.markdownDescription%"
         },
         "datapackOptimization.executeGroup.outputName": {
           "type": "string",
           "default": "{name}_line_{line}",
+          "pattern": "^[a-zA-Z0-9_\\-{}]+$",
+          "patternErrorMessage": "Filename must contain only alphanumeric characters, underscores, hyphens, and placeholders: {name}, {line}",
           "markdownDescription": "%config.executeGroup.outputName.markdownDescription%"
+        },
+        "datapackOptimization.rename.behavior": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "codeOnly",
+            "includeComments",
+            "skip"
+          ],
+          "enumItemLabels": [
+            "%config.rename.behavior.ask.label%",
+            "%config.rename.behavior.codeOnly.label%",
+            "%config.rename.behavior.includeComments.label%",
+            "%config.rename.behavior.skip.label%"
+          ],
+          "default": "ask",
+          "markdownDescription": "%config.rename.behavior.markdownDescription%"
         }
       }
     }

@@ -47,10 +47,23 @@ type MessageKey =
     | "scoreboardFakePlayerMissingHashFix"
     | "nbtItemsUseIfItems"
     | "codeLens.noReferences"
-    | "codeLens.references";
+    | "codeLens.references"
+    | "rename.title"
+    | "rename.placeholder"
+    | "rename.codeOnly"
+    | "rename.codeOnlyDesc"
+    | "rename.includeComments"
+    | "rename.includeCommentsDesc"
+    | "rename.skip"
+    | "rename.skipDesc"
+    | "rename.codeOnlyRemember"
+    | "rename.includeCommentsRemember"
+    | "rename.skipRemember"
+    | "rename.rememberDesc";
 
 interface I18nData {
     codeLens?: Record<string, string>;
+    rename?: Record<string, string>;
     message: Record<string, string>;
     fix: Record<string, string>;
 }
@@ -71,6 +84,11 @@ function getMessage(key: string, lang: string): string {
     if (key.startsWith("codeLens.")) {
         const subKey = key.replace("codeLens.", "");
         return data.codeLens?.[subKey] || "";
+    }
+
+    if (key.startsWith("rename.")) {
+        const subKey = key.replace("rename.", "");
+        return data.rename?.[subKey] || "";
     }
 
     if (key.includes("Fix")) {

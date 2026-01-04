@@ -79,13 +79,40 @@ function resolveOutputPath(filePath: string, currentDir: string): string {
     const packFormat = getPackFormat();
     const functionsFolder = packFormat !== null && packFormat < 32 ? "functions" : "function";
 
-    // Find root (data/<namespace>/function(s)/)
-    const match = normalized.match(new RegExp(`(.*?/data/[^/]+/${functionsFolder})/`));
+    const match = normalized.match(new RegExp(`(.*?/data/[^/]+/${functionsFolder})/(.+)\\.mcfunction$`));
     const rootPath = match ? match[1].replace(/\//g, path.sep) : currentDir;
 
-    let resolved = template.replace(/\{root\}/g, rootPath).replace(/\{dir\}/g, currentDir);
+    let subdir = "/";
+    if (match && match[2]) {
+        const fullPath = match[2];
+        const lastSlash = fullPath.lastIndexOf("/");
+        if (lastSlash >= 0) {
+            subdir = "/" + fullPath.substring(0, lastSlash + 1);
+        }
+    }
 
-    // Ensure directory exists
+    // Handle conflicting absolute path placeholders - use only the first one
+    let processedTemplate = template;
+    const dirIndex = template.indexOf("{dir}");
+    const rootIndex = template.indexOf("{root}");
+
+    if (dirIndex !== -1 && rootIndex !== -1) {
+        // Both placeholders exist - keep only the first one
+        if (dirIndex < rootIndex) {
+            processedTemplate = template.replace(/\{root\}/g, "");
+        } else {
+            processedTemplate = template.replace(/\{dir\}/g, "");
+        }
+    }
+
+    let resolved = processedTemplate
+        .replace(/\{root\}/g, rootPath)
+        .replace(/\{dir\}/g, currentDir)
+        .replace(/\{subdir\}/g, subdir);
+
+    // Clean up any double slashes or backslashes from empty replacements
+    resolved = resolved.replace(/[/\\]{2,}/g, path.sep);
+
     if (!fs.existsSync(resolved)) {
         fs.mkdirSync(resolved, { recursive: true });
     }

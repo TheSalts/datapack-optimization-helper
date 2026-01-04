@@ -1,5 +1,5 @@
 {
-    "config.executeGroup.outputPath.markdownDescription": "Output path for grouped functions (Quick fix)\n\n**Variables:**\n- `{root}`: `data/<namespace>/function(s)/` folder\n- `{dir}`: Current file's directory",
+    "config.executeGroup.outputPath.markdownDescription": "Output path for grouped functions (Quick fix)\n\n**Variables:**\n- `{root}`: `data/<namespace>/function(s)/` folder\n- `{dir}`: Current file's directory\n- `{subdir}`: Subdirectory path from function folder (e.g., data/namespace/function`/folder1/folder2/`run.mcfunction)",
     "config.executeGroup.outputName.markdownDescription": "Output file name for grouped functions (Quick fix)\n\n**Variables:**\n- `{name}`: Current file name\n- `{line}`: Line number",
     "config.rules.disabled.description": "Blacklist Rules",
     "config.rules.disabled.alwaysPassCondition.description": "Always Pass Condition Check",
@@ -35,5 +35,10 @@
     "config.rules.disabled.unreachableCode.description": "Unreachable Code Check",
     "config.rules.disabled.unreachableCode.label": "Unreachable Code",
     "config.rules.disabled.unreachableCondition.description": "Always Fail Condition Check",
-    "config.rules.disabled.unreachableCondition.label": "Always Fail Condition"
+    "config.rules.disabled.unreachableCondition.label": "Always Fail Condition",
+    "config.rename.behavior.markdownDescription": "Refactoring behavior when renaming function files",
+    "config.rename.behavior.ask.label": "Ask every time",
+    "config.rename.behavior.codeOnly.label": "Code references only",
+    "config.rename.behavior.includeComments.label": "Include comments",
+    "config.rename.behavior.skip.label": "Skip"
 }
