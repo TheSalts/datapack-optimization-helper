@@ -99,7 +99,7 @@ function parseArgument(arg: string): SelectorArgument | null {
     return { key, value, negated, raw: arg };
 }
 
-const DIMENSION_KEYS = ["x", "y", "z", "distance"];
+const DIMENSION_KEYS = ["x", "y", "z", "dx", "dy", "dz", "distance"];
 
 export function checkTargetSelector(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
     const selectors = parseSelectors(line);
