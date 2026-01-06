@@ -59,7 +59,9 @@ type MessageKey =
     | "rename.codeOnlyRemember"
     | "rename.includeCommentsRemember"
     | "rename.skipRemember"
-    | "rename.rememberDesc";
+    | "rename.rememberDesc"
+    | "warnOffLineFix"
+    | "warnOffFileFix";
 
 interface I18nData {
     codeLens?: Record<string, string>;

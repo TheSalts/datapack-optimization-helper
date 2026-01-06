@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.0.13
+
+Added `# warn-off` comment to suppress warnings for specific lines or files
+
+-   `# warn-off` - Suppress all warnings for the next line
+-   `# warn-off rule-id` - Suppress specific rule for the next line
+-   `# warn-off-file` - Suppress all warnings for the entire file
+-   `# warn-off-file rule-id` - Suppress specific rule for the entire file
+-   Quick Fix: "Suppress warning for this line"
+-   Autocomplete support for rule IDs
+
 ## 1.0.12
 
 Fixed [Function grouping is broken with `execute summon`](https://github.com/TheSalts/datapack-optimization-helper/issues/7)

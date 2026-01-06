@@ -11,6 +11,7 @@ import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
 import { getRuleConfig } from "./utils/config";
 import { registerReferencesCodeLens } from "./providers/referencesCodeLens";
 import { t } from "./utils/i18n";
+import { parseWarnOffFile, getDisabledRulesForLine, isRuleDisabled, ALL_RULE_IDS } from "./utils/warnOff";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -24,6 +25,14 @@ export async function activate(context: vscode.ExtensionContext) {
             { pattern: "**/*.mcfunction", scheme: "file" },
             new McfunctionCodeActionProvider(),
             { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+        )
+    );
+
+    context.subscriptions.push(
+        vscode.languages.registerCompletionItemProvider(
+            { pattern: "**/*.mcfunction", scheme: "file" },
+            new WarnOffCompletionProvider(),
+            " "
         )
     );
 
@@ -63,6 +72,29 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 }
 
+class WarnOffCompletionProvider implements vscode.CompletionItemProvider {
+    provideCompletionItems(
+        document: vscode.TextDocument,
+        position: vscode.Position
+    ): vscode.CompletionItem[] | undefined {
+        const lineText = document.lineAt(position.line).text;
+        const textBeforeCursor = lineText.substring(0, position.character);
+
+        if (!/^#\s*warn-off(-file)?\s+/i.test(textBeforeCursor)) {
+            return undefined;
+        }
+
+        const items: vscode.CompletionItem[] = [];
+
+        for (const ruleId of ALL_RULE_IDS) {
+            const item = new vscode.CompletionItem(ruleId, vscode.CompletionItemKind.EnumMember);
+            items.push(item);
+        }
+
+        return items;
+    }
+}
+
 function isMcfunction(document: vscode.TextDocument): boolean {
     return document.fileName.endsWith(".mcfunction") || document.languageId === "mcfunction";
 }
@@ -76,6 +108,7 @@ function analyzeDocument(document: vscode.TextDocument) {
     const text = document.getText();
     const lines = text.split(/\r?\n/);
 
+    const fileDisabledRules = parseWarnOffFile(lines);
     let unreachableFrom: number | null = null;
 
     for (let i = 0; i < lines.length; i++) {
@@ -95,20 +128,43 @@ function analyzeDocument(document: vscode.TextDocument) {
         }
 
         const lineDiagnostics = analyzeCommand(i, line);
-        diagnostics.push(...lineDiagnostics);
+        const lineDisabledRules = getDisabledRulesForLine(lines, i, fileDisabledRules);
+        for (const diag of lineDiagnostics) {
+            const ruleId = typeof diag.code === "string" ? diag.code : "";
+            if (!isRuleDisabled(ruleId, lineDisabledRules)) {
+                diagnostics.push(diag);
+            }
+        }
     }
 
     const config = getRuleConfig();
-    if (config.executeGroup) {
-        diagnostics.push(...checkExecuteGroup(lines));
+    if (config.executeGroup && !isRuleDisabled("execute-group", fileDisabledRules)) {
+        const groupDiags = checkExecuteGroup(lines);
+        for (const diag of groupDiags) {
+            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
+            if (!isRuleDisabled("execute-group", lineDisabled)) {
+                diagnostics.push(diag);
+            }
+        }
     }
-    if (config.unreachableCondition) {
-        diagnostics.push(...checkUnreachableCondition(lines, document.uri.fsPath));
+    if (config.unreachableCondition && !isRuleDisabled("unreachable-condition", fileDisabledRules)) {
+        const condDiags = checkUnreachableCondition(lines, document.uri.fsPath);
+        for (const diag of condDiags) {
+            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
+            if (!isRuleDisabled("unreachable-condition", lineDisabled)) {
+                diagnostics.push(diag);
+            }
+        }
     }
 
-    if (config.alwaysPassCondition) {
+    if (config.alwaysPassCondition && !isRuleDisabled("always-pass-condition", fileDisabledRules)) {
         const alwaysPassResult = checkAlwaysPassCondition(lines, document.uri.fsPath);
-        diagnostics.push(...alwaysPassResult.diagnostics);
+        for (const diag of alwaysPassResult.diagnostics) {
+            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
+            if (!isRuleDisabled("always-pass-condition", lineDisabled)) {
+                diagnostics.push(diag);
+            }
+        }
 
         if (alwaysPassResult.alwaysReturns.length > 0) {
             const firstReturn = alwaysPassResult.alwaysReturns[0];
@@ -120,9 +176,14 @@ function analyzeDocument(document: vscode.TextDocument) {
         }
     }
 
-    if (config.unreachableCode && unreachableFrom !== null) {
+    if (config.unreachableCode && !isRuleDisabled("unreachable-code", fileDisabledRules) && unreachableFrom !== null) {
         const unreachableDiagnostics = createUnreachableDiagnostics(lines, unreachableFrom);
-        diagnostics.push(...unreachableDiagnostics);
+        for (const diag of unreachableDiagnostics) {
+            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
+            if (!isRuleDisabled("unreachable-code", lineDisabled)) {
+                diagnostics.push(diag);
+            }
+        }
     }
 
     diagnosticCollection.set(document.uri, diagnostics);

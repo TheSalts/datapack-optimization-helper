@@ -10,6 +10,11 @@ Vscode Extension for minecraft datapack optimization.
 
 -   Add some quick fixes
 
+-   Suppress warnings with comments:
+    -   `# warn-off` - Suppress all warnings for the next line
+    -   `# warn-off rule-id` - Suppress specific rule
+    -   `# warn-off-file` - Suppress warnings for entire file
+
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/func_ref.png)
 
 -   Show function references with CodeLens
@@ -39,6 +44,8 @@ default: `{dir}`
 default: `{name}_line_{line}`
 
 ### Rename Behavior
+
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename.png)
 
 Controls how function references are updated when renaming `.mcfunction` files.
 

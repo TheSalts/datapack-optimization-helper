@@ -62,6 +62,7 @@
         "alwaysPassCondition": "조건문 삭제",
         "returnRunDuplicate": "중복 구문 삭제",
         "executeRunRedundantRunExecute": "명령어 단순화",
-        "scoreboardFakePlayerMissingHash": "# 접두사 추가"
+        "scoreboardFakePlayerMissingHash": "# 접두사 추가",
+        "warnOffLine": "이 줄의 경고 무시"
     }
 }

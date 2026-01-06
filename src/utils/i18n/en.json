@@ -62,6 +62,7 @@
     "alwaysPassCondition": "Remove condition",
     "returnRunDuplicate": "Remove this line",
     "executeRunRedundantRunExecute": "Remove duplicate execute",
-    "scoreboardFakePlayerMissingHash": "Add # before name"
+    "scoreboardFakePlayerMissingHash": "Add # before name",
+    "warnOffLine": "Suppress warning for this line"
   }
 }

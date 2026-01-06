@@ -4,12 +4,17 @@ import { createRemoveUnreachableFix } from "./unreachableFix";
 import { createTargetSelectorNoDimensionFix, createTargetSelectorTypeOrderFix } from "./targetSelectorFix";
 import { createExecuteGroupFix } from "./executeGroupFix";
 import { createExecuteDuplicateFix, createExecuteUnnecessaryFix } from "./executeRedundantFix";
-import { createExecuteRunRedundantFix, createExecuteRunRedundantNestedFix, createExecuteRunRedundantRunExecuteFix } from "./executeRunFix";
+import {
+    createExecuteRunRedundantFix,
+    createExecuteRunRedundantNestedFix,
+    createExecuteRunRedundantRunExecuteFix,
+} from "./executeRunFix";
 import { createExecuteAsSRedundantFix } from "./executeAsSFix";
 import { createExecuteAsIfEntitySMergeFix, createExecuteAsIfEntitySConvertFix } from "./executeAsIfEntityFix";
 import { createUnreachableConditionFix, createAlwaysPassConditionFix } from "./unreachableConditionFix";
 import { createScoreboardFakePlayerFix } from "./scoreboardFakePlayerFix";
 import { createReturnRunDuplicateFix } from "./returnRunDuplicateFix";
+import { t } from "../utils/i18n";
 
 export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
     provideCodeActions(
@@ -32,7 +37,31 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
                     actions.push(actionOrActions);
                 }
             }
+
+            const suppressActions = this.createSuppressWarningFixes(document, diagnostic);
+            actions.push(...suppressActions);
         }
+
+        return actions;
+    }
+
+    private createSuppressWarningFixes(
+        document: vscode.TextDocument,
+        diagnostic: vscode.Diagnostic
+    ): vscode.CodeAction[] {
+        const actions: vscode.CodeAction[] = [];
+        const ruleId = typeof diagnostic.code === "string" ? diagnostic.code : "";
+        if (!ruleId) {
+            return actions;
+        }
+
+        const lineAction = new vscode.CodeAction(t("warnOffLineFix"), vscode.CodeActionKind.QuickFix);
+        lineAction.edit = new vscode.WorkspaceEdit();
+        const lineNum = diagnostic.range.start.line;
+        const insertPos = new vscode.Position(lineNum, 0);
+        lineAction.edit.insert(document.uri, insertPos, `# warn-off ${ruleId}\n`);
+        lineAction.diagnostics = [diagnostic];
+        actions.push(lineAction);
 
         return actions;
     }
