@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.14
+
+Refactored quick fixes
+
+Fixed [string is interpreted as selector](https://github.com/TheSalts/datapack-optimization-helper/issues/8)
+
 ## 1.0.13
 
 Added `# warn-off` comment to suppress warnings for specific lines or files
