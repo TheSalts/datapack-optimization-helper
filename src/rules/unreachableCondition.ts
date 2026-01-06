@@ -60,6 +60,137 @@ function isConditionUnreachable(state: ScoreState, condType: string, rangeStr: s
     return false;
 }
 
+function rangesOverlap(r1: ScoreRange, r2: ScoreRange): boolean {
+    const min1 = r1.min ?? -2147483648;
+    const max1 = r1.max ?? 2147483647;
+    const min2 = r2.min ?? -2147483648;
+    const max2 = r2.max ?? 2147483647;
+    return min1 <= max2 && min2 <= max1;
+}
+
+function rangesEqual(r1: ScoreRange, r2: ScoreRange): boolean {
+    return r1.min === r2.min && r1.max === r2.max;
+}
+
+interface ScoreCondition {
+    condType: string;
+    target: string;
+    objective: string;
+    rangeStr: string;
+    range: ScoreRange;
+    fullMatch: string;
+    index: number;
+}
+
+function checkConflictingConditionsInLine(trimmed: string, line: string, lineIndex: number): vscode.Diagnostic[] {
+    const diagnostics: vscode.Diagnostic[] = [];
+    const conditionRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
+    const conditions: ScoreCondition[] = [];
+
+    let match;
+    while ((match = conditionRegex.exec(trimmed)) !== null) {
+        const [fullMatch, condType, target, objective, rangeStr] = match;
+        conditions.push({
+            condType,
+            target,
+            objective,
+            rangeStr,
+            range: parseRange(rangeStr),
+            fullMatch,
+            index: match.index,
+        });
+    }
+
+    // Group conditions by target:objective
+    const grouped = new Map<string, ScoreCondition[]>();
+    for (const cond of conditions) {
+        const key = `${cond.target}:${cond.objective}`;
+        if (!grouped.has(key)) {
+            grouped.set(key, []);
+        }
+        grouped.get(key)!.push(cond);
+    }
+
+    for (const [, conds] of grouped) {
+        if (conds.length < 2) continue;
+
+        const ifConditions = conds.filter((c) => c.condType === "if");
+        const unlessConditions = conds.filter((c) => c.condType === "unless");
+
+        // Check if multiple 'if' conditions have non-overlapping ranges
+        for (let i = 0; i < ifConditions.length; i++) {
+            for (let j = i + 1; j < ifConditions.length; j++) {
+                if (!rangesOverlap(ifConditions[i].range, ifConditions[j].range)) {
+                    const startIndex = line.indexOf(ifConditions[j].fullMatch);
+                    const diagRange = new vscode.Range(
+                        lineIndex,
+                        startIndex,
+                        lineIndex,
+                        startIndex + ifConditions[j].fullMatch.length
+                    );
+                    const diagnostic = new vscode.Diagnostic(
+                        diagRange,
+                        t("unreachableCondition"),
+                        vscode.DiagnosticSeverity.Warning
+                    );
+                    diagnostic.source = DIAGNOSTIC_SOURCE;
+                    diagnostic.code = "unreachable-condition";
+                    diagnostics.push(diagnostic);
+                }
+            }
+        }
+
+        // Check if 'if' and 'unless' have the same exact range (always fails)
+        for (const ifCond of ifConditions) {
+            for (const unlessCond of unlessConditions) {
+                if (rangesEqual(ifCond.range, unlessCond.range)) {
+                    const startIndex = line.indexOf(unlessCond.fullMatch);
+                    const diagRange = new vscode.Range(
+                        lineIndex,
+                        startIndex,
+                        lineIndex,
+                        startIndex + unlessCond.fullMatch.length
+                    );
+                    const diagnostic = new vscode.Diagnostic(
+                        diagRange,
+                        t("unreachableCondition"),
+                        vscode.DiagnosticSeverity.Warning
+                    );
+                    diagnostic.source = DIAGNOSTIC_SOURCE;
+                    diagnostic.code = "unreachable-condition";
+                    diagnostics.push(diagnostic);
+                }
+            }
+        }
+
+        // Check if 'unless' range completely contains all 'if' ranges (always fails)
+        for (const unlessCond of unlessConditions) {
+            for (const ifCond of ifConditions) {
+                const unlessMin = unlessCond.range.min ?? -2147483648;
+                const unlessMax = unlessCond.range.max ?? 2147483647;
+                const ifMin = ifCond.range.min ?? -2147483648;
+                const ifMax = ifCond.range.max ?? 2147483647;
+
+                // If unless range completely contains if range, it always fails
+                if (unlessMin <= ifMin && unlessMax >= ifMax) {
+                    const startIndex = line.indexOf(ifCond.fullMatch);
+                    const diagRange = new vscode.Range(lineIndex, startIndex, lineIndex, startIndex + ifCond.fullMatch.length);
+                    const diagnostic = new vscode.Diagnostic(
+                        diagRange,
+                        t("unreachableCondition"),
+                        vscode.DiagnosticSeverity.Warning
+                    );
+                    diagnostic.source = DIAGNOSTIC_SOURCE;
+                    diagnostic.code = "unreachable-condition";
+                    diagnostics.push(diagnostic);
+                }
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
 function isConditionAlwaysTrue(state: ScoreState, condType: string, rangeStr: string): boolean {
     if (state.type !== "known" || state.value === null) {
         return false;
@@ -209,6 +340,10 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
         if (trimmed === "" || trimmed.startsWith("#")) {
             continue;
         }
+
+        // Check for conflicting conditions in the same line
+        const conflictDiagnostics = checkConflictingConditionsInLine(trimmed, line, i);
+        diagnostics.push(...conflictDiagnostics);
 
         const isConditional = trimmed.startsWith("execute");
 
