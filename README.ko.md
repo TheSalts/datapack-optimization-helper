@@ -2,6 +2,8 @@
 
 마인크래프트 데이터팩 최적화를 위한 VSCode 확장 프로그램입니다.
 
+[English](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.md) | [한국어](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.ko.md)
+
 ## 기능
 
 ![Example](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/codes.png)
@@ -18,6 +20,8 @@
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/func_ref.png)
 
 -   CodeLens로 함수 참조 표시
+
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename.png)
 
 -   `.mcfunction` 파일 이름 변경 시 함수 참조 자동 업데이트
     -   `function` 및 `schedule function` 명령어 업데이트
@@ -45,7 +49,7 @@
 
 ### 이름 변경 동작
 
-![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename.png)
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename_config.png)
 
 `.mcfunction` 파일 이름 변경 시 함수 참조 업데이트 방식을 설정합니다.
 

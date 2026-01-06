@@ -2,6 +2,8 @@
 
 Vscode Extension for minecraft datapack optimization.
 
+[English](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.md) | [한국어](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.ko.md)
+
 ## Features
 
 ![Example](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/codes.png)
@@ -18,6 +20,8 @@ Vscode Extension for minecraft datapack optimization.
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/func_ref.png)
 
 -   Show function references with CodeLens
+
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename.png)
 
 -   Automatically update function references when renaming `.mcfunction` files
     -   Updates `function` and `schedule function` commands
@@ -45,7 +49,7 @@ default: `{name}_line_{line}`
 
 ### Rename Behavior
 
-![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename.png)
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename_config.png)
 
 Controls how function references are updated when renaming `.mcfunction` files.
 
