@@ -262,6 +262,10 @@ function findRedundantSubcommands(tokens: ExecuteToken[]): RedundantToken[] {
         const sub = token.subcommand;
         const args = token.args;
 
+        if (sub === "summon") {
+            break;
+        }
+
         const uses: StateComponent[] = [];
 
         // Analyze usages based on subcommand type

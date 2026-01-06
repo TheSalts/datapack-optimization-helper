@@ -166,6 +166,14 @@ function findCommonExecutePrefix(allTokens: string[][]): { commonPrefix: string 
 
         if (lastRunIndex !== -1) {
             const prefixTokens = commonTokens.slice(0, lastRunIndex + 1);
+            const summonIndex = prefixTokens.indexOf("summon");
+            if (summonIndex !== -1) {
+                if (summonIndex >= 2) {
+                    const truncatedPrefix = prefixTokens.slice(0, summonIndex);
+                    return { commonPrefix: truncatedPrefix.join(" ") + " ", commonTokenCount: summonIndex };
+                }
+                return { commonPrefix: null, commonTokenCount: 0 };
+            }
             return { commonPrefix: prefixTokens.join(" ") + " ", commonTokenCount: lastRunIndex + 1 };
         }
 
@@ -197,6 +205,14 @@ function findCommonExecutePrefix(allTokens: string[][]): { commonPrefix: string 
             }
 
             if (isValid && commonLength >= 2) {
+                const summonIndex = commonTokens.indexOf("summon");
+                if (summonIndex !== -1) {
+                    if (summonIndex >= 2) {
+                        const prefixTokens = commonTokens.slice(0, summonIndex);
+                        return { commonPrefix: prefixTokens.join(" ") + " ", commonTokenCount: summonIndex };
+                    }
+                    return { commonPrefix: null, commonTokenCount: 0 };
+                }
                 return { commonPrefix: commonTokens.join(" ") + " ", commonTokenCount: commonLength };
             }
         }
