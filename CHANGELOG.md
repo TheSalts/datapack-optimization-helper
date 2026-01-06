@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.16
+
+Fixed [multiple execute summon false positive](https://github.com/TheSalts/datapack-optimization-helper/issues/9)
+
 ## 1.0.15
 
 ### Features
