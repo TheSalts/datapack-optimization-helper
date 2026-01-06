@@ -63,6 +63,9 @@
     "returnRunDuplicate": "Remove this line",
     "executeRunRedundantRunExecute": "Remove duplicate execute",
     "scoreboardFakePlayerMissingHash": "Add # before name",
-    "warnOffLine": "Suppress warning for this line"
+    "warnOffLine": "Disable {ruleId} for this line",
+    "warnOffFile": "Disable {ruleId} for the entire file",
+    "showDocumentation": "Show documentation for {ruleId}",
+    "fixAllAutoFixable": "Fix all auto-fixable problems"
   }
 }

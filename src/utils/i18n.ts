@@ -61,7 +61,9 @@ type MessageKey =
     | "rename.skipRemember"
     | "rename.rememberDesc"
     | "warnOffLineFix"
-    | "warnOffFileFix";
+    | "warnOffFileFix"
+    | "showDocumentationFix"
+    | "fixAllAutoFixableFix";
 
 interface I18nData {
     codeLens?: Record<string, string>;

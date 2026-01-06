@@ -246,7 +246,17 @@ function normalizeSelector(selector: string): string {
         args.push(current.trim());
     }
 
-    args.sort();
+    args.sort((a, b) => {
+        const aIsType = a.startsWith("type=") || a.startsWith("type!=") || a.startsWith("type=!");
+        const bIsType = b.startsWith("type=") || b.startsWith("type!=") || b.startsWith("type=!");
+        if (aIsType && !bIsType) {
+            return 1;
+        }
+        if (!aIsType && bIsType) {
+            return -1;
+        }
+        return a.localeCompare(b);
+    });
     return `${base}[${args.join(",")}]`;
 }
 

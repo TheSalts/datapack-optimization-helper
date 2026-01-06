@@ -63,6 +63,9 @@
         "returnRunDuplicate": "중복 구문 삭제",
         "executeRunRedundantRunExecute": "명령어 단순화",
         "scoreboardFakePlayerMissingHash": "# 접두사 추가",
-        "warnOffLine": "이 줄의 경고 무시"
+        "warnOffLine": "{ruleId} 이 줄에서 비활성화",
+        "warnOffFile": "{ruleId} 전체 파일에서 비활성화",
+        "showDocumentation": "{ruleId} 문서 보기",
+        "fixAllAutoFixable": "모든 자동 수정 가능 문제 해결"
     }
 }
