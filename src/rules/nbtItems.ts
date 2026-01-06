@@ -6,9 +6,11 @@ import { RuleConfig, getRuleConfig } from "../utils/config";
 
 const ITEM_NBT_KEYS = ["SelectedItem", "equipment", "Inventory", "EnderItems"];
 
-function parseAllSelectors(line: string): Array<{ arguments: SelectorArgument[]; startIndex: number; endIndex: number }> {
+function parseAllSelectors(
+    line: string
+): Array<{ arguments: SelectorArgument[]; startIndex: number; endIndex: number }> {
     const selectors: Array<{ arguments: SelectorArgument[]; startIndex: number; endIndex: number }> = [];
-    const regex = /@([aepnrs])(\[[^\]]*\])?/g;
+    const regex = /(?<!")@([aepnrs])(\[[^\]]*\])?/g;
 
     let match;
     while ((match = regex.exec(line)) !== null) {
@@ -27,7 +29,7 @@ function parseAllSelectors(line: string): Array<{ arguments: SelectorArgument[];
 
 function extractNbtKeys(nbtValue: string): string[] {
     const keys: string[] = [];
-    
+
     if (!nbtValue.startsWith("{") || !nbtValue.endsWith("}")) {
         return keys;
     }
@@ -40,7 +42,7 @@ function extractNbtKeys(nbtValue: string): string[] {
 
     for (let i = 0; i < inner.length; i++) {
         const char = inner[i];
-        
+
         if ((char === '"' || char === "'") && (i === 0 || inner[i - 1] !== "\\")) {
             if (!inString) {
                 inString = true;
@@ -107,23 +109,19 @@ export function checkNbtItems(lineIndex: number, line: string, config?: RuleConf
             if (arg.key === "nbt" && arg.value) {
                 const nbtValue = arg.negated ? arg.value.slice(1) : arg.value;
                 const keys = extractNbtKeys(nbtValue);
-                
+
                 const hasItemKey = ITEM_NBT_KEYS.some((key) => keys.includes(key));
-                
+
                 if (hasItemKey) {
                     const nbtArgStart = line.indexOf(arg.raw, selector.startIndex);
                     const nbtArgEnd = nbtArgStart + arg.raw.length;
                     const range = new vscode.Range(lineIndex, nbtArgStart, lineIndex, nbtArgEnd);
-                    
+
                     const message = t("nbtItemsUseIfItems");
-                    const diagnostic = new vscode.Diagnostic(
-                        range,
-                        message,
-                        vscode.DiagnosticSeverity.Warning
-                    );
+                    const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
                     diagnostic.source = DIAGNOSTIC_SOURCE;
                     diagnostic.code = "nbt-items-use-if-items";
-                    
+
                     diagnostics.push(diagnostic);
                 }
             }
@@ -132,4 +130,3 @@ export function checkNbtItems(lineIndex: number, line: string, config?: RuleConf
 
     return diagnostics;
 }
-

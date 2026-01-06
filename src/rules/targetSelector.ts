@@ -20,7 +20,7 @@ export interface ParsedSelector {
 
 export function parseSelectors(line: string): ParsedSelector[] {
     const selectors: ParsedSelector[] = [];
-    const regex = /@([en])(\[[^\]]*\])?/g;
+    const regex = /(?<!")@([en])(\[[^\]]*\])?/g;
 
     let match;
     while ((match = regex.exec(line)) !== null) {
