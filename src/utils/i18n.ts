@@ -95,8 +95,8 @@ function getMessage(key: string, lang: string): string {
         return data.rename?.[subKey] || "";
     }
 
-    if (key.includes("Fix")) {
-        const baseKey = key.replace("Fix", "");
+    if (key.endsWith("Fix")) {
+        const baseKey = key.replace(/Fix$/, "");
         return data.fix[baseKey] || "";
     }
 
