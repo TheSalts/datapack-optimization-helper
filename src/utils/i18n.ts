@@ -63,7 +63,10 @@ type MessageKey =
     | "warnOffLineFix"
     | "warnOffFileFix"
     | "showDocumentationFix"
-    | "fixAllAutoFixableFix";
+    | "fixAllAutoFixableFix"
+    | "configNotFound"
+    | "configCreate"
+    | "configDontShowAgain";
 
 interface I18nData {
     codeLens?: Record<string, string>;

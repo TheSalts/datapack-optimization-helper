@@ -1,0 +1,51 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "rules": {
+            "type": "object",
+            "properties": {
+                "disabled": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "always-pass-condition",
+                            "execute-as-if-entity-s-convert",
+                            "execute-as-if-entity-s-merge",
+                            "execute-as-s-redundant",
+                            "execute-duplicate",
+                            "execute-group",
+                            "execute-run-redundant",
+                            "execute-run-redundant-run-execute",
+                            "execute-unnecessary",
+                            "nbt-items-use-if-items",
+                            "return-run-duplicate",
+                            "scoreboard-fake-player-missing-hash",
+                            "target-selector-no-dimension",
+                            "target-selector-no-type",
+                            "target-selector-type-order",
+                            "unreachable-code",
+                            "unreachable-condition"
+                        ]
+                    },
+                    "uniqueItems": true,
+                    "description": "List of rule IDs to disable"
+                }
+            }
+        },
+        "executeGroup": {
+            "type": "object",
+            "properties": {
+                "outputPath": {
+                    "type": "string",
+                    "description": "Output path for grouped functions. Placeholders: {dir}, {root}, {subdir}"
+                },
+                "outputName": {
+                    "type": "string",
+                    "description": "Output filename for grouped functions. Placeholders: {name}, {line}"
+                }
+            }
+        }
+    }
+}

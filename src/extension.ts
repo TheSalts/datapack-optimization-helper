@@ -8,7 +8,12 @@ import { checkExecuteGroup } from "./rules/executeGroup";
 import { checkUnreachableCondition } from "./rules/unreachableCondition";
 import { checkAlwaysPassCondition } from "./rules/alwaysPassCondition";
 import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
-import { getRuleConfig } from "./utils/config";
+import {
+    getRuleConfig,
+    watchDatapackConfig,
+    clearDatapackConfigCache,
+    checkAndNotifyConfigMissing,
+} from "./utils/config";
 import { registerReferencesCodeLens } from "./providers/referencesCodeLens";
 import { t } from "./utils/i18n";
 import { parseWarnOffFile, getDisabledRulesForLine, isRuleDisabled, ALL_RULE_IDS } from "./utils/warnOff";
@@ -54,6 +59,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
     registerRenameHandler(context);
     watchPackMeta(context);
+    watchDatapackConfig(context, () => {
+        const mcfunctionDocs = vscode.workspace.textDocuments.filter((doc) => isMcfunction(doc));
+        mcfunctionDocs.forEach((doc) => analyzeDocument(doc));
+    });
     getPackMeta();
     watchMcfunctionFiles(context);
 
@@ -70,6 +79,8 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.workspace.textDocuments.forEach(analyzeDocument);
         }
     );
+
+    checkAndNotifyConfigMissing(context);
 }
 
 class WarnOffCompletionProvider implements vscode.CompletionItemProvider {

@@ -29,6 +29,24 @@
 
 ## 설정
 
+### 프로젝트 설정
+
+`pack.mcmeta`와 같은 폴더에 `datapack.config.json`을 생성하세요:
+
+```json
+{
+    "rules": {
+        "disabled": ["scoreboard-fake-player-missing-hash"]
+    },
+    "executeGroup": {
+        "outputPath": "{dir}",
+        "outputName": "{name}_line_{line}"
+    }
+}
+```
+
+프로젝트 설정은 사용자 설정보다 우선 적용됩니다.
+
 ### 규칙 블랙리스트
 
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/disable_rule.png)

@@ -38,7 +38,10 @@
     "returnRunDuplicate": "Duplicate 'return' statement",
     "executeRunRedundantRunExecute": "Duplicate 'execute'",
     "scoreboardFakePlayerMissingHash": "Recommend using '#' for fake player",
-    "nbtItemsUseIfItems": "Recommend using 'if items' instead of item nbt"
+    "nbtItemsUseIfItems": "Recommend using 'if items' instead of item nbt",
+    "configNotFound": "datapack.config.json not found. Create one to configure project-level rules.",
+    "configCreate": "Create datapack.config.json",
+    "configDontShowAgain": "Don't show again"
   },
   "fix": {
     "unreachableCode": "Remove unreachable code",

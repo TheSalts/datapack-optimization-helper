@@ -29,6 +29,24 @@ Vscode Extension for minecraft datapack optimization.
 
 ## Configuration
 
+### Project Configuration
+
+Create `datapack.config.json` in the same folder as `pack.mcmeta`:
+
+```json
+{
+    "rules": {
+        "disabled": ["scoreboard-fake-player-missing-hash"]
+    },
+    "executeGroup": {
+        "outputPath": "{dir}",
+        "outputName": "{name}_line_{line}"
+    }
+}
+```
+
+Project settings override user settings.
+
 ### Disable Rules
 
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/disable_rule.png)

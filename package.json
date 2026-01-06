@@ -2,7 +2,7 @@
   "name": "datapack-optimization",
   "displayName": "Datapack Optimization Helper",
   "description": "An extension for datapack(mcfunction) optimization",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "publisher": "TheSalt",
   "repository": "https://github.com/TheSalts/datapack-optimization-helper",
   "icon": "image/icon.png",
@@ -134,7 +134,13 @@
           "markdownDescription": "%config.rename.behavior.markdownDescription%"
         }
       }
-    }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": "datapack.config.json",
+        "url": "./schemas/datapack.config.schema.json"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
