@@ -1,5 +1,21 @@
 # Change Log
 
+## 1.0.15
+
+### Features
+
+-   Added "Show Documentation" quick fix with wiki links
+-   Added detection for conflicting score conditions in the same line (e.g., `if score @s foo matches 1 if score @s foo matches 2`)
+
+### Fixes
+
+-   Fixed "Fix All" quick fix not applying all fixes at once
+-   Fixed `scores` and `advancements` selector arguments not merging correctly in `execute-as-if-entity-s-convert`
+
+### Documentation
+
+-   Added wiki documentation for all rules ([English](https://github.com/TheSalts/datapack-optimization-helper/wiki/Rules), [한국어](https://github.com/TheSalts/datapack-optimization-helper/wiki/%EA%B7%9C%EC%B9%99))
+
 ## 1.0.14
 
 Refactored quick fixes
