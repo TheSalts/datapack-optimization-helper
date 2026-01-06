@@ -77,7 +77,7 @@ const messages: Record<string, I18nData> = {
     en: enData as I18nData,
 };
 
-function getLanguage(): string {
+export function getLanguage(): string {
     const lang = vscode.env.language;
     return lang.startsWith("ko") ? "ko" : "en";
 }

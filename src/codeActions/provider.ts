@@ -14,7 +14,7 @@ import { createExecuteAsIfEntitySMergeFix, createExecuteAsIfEntitySConvertFix } 
 import { createUnreachableConditionFix, createAlwaysPassConditionFix } from "./unreachableConditionFix";
 import { createScoreboardFakePlayerFix } from "./scoreboardFakePlayerFix";
 import { createReturnRunDuplicateFix } from "./returnRunDuplicateFix";
-import { t } from "../utils/i18n";
+import { t, getLanguage } from "../utils/i18n";
 
 export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
     provideCodeActions(
@@ -223,15 +223,18 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
         fileAction.diagnostics = [diagnostic];
         actions.push(fileAction);
 
-        // TODO: 문서 페이지 준비 후 활성화
-        // const docAction = new vscode.CodeAction(t("showDocumentationFix", { ruleId }), vscode.CodeActionKind.QuickFix);
-        // docAction.command = {
-        //     title: t("showDocumentationFix", { ruleId }),
-        //     command: "vscode.open",
-        //     arguments: [vscode.Uri.parse(`https://github.com/TheSalts/datapack-optimization-helper/wiki/${ruleId}`)],
-        // };
-        // docAction.diagnostics = [diagnostic];
-        // actions.push(docAction);
+        const lang = getLanguage();
+        const wikiPage = lang === "ko" ? "%EA%B7%9C%EC%B9%99" : "Rules";
+        const docUrl = `https://github.com/TheSalts/datapack-optimization-helper/wiki/${wikiPage}#${ruleId}`;
+
+        const docAction = new vscode.CodeAction(t("showDocumentationFix", { ruleId }), vscode.CodeActionKind.QuickFix);
+        docAction.command = {
+            title: t("showDocumentationFix", { ruleId }),
+            command: "vscode.open",
+            arguments: [vscode.Uri.parse(docUrl)],
+        };
+        docAction.diagnostics = [diagnostic];
+        actions.push(docAction);
 
         return actions;
     }

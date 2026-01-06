@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { t } from "../utils/i18n";
 
+const COMPLEX_KEYS = ["scores", "advancements"];
+
 function parseArgs(argsStr: string): { key: string; raw: string }[] {
     if (!argsStr) {
         return [];
@@ -53,6 +55,31 @@ function negateArg(raw: string): string {
     return `${key}=${value}`;
 }
 
+function mergeComplexValues(existingRaw: string, newRaw: string): string {
+    const eqIndex1 = existingRaw.indexOf("=");
+    const eqIndex2 = newRaw.indexOf("=");
+    if (eqIndex1 === -1 || eqIndex2 === -1) {
+        return existingRaw;
+    }
+
+    const key = existingRaw.slice(0, eqIndex1);
+    const value1 = existingRaw.slice(eqIndex1 + 1);
+    const value2 = newRaw.slice(eqIndex2 + 1);
+
+    // Extract inner content from {inner}
+    const inner1 = value1.startsWith("{") && value1.endsWith("}") ? value1.slice(1, -1) : value1;
+    const inner2 = value2.startsWith("{") && value2.endsWith("}") ? value2.slice(1, -1) : value2;
+
+    if (!inner1) {
+        return `${key}={${inner2}}`;
+    }
+    if (!inner2) {
+        return `${key}={${inner1}}`;
+    }
+
+    return `${key}={${inner1},${inner2}}`;
+}
+
 function getMergedSelector(
     asBase: string,
     asArgsParsed: { key: string; raw: string }[],
@@ -63,9 +90,21 @@ function getMergedSelector(
 
     for (const sArg of sArgsParsed) {
         const finalRaw = isUnless ? negateArg(sArg.raw) : sArg.raw;
-        const isDuplicate = combined.some((a) => a.raw === finalRaw);
-        if (!isDuplicate) {
-            combined.push({ key: sArg.key, raw: finalRaw });
+        const existingIndex = combined.findIndex((a) => a.key === sArg.key);
+
+        if (existingIndex !== -1) {
+            // Key already exists
+            if (COMPLEX_KEYS.includes(sArg.key)) {
+                // Merge complex values (scores, advancements)
+                const mergedRaw = mergeComplexValues(combined[existingIndex].raw, finalRaw);
+                combined[existingIndex] = { key: sArg.key, raw: mergedRaw };
+            }
+            // For non-complex duplicate keys, skip (keep existing)
+        } else {
+            const isDuplicate = combined.some((a) => a.raw === finalRaw);
+            if (!isDuplicate) {
+                combined.push({ key: sArg.key, raw: finalRaw });
+            }
         }
     }
 
