@@ -129,7 +129,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
             result = result.replace(/^(\s*)execute\s+run\s+/, "$1");
 
             // target-selector-type-order
-            result = result.replace(/@([aeprs])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
+            result = result.replace(/@([aeprns])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
                 const typeMatch = args.match(/\btype\s*=\s*[^,\]]+/);
                 if (typeMatch) {
                     const typeArg = typeMatch[0];
@@ -141,7 +141,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
             });
 
             // target-selector-no-dimension
-            result = result.replace(/@([aeprs])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
+            result = result.replace(/@([aeprns])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
                 const dimensionKeys = ["x", "y", "z", "dx", "dy", "dz", "distance"];
                 const hasDimension = dimensionKeys.some((key) => new RegExp(`\\b${key}\\s*=`).test(args));
                 if (!hasDimension) {
@@ -175,7 +175,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
                 return result;
             }
             case "target-selector-no-dimension": {
-                const match = text.match(/@[aeprs]\[([^\]]*)\]/);
+                const match = text.match(/@[aeprns]\[([^\]]*)\]/);
                 if (match) {
                     const args = match[1];
                     const newArgs = args ? `${args},distance=0..` : "distance=0..";
@@ -184,7 +184,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
                 return null;
             }
             case "target-selector-type-order": {
-                const regex = /@[aeprs]\[([^\]]*)\]/g;
+                const regex = /@[aeprns]\[([^\]]*)\]/g;
                 return text.replace(regex, (match, args: string) => {
                     const typeMatch = args.match(/\btype\s*=\s*[^,\]]+/);
                     if (typeMatch) {
