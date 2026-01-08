@@ -154,7 +154,7 @@
     "test": "vscode-test",
     "pack": "node -e \"require('fs').mkdirSync('./release', { recursive: true })\" && vsce pack -o ./release/",
     "pub": "npm run publish",
-    "publish": "vsce publish && ovsx publish"
+    "publish": "vsce publish patch && ovsx publish"
   },
   "devDependencies": {
     "@types/vscode": "^1.75.0",
