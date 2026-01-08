@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.18
+
+Fixed `target-selector-no-dimension` doesn't work with all quick fix
+
 ## 1.0.17
 
 ### Features
