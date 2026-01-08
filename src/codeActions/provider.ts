@@ -69,7 +69,6 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
             "execute-as-if-entity-s-merge",
             "execute-as-if-entity-s-convert",
             "return-run-duplicate",
-            "target-selector-no-dimension",
         ];
 
         const fixableLines = new Set<number>();
@@ -136,6 +135,17 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
                     const typeArg = typeMatch[0];
                     const otherArgs = args.replace(typeArg, "").replace(/^,|,$/g, "").replace(/,,/g, ",");
                     const newArgs = otherArgs ? `${otherArgs},${typeArg}` : typeArg;
+                    return `@${selector}[${newArgs}]`;
+                }
+                return match;
+            });
+
+            // target-selector-no-dimension
+            result = result.replace(/@([aeprs])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
+                const dimensionKeys = ["x", "y", "z", "dx", "dy", "dz", "distance"];
+                const hasDimension = dimensionKeys.some((key) => new RegExp(`\\b${key}\\s*=`).test(args));
+                if (!hasDimension) {
+                    const newArgs = args ? `${args},distance=0..` : "distance=0..";
                     return `@${selector}[${newArgs}]`;
                 }
                 return match;
