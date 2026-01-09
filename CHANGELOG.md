@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.22
+
+Fixed `execute-as-if-entity-s-merge` should not be suggested when `if entity @s` precedes `as`
+
 ## 1.0.21
 
 Fixed `targetSelectorNoType` and `targetSelectorNoDimension` should not be detected with `@s`

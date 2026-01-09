@@ -95,6 +95,10 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
         return null;
     }
 
+    if (asMatch.index! > ifEntityMatch.index!) {
+        return null;
+    }
+
     const entityBase = ifEntityMatch[2];
     const startIndex = line.indexOf("execute");
 
