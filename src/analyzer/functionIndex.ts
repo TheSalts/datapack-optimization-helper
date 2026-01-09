@@ -178,12 +178,20 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
             lines.push(accumulated);
         }
 
+        let hasSeenConditionalReturn = false;
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const trimmed = line.trim();
 
             if (trimmed === "" || trimmed.startsWith("#")) {
                 continue;
+            }
+
+            const conditionalReturnMatch =
+                trimmed.startsWith("execute") && /\b(if|unless)\b/.test(trimmed) && /\srun\s+return\b/.test(trimmed);
+            if (conditionalReturnMatch) {
+                hasSeenConditionalReturn = true;
             }
 
             const functionMatch = trimmed.match(/\bfunction\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
@@ -207,7 +215,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
                         operation: "unknown",
                         value: null,
                         line: i,
-                        isConditional: false,
+                        isConditional: hasSeenConditionalReturn,
                     });
                 }
             }
@@ -216,7 +224,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
                 /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/
             );
             if (setMatch) {
-                const isConditional = trimmed.startsWith("execute");
+                const isConditional = trimmed.startsWith("execute") || hasSeenConditionalReturn;
                 info.scoreChanges.push({
                     target: setMatch[1],
                     objective: setMatch[2],
@@ -232,7 +240,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
                 /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/
             );
             if (addMatch) {
-                const isConditional = trimmed.startsWith("execute");
+                const isConditional = trimmed.startsWith("execute") || hasSeenConditionalReturn;
                 info.scoreChanges.push({
                     target: addMatch[2],
                     objective: addMatch[3],
@@ -248,7 +256,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
                 /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/
             );
             if (resetMatch) {
-                const isConditional = trimmed.startsWith("execute");
+                const isConditional = trimmed.startsWith("execute") || hasSeenConditionalReturn;
                 info.scoreChanges.push({
                     target: resetMatch[1],
                     objective: resetMatch[2] || "*",
@@ -264,7 +272,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
                 /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/
             );
             if (operationMatch) {
-                const isConditional = trimmed.startsWith("execute");
+                const isConditional = trimmed.startsWith("execute") || hasSeenConditionalReturn;
                 info.scoreChanges.push({
                     target: operationMatch[1],
                     objective: operationMatch[2],
@@ -540,6 +548,33 @@ export function getConsensusScoreStates(functionPath: string): Map<string, Score
     }
 
     return consensus;
+}
+
+export function getAllScoreChanges(functionPath: string, visited: Set<string> = new Set()): ScoreChange[] {
+    if (visited.has(functionPath)) {
+        return [];
+    }
+    visited.add(functionPath);
+
+    const funcInfo = functionIndex.get(functionPath);
+    if (!funcInfo) {
+        return [];
+    }
+
+    const allChanges: ScoreChange[] = [...funcInfo.scoreChanges];
+
+    for (const call of funcInfo.calls) {
+        const childChanges = getAllScoreChanges(call.functionName, new Set(visited));
+        for (const change of childChanges) {
+            const isConditional = change.isConditional || call.isConditional;
+            allChanges.push({
+                ...change,
+                isConditional,
+            });
+        }
+    }
+
+    return allChanges;
 }
 
 export function watchMcfunctionFiles(context: vscode.ExtensionContext) {

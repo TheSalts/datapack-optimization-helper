@@ -6,6 +6,7 @@ import {
     getConsensusScoreStates,
     getFunctionInfo,
     isIndexInitialized,
+    getAllScoreChanges,
 } from "../analyzer/functionIndex";
 
 interface ScoreState {
@@ -508,17 +509,21 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
         }
 
         if (functionMatch && isIndexInitialized()) {
-            const calledFuncInfo = getFunctionInfo(functionMatch[1]);
+            const calledFunctionPath = functionMatch[1];
+            const calledFuncInfo = getFunctionInfo(calledFunctionPath);
             if (calledFuncInfo) {
                 const isConditionalCall = isExecuteConditional(trimmed, scoreStates);
-                for (const change of calledFuncInfo.scoreChanges) {
+                const allChanges = getAllScoreChanges(calledFunctionPath);
+                for (const change of allChanges) {
                     applyScoreChange(scoreStates, isConditionalCall ? { ...change, isConditional: true } : change, i);
                 }
             }
         } else if (ifFunctionMatch && isIndexInitialized()) {
-            const calledFuncInfo = getFunctionInfo(ifFunctionMatch[2]);
+            const calledFunctionPath = ifFunctionMatch[2];
+            const calledFuncInfo = getFunctionInfo(calledFunctionPath);
             if (calledFuncInfo) {
-                for (const change of calledFuncInfo.scoreChanges) {
+                const allChanges = getAllScoreChanges(calledFunctionPath);
+                for (const change of allChanges) {
                     applyScoreChange(scoreStates, { ...change, isConditional: true }, i);
                 }
             }

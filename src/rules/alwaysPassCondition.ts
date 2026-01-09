@@ -6,12 +6,13 @@ import {
     getConsensusScoreStates,
     getFunctionInfo,
     isIndexInitialized,
+    getAllScoreChanges,
 } from "../analyzer/functionIndex";
 
 interface ScoreState {
     target: string;
     objective: string;
-    type: 'known' | 'unknown' | 'reset';
+    type: "known" | "unknown" | "reset";
     value: number | null;
     line: number;
 }
@@ -26,16 +27,16 @@ function parseRange(rangeStr: string): ScoreRange {
         const parts = rangeStr.split("..");
         const minParsed = parts[0] === "" ? null : parseInt(parts[0], 10);
         const maxParsed = parts[1] === "" ? null : parseInt(parts[1], 10);
-        
-        const min = (minParsed !== null && !isNaN(minParsed)) ? minParsed : null;
-        const max = (maxParsed !== null && !isNaN(maxParsed)) ? maxParsed : null;
-        
+
+        const min = minParsed !== null && !isNaN(minParsed) ? minParsed : null;
+        const max = maxParsed !== null && !isNaN(maxParsed) ? maxParsed : null;
+
         return { min, max };
     }
     const value = parseInt(rangeStr, 10);
-    return { 
-        min: isNaN(value) ? null : value, 
-        max: isNaN(value) ? null : value 
+    return {
+        min: isNaN(value) ? null : value,
+        max: isNaN(value) ? null : value,
     };
 }
 
@@ -103,16 +104,16 @@ export function checkAlwaysPassCondition(
         if (funcInfo) {
             const inheritedStates = getConsensusScoreStates(funcInfo.fullPath);
             for (const [key, state] of inheritedStates) {
-                // Determine type based on inherited state. 
-                // FunctionIndex uses value=null for unknown/conditional. 
-                // It doesn't strictly store 'reset' state separately in consensus currently, 
+                // Determine type based on inherited state.
+                // FunctionIndex uses value=null for unknown/conditional.
+                // It doesn't strictly store 'reset' state separately in consensus currently,
                 // but if value is null, we treat it as unknown for safety unless we change FunctionIndex.
-                // However, based on user request, we should try to distinguish. 
+                // However, based on user request, we should try to distinguish.
                 // But inherited state structure is simple. Let's assume unknown for null.
                 scoreStates.set(key, {
                     target: state.target,
                     objective: state.objective,
-                    type: state.value === null ? 'unknown' : 'known',
+                    type: state.value === null ? "unknown" : "known",
                     value: state.value,
                     line: -1,
                 });
@@ -137,14 +138,14 @@ export function checkAlwaysPassCondition(
             const target = storeMatch[1];
             const objective = storeMatch[2];
             const key = `${target}:${objective}`;
-            scoreStates.set(key, { 
-                target, 
-                objective, 
-                type: 'unknown', 
-                value: null, 
-                line: i 
+            scoreStates.set(key, {
+                target,
+                objective,
+                type: "unknown",
+                value: null,
+                line: i,
             });
-            // Continue parsing line for run command? 
+            // Continue parsing line for run command?
             // store command IS part of execute. The 'run' part comes later.
             // But for state tracking, we process it now.
         }
@@ -156,14 +157,14 @@ export function checkAlwaysPassCondition(
             const target = setMatch[1];
             const objective = setMatch[2];
             const value = parseInt(setMatch[3], 10);
-            
+
             if (!target.startsWith("@") && target !== "*") {
                 const key = `${target}:${objective}`;
                 if (isConditional) {
                     // Conditional set makes it unknown (unless it was reset, then it becomes unknown/reset mix -> unknown)
-                    scoreStates.set(key, { target, objective, type: 'unknown', value: null, line: i });
+                    scoreStates.set(key, { target, objective, type: "unknown", value: null, line: i });
                 } else {
-                    scoreStates.set(key, { target, objective, type: 'known', value, line: i });
+                    scoreStates.set(key, { target, objective, type: "known", value, line: i });
                 }
             }
         }
@@ -176,31 +177,31 @@ export function checkAlwaysPassCondition(
             const target = addMatch[2];
             const objective = addMatch[3];
             const amount = parseInt(addMatch[4], 10);
-            
+
             if (!target.startsWith("@") && target !== "*") {
                 const key = `${target}:${objective}`;
                 const existing = scoreStates.get(key);
-                
+
                 if (existing) {
                     if (isConditional) {
-                        existing.type = 'unknown';
+                        existing.type = "unknown";
                         existing.value = null;
-                    } else if (existing.type === 'known' && existing.value !== null) {
+                    } else if (existing.type === "known" && existing.value !== null) {
                         if (op === "add") {
                             existing.value += amount;
                         } else {
                             existing.value -= amount;
                         }
-                    } else if (existing.type === 'reset') {
-                        // Add to reset -> technically invalid/reset depending on game version? 
+                    } else if (existing.type === "reset") {
+                        // Add to reset -> technically invalid/reset depending on game version?
                         // Usually implies 0 in some contexts or fails. Let's treat as unknown.
-                        existing.type = 'unknown'; 
+                        existing.type = "unknown";
                         existing.value = null;
                     }
                     existing.line = i;
                 } else {
                     // Implicit add to unknown score
-                    scoreStates.set(key, { target, objective, type: 'unknown', value: null, line: i });
+                    scoreStates.set(key, { target, objective, type: "unknown", value: null, line: i });
                 }
             }
         }
@@ -211,24 +212,24 @@ export function checkAlwaysPassCondition(
         if (resetMatch) {
             const target = resetMatch[1];
             const objective = resetMatch[2];
-            
+
             if (!target.startsWith("@") && target !== "*") {
                 if (objective) {
                     const key = `${target}:${objective}`;
                     if (isConditional) {
-                        scoreStates.set(key, { target, objective, type: 'unknown', value: null, line: i });
+                        scoreStates.set(key, { target, objective, type: "unknown", value: null, line: i });
                     } else {
-                        scoreStates.set(key, { target, objective, type: 'reset', value: null, line: i });
+                        scoreStates.set(key, { target, objective, type: "reset", value: null, line: i });
                     }
                 } else {
                     // Reset all objectives for target
                     for (const [key, state] of scoreStates.entries()) {
                         if (key.startsWith(`${target}:`)) {
                             if (isConditional) {
-                                state.type = 'unknown';
+                                state.type = "unknown";
                                 state.value = null;
                             } else {
-                                state.type = 'reset';
+                                state.type = "reset";
                                 state.value = null;
                             }
                             state.line = i;
@@ -244,10 +245,10 @@ export function checkAlwaysPassCondition(
         if (operationMatch) {
             const target = operationMatch[1];
             const objective = operationMatch[2];
-            
+
             if (!target.startsWith("@") && target !== "*") {
                 // Operation makes value unknown (could be anything)
-                scoreStates.set(`${target}:${objective}`, { target, objective, type: 'unknown', value: null, line: i });
+                scoreStates.set(`${target}:${objective}`, { target, objective, type: "unknown", value: null, line: i });
             }
         }
 
@@ -268,10 +269,10 @@ export function checkAlwaysPassCondition(
             if (state) {
                 let alwaysPass = false;
 
-                if (state.type === 'unknown') {
+                if (state.type === "unknown") {
                     // Unknown value -> Never always pass (could fail)
                     allConditionsAlwaysPass = false;
-                } else if (state.type === 'reset') {
+                } else if (state.type === "reset") {
                     if (condType === "unless") {
                         // Unless score matches X -> if score is reset (doesn't exist), check fails?
                         // "if score ... matches" fails if score unset.
@@ -281,7 +282,7 @@ export function checkAlwaysPassCondition(
                         // if score matches ... -> Always Fails. Not "Always Pass".
                         allConditionsAlwaysPass = false;
                     }
-                } else if (state.type === 'known' && state.value !== null) {
+                } else if (state.type === "known" && state.value !== null) {
                     const range = parseRange(rangeStr);
                     const matches = matchesRange(state.value, range);
 
@@ -306,11 +307,7 @@ export function checkAlwaysPassCondition(
                     const diagRange = new vscode.Range(i, startIndex, i, endIndex);
 
                     const message = t("alwaysPassCondition");
-                    const diagnostic = new vscode.Diagnostic(
-                        diagRange,
-                        message,
-                        vscode.DiagnosticSeverity.Warning
-                    );
+                    const diagnostic = new vscode.Diagnostic(diagRange, message, vscode.DiagnosticSeverity.Warning);
                     diagnostic.source = DIAGNOSTIC_SOURCE;
                     diagnostic.code = "always-pass-condition";
                     diagnostics.push(diagnostic);
@@ -352,14 +349,15 @@ export function checkAlwaysPassCondition(
 
             if (calledFuncInfo) {
                 const isConditionalCall = isExecuteConditional(trimmed, scoreStates);
-                for (const change of calledFuncInfo.scoreChanges) {
+                const allChanges = getAllScoreChanges(calledFunctionPath);
+                for (const change of allChanges) {
                     const key = `${change.target}:${change.objective}`;
 
                     if (change.isConditional || isConditionalCall) {
                         scoreStates.set(key, {
                             target: change.target,
                             objective: change.objective,
-                            type: 'unknown',
+                            type: "unknown",
                             value: null,
                             line: i,
                         });
@@ -370,7 +368,7 @@ export function checkAlwaysPassCondition(
                         scoreStates.set(key, {
                             target: change.target,
                             objective: change.objective,
-                            type: 'known',
+                            type: "known",
                             value: change.value,
                             line: i,
                         });
@@ -378,7 +376,7 @@ export function checkAlwaysPassCondition(
                         if (change.objective === "*") {
                             for (const [k, state] of scoreStates.entries()) {
                                 if (k.startsWith(`${change.target}:`)) {
-                                    state.type = 'reset';
+                                    state.type = "reset";
                                     state.value = null;
                                     state.line = i;
                                 }
@@ -387,7 +385,7 @@ export function checkAlwaysPassCondition(
                             scoreStates.set(key, {
                                 target: change.target,
                                 objective: change.objective,
-                                type: 'reset',
+                                type: "reset",
                                 value: null,
                                 line: i,
                             });
@@ -396,7 +394,7 @@ export function checkAlwaysPassCondition(
                         scoreStates.set(key, {
                             target: change.target,
                             objective: change.objective,
-                            type: 'unknown',
+                            type: "unknown",
                             value: null,
                             line: i,
                         });
@@ -409,13 +407,14 @@ export function checkAlwaysPassCondition(
                 const calledFuncInfo = getFunctionInfo(calledFunctionPath);
 
                 if (calledFuncInfo) {
-                    for (const change of calledFuncInfo.scoreChanges) {
+                    const allChanges = getAllScoreChanges(calledFunctionPath);
+                    for (const change of allChanges) {
                         const key = `${change.target}:${change.objective}`;
                         // Conditional function call -> always unknown
-                         scoreStates.set(key, {
+                        scoreStates.set(key, {
                             target: change.target,
                             objective: change.objective,
-                            type: 'unknown',
+                            type: "unknown",
                             value: null,
                             line: i,
                         });

@@ -18,7 +18,7 @@ export function analyzeCommand(lineIndex: number, line: string): vscode.Diagnost
     if (config.targetSelectorTypeOrder) {
         diagnostics.push(...checkTargetSelectorTypeOrder(lineIndex, line));
     }
-    
+
     diagnostics.push(...checkExecuteRedundant(lineIndex, line, config));
 
     diagnostics.push(...checkExecuteRun(lineIndex, line, config));

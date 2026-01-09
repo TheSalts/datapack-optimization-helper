@@ -44,6 +44,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(analyzeDocument));
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((e) => analyzeDocument(e.document)));
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor((editor) => {
+            if (editor) {
+                analyzeDocument(editor.document);
+            }
+        })
+    );
     context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => diagnosticCollection.delete(doc.uri)));
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((e) => {
