@@ -196,6 +196,22 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
                 info.calls.push({ functionName: functionMatch[1], line: i, isConditional: isConditionalCall });
             }
 
+            const storeScoreMatch = trimmed.match(/\bstore\s+(?:result|success)\s+score\s+(\S+)\s+(\S+)/);
+            if (storeScoreMatch) {
+                const target = storeScoreMatch[1];
+                const objective = storeScoreMatch[2];
+                if (!target.startsWith("@") && target !== "*") {
+                    info.scoreChanges.push({
+                        target,
+                        objective,
+                        operation: "unknown",
+                        value: null,
+                        line: i,
+                        isConditional: false,
+                    });
+                }
+            }
+
             const setMatch = trimmed.match(
                 /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/
             );
