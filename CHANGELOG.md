@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.0.20
+
+Fixed `scoreboard fake player` doesn't detect `@n` as a target selector
+
+## 1.0.19
+
+Added `npm run pub`
+
 ## 1.0.18
 
 Fixed `target-selector-no-dimension` doesn't work with all quick fix
