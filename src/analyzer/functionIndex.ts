@@ -160,7 +160,23 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
 
     try {
         const content = fs.readFileSync(filePath, "utf-8");
-        const lines = content.split(/\r?\n/);
+        const rawLines = content.split(/\r?\n/);
+
+        const lines: string[] = [];
+        let accumulated = "";
+        for (const rawLine of rawLines) {
+            const trimmed = rawLine.trim();
+            if (trimmed.endsWith("\\")) {
+                accumulated += trimmed.slice(0, -1) + " ";
+            } else {
+                accumulated += trimmed;
+                lines.push(accumulated);
+                accumulated = "";
+            }
+        }
+        if (accumulated) {
+            lines.push(accumulated);
+        }
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];

@@ -17,6 +17,7 @@ import {
 import { registerReferencesCodeLens } from "./providers/referencesCodeLens";
 import { t } from "./utils/i18n";
 import { parseWarnOffFile, getDisabledRulesForLine, isRuleDisabled, ALL_RULE_IDS } from "./utils/warnOff";
+import { registerConditionDefinition } from "./providers/conditionDefinition";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -67,6 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
     watchMcfunctionFiles(context);
 
     const codeLensProvider = registerReferencesCodeLens(context);
+    registerConditionDefinition(context);
 
     await vscode.window.withProgress(
         {

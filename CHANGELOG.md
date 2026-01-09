@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.0.23
+
+### Features
+
+-   Added navigation for unreachable/always-pass conditions
+    -   Ctrl+Click on `if` or `unless` keyword to jump to the score assignment location
+-   Fixed multiline execute commands (with `\`) not being parsed correctly for score tracking
+
 ## 1.0.22
 
 Fixed `execute-as-if-entity-s-merge` should not be suggested when `if entity @s` precedes `as`

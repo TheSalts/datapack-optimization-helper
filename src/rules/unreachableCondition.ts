@@ -174,7 +174,12 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
                 // If unless range completely contains if range, it always fails
                 if (unlessMin <= ifMin && unlessMax >= ifMax) {
                     const startIndex = line.indexOf(ifCond.fullMatch);
-                    const diagRange = new vscode.Range(lineIndex, startIndex, lineIndex, startIndex + ifCond.fullMatch.length);
+                    const diagRange = new vscode.Range(
+                        lineIndex,
+                        startIndex,
+                        lineIndex,
+                        startIndex + ifCond.fullMatch.length
+                    );
                     const diagnostic = new vscode.Diagnostic(
                         diagRange,
                         t("unreachableCondition"),
@@ -495,7 +500,7 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
             }
         }
 
-        const functionMatch = trimmed.match(/^(?:execute\s+.*\s+run\s+)?function\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
+        const functionMatch = trimmed.match(/^(?:\$?execute\s+.*\s+run\s+)?function\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
         const ifFunctionMatch = trimmed.match(/\b(if|unless)\s+function\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
 
         if (hasUnreachableCondition) {
