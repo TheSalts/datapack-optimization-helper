@@ -7,7 +7,7 @@ const SCOREBOARD_PLAYERS_PATTERN = /scoreboard\s+players\s+(add|remove|set|reset
 
 function isTargetSelector(name: string): boolean {
     const trimmed = name.trim();
-    return /^@[aeprs](\[[^\]]*\])?$/.test(trimmed);
+    return /^@[aenprs](\[[^\]]*\])?$/.test(trimmed);
 }
 
 export function checkScoreboardFakePlayer(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
