@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.25
+
+Fixed tracking score with conditional `return`
+
 ## 1.0.24
 
 ### Features
