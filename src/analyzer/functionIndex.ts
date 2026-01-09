@@ -489,6 +489,9 @@ export function collectScoreStatesFromCallers(
 }
 
 export function getConsensusScoreStates(functionPath: string): Map<string, ScoreState> {
+    const callers = getCallers(functionPath);
+    const nonConditionalCallerCount = callers.filter((c) => !c.isConditional).length;
+
     const allStates = collectScoreStatesFromCallers(functionPath);
     const consensus: Map<string, ScoreState> = new Map();
 
@@ -497,11 +500,26 @@ export function getConsensusScoreStates(functionPath: string): Map<string, Score
             continue;
         }
 
+        if (states.length < nonConditionalCallerCount) {
+            consensus.set(key, {
+                target: states[0].target,
+                objective: states[0].objective,
+                value: null,
+            });
+            continue;
+        }
+
         const firstValue = states[0].value;
         const allSame = states.every((s) => s.value === firstValue);
 
         if (allSame) {
             consensus.set(key, states[0]);
+        } else {
+            consensus.set(key, {
+                target: states[0].target,
+                objective: states[0].objective,
+                value: null,
+            });
         }
     }
 

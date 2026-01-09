@@ -66,7 +66,9 @@ type MessageKey =
     | "fixAllAutoFixableFix"
     | "configNotFound"
     | "configCreate"
-    | "configDontShowAgain";
+    | "configDontShowAgain"
+    | "conditionSourceNotFound"
+    | "reportIssue";
 
 interface I18nData {
     codeLens?: Record<string, string>;

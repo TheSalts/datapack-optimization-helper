@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.0.24
+
+### Features
+
+-   When using navigation for unreachable/always-pass conditions, if source cannot be found, prompts to report issue
+
+### Fixes
+
+-   Fixed false positive when score is set by only some callers
+-   Fixed macro function calls (`$execute ... run function`) not being tracked
+
 ## 1.0.23
 
 ### Features

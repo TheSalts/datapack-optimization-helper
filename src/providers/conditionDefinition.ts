@@ -5,6 +5,7 @@ import {
     getFunctionInfo,
     isIndexInitialized,
 } from "../analyzer/functionIndex";
+import { t } from "../utils/i18n";
 
 interface ScoreState {
     target: string;
@@ -97,6 +98,19 @@ export class ConditionDefinitionProvider implements vscode.DefinitionProvider {
                         return new vscode.Location(targetUri, new vscode.Position(state.line, 0));
                     } else if (state.line >= 0) {
                         return new vscode.Location(document.uri, new vscode.Position(state.line, 0));
+                    } else {
+                        vscode.window
+                            .showWarningMessage(t("conditionSourceNotFound"), t("reportIssue"))
+                            .then((selection) => {
+                                if (selection === t("reportIssue")) {
+                                    vscode.env.openExternal(
+                                        vscode.Uri.parse(
+                                            "https://github.com/TheSalts/datapack-optimization-helper/issues/new?template=bug_report.md&title=Cannot+find+source+of+unreachable+condition"
+                                        )
+                                    );
+                                }
+                            });
+                        return null;
                     }
                 }
             }

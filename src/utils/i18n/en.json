@@ -41,7 +41,9 @@
     "nbtItemsUseIfItems": "Recommend using 'if items' instead of item nbt",
     "configNotFound": "datapack.config.json not found. Create one to configure project-level rules.",
     "configCreate": "Create datapack.config.json",
-    "configDontShowAgain": "Don't show again"
+    "configDontShowAgain": "Don't show again",
+    "conditionSourceNotFound": "Cannot find source of this condition. Report as issue?",
+    "reportIssue": "Report Issue"
   },
   "fix": {
     "unreachableCode": "Remove unreachable code",

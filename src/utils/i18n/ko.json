@@ -41,7 +41,9 @@
         "nbtItemsUseIfItems": "아이템 nbt 대신 'if items' 구문 사용 권장",
         "configNotFound": "datapack.config.json을 찾을 수 없습니다. 프로젝트 단위 규칙을 설정하려면 생성하세요.",
         "configCreate": "datapack.config.json 생성",
-        "configDontShowAgain": "다시 표시 안 함"
+        "configDontShowAgain": "다시 표시 안 함",
+        "conditionSourceNotFound": "조건의 원인을 찾을 수 없습니다. 이슈로 제보하시겠습니까?",
+        "reportIssue": "이슈 제보"
     },
     "fix": {
         "unreachableCode": "실행되지 않는 코드 삭제",
