@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.21
+
+Fixed `targetSelectorNoType` and `targetSelectorNoDimension` should not be detected with `@s`
+
 ## 1.0.20
 
 Fixed `scoreboard fake player` doesn't detect `@n` as a target selector

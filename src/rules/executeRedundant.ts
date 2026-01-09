@@ -297,15 +297,17 @@ function findRedundantSubcommands(tokens: ExecuteToken[]): RedundantToken[] {
         if (args.includes("@s")) {
             uses.push("executor");
         }
+        // @s is self - position/dimension/type restrictions don't apply
+        const hasSelfSelector = args.includes("@s");
         // @p, @n, sort=nearest/furthest → HAS position dependency (different entity may be selected based on position)
         // Exception: if preceded by "positioned as" or "at", distance becomes 0 and same entity is re-selected
         // But we need to check the chain - inherit position dependency from previous positioned as/at
         // @r = sort=random → no position dependency (random is position-independent)
-        if (args.match(/\bdistance=/) || args.match(/\bd[xyz]=/) || args.match(/\b[xyz]=/)) {
+        if (!hasSelfSelector && (args.match(/\bdistance=/) || args.match(/\bd[xyz]=/) || args.match(/\b[xyz]=/))) {
             uses.push("position", "dimension");
         }
         // @p, @n, sort=nearest/furthest - check chain for position dependency
-        if (hasNearestSelectorDependency(tokens, i)) {
+        if (!hasSelfSelector && hasNearestSelectorDependency(tokens, i)) {
             uses.push("position", "dimension");
         }
 
