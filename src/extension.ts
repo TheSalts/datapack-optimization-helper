@@ -7,6 +7,7 @@ import { getPackMeta, watchPackMeta } from "./utils/packMeta";
 import { checkExecuteGroup } from "./rules/executeGroup";
 import { checkUnreachableCondition } from "./rules/unreachableCondition";
 import { checkAlwaysPassCondition } from "./rules/alwaysPassCondition";
+import { checkInfiniteRecursion } from "./rules/infiniteRecursion";
 import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
 import {
     getRuleConfig,
@@ -192,6 +193,16 @@ function analyzeDocument(document: vscode.TextDocument) {
 
             if (unreachableFrom === null || alwaysPassUnreachableFrom < unreachableFrom) {
                 unreachableFrom = alwaysPassUnreachableFrom;
+            }
+        }
+    }
+
+    if (config.infiniteRecursion && !isRuleDisabled("infinite-recursion", fileDisabledRules)) {
+        const recursionDiags = checkInfiniteRecursion(document, config);
+        for (const diag of recursionDiags) {
+            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
+            if (!isRuleDisabled("infinite-recursion", lineDisabled)) {
+                diagnostics.push(diag);
             }
         }
     }

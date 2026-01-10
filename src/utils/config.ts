@@ -13,6 +13,7 @@ export type RuleName =
     | "execute-run-redundant"
     | "execute-run-redundant-run-execute"
     | "execute-unnecessary"
+    | "infinite-recursion"
     | "nbt-items-use-if-items"
     | "return-run-duplicate"
     | "scoreboard-fake-player-missing-hash"
@@ -32,6 +33,7 @@ export interface RuleConfig {
     executeRunRedundant: boolean;
     executeRunRedundantRunExecute: boolean;
     executeUnnecessary: boolean;
+    infiniteRecursion: boolean;
     nbtItemsUseIfItems: boolean;
     returnRunDuplicate: boolean;
     scoreboardFakePlayerMissingHash: boolean;
@@ -179,6 +181,7 @@ export function getRuleConfig(): RuleConfig {
         executeRunRedundant: !disabledSet.has("execute-run-redundant"),
         executeRunRedundantRunExecute: !disabledSet.has("execute-run-redundant-run-execute"),
         executeUnnecessary: !disabledSet.has("execute-unnecessary"),
+        infiniteRecursion: !disabledSet.has("infinite-recursion"),
         nbtItemsUseIfItems: !disabledSet.has("nbt-items-use-if-items"),
         returnRunDuplicate: !disabledSet.has("return-run-duplicate"),
         scoreboardFakePlayerMissingHash: !disabledSet.has("scoreboard-fake-player-missing-hash"),

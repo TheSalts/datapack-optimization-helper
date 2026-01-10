@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.26
+
+### Features
+
+-   Added `infinite-recursion` rule to detect infinite recursion calls
+
 ## 1.0.25
 
 Fixed tracking score with conditional `return`

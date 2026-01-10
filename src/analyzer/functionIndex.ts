@@ -6,6 +6,7 @@ export interface FunctionCall {
     functionName: string;
     line: number;
     isConditional: boolean;
+    hasUnconditionalReturnBefore: boolean;
 }
 
 export interface ScoreChange {
@@ -179,6 +180,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
         }
 
         let hasSeenConditionalReturn = false;
+        let hasSeenReturn = false;
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -186,6 +188,10 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
 
             if (trimmed === "" || trimmed.startsWith("#")) {
                 continue;
+            }
+
+            if (/\breturn\b/.test(trimmed)) {
+                hasSeenReturn = true;
             }
 
             const conditionalReturnMatch =
@@ -196,12 +202,19 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
 
             const functionMatch = trimmed.match(/\bfunction\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
             if (functionMatch) {
+                const isScheduleCall = /\bschedule\s+function\b/.test(trimmed);
                 const isConditionalCall =
-                    trimmed.startsWith("execute") &&
-                    (/\b(if|unless)\b/.test(trimmed) ||
-                        /\bon\s/.test(trimmed) ||
-                        /\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed));
-                info.calls.push({ functionName: functionMatch[1], line: i, isConditional: isConditionalCall });
+                    isScheduleCall ||
+                    (trimmed.startsWith("execute") &&
+                        (/\b(if|unless)\b/.test(trimmed) ||
+                            /\bon\s/.test(trimmed) ||
+                            /\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed)));
+                info.calls.push({
+                    functionName: functionMatch[1],
+                    line: i,
+                    isConditional: isConditionalCall,
+                    hasUnconditionalReturnBefore: hasSeenReturn && !hasSeenConditionalReturn,
+                });
             }
 
             const storeScoreMatch = trimmed.match(/\bstore\s+(?:result|success)\s+score\s+(\S+)\s+(\S+)/);
@@ -412,9 +425,11 @@ export interface ScoreState {
 
 export function collectScoreStatesFromCallers(
     functionPath: string,
-    visited: Set<string> = new Set()
+    visited: Set<string> = new Set(),
+    originalFunctionPath?: string
 ): Map<string, ScoreState[]> {
     const result: Map<string, ScoreState[]> = new Map();
+    const origPath = originalFunctionPath ?? functionPath;
 
     if (visited.has(functionPath)) {
         return result;
@@ -431,6 +446,9 @@ export function collectScoreStatesFromCallers(
         if (caller.isConditional) {
             continue;
         }
+        if (caller.callerPath === origPath) {
+            continue;
+        }
         const callerPath = caller.callerPath;
         const callLine = caller.line;
         const callerInfo = functionIndex.get(callerPath);
@@ -438,7 +456,7 @@ export function collectScoreStatesFromCallers(
             continue;
         }
 
-        const parentStates = collectScoreStatesFromCallers(callerPath, new Set(visited));
+        const parentStates = collectScoreStatesFromCallers(callerPath, new Set(visited), origPath);
 
         const stateMap: Map<string, ScoreState> = new Map();
 
@@ -512,9 +530,33 @@ export function collectScoreStatesFromCallers(
     return result;
 }
 
+function isRecursiveFunction(functionPath: string, visited: Set<string> = new Set()): boolean {
+    if (visited.has(functionPath)) {
+        return true;
+    }
+    visited.add(functionPath);
+    const funcInfo = functionIndex.get(functionPath);
+    if (!funcInfo) {
+        return false;
+    }
+    for (const call of funcInfo.calls) {
+        if (call.isConditional) {
+            continue;
+        }
+        if (isRecursiveFunction(call.functionName, new Set(visited))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 export function getConsensusScoreStates(functionPath: string): Map<string, ScoreState> {
     const callers = getCallers(functionPath);
-    const nonConditionalCallerCount = callers.filter((c) => !c.isConditional).length;
+    const nonConditionalCallerCount = callers.filter((c) => !c.isConditional && c.callerPath !== functionPath).length;
+
+    if (isRecursiveFunction(functionPath)) {
+        return new Map();
+    }
 
     const allStates = collectScoreStatesFromCallers(functionPath);
     const consensus: Map<string, ScoreState> = new Map();

@@ -46,6 +46,7 @@ type MessageKey =
     | "scoreboardFakePlayerMissingHash"
     | "scoreboardFakePlayerMissingHashFix"
     | "nbtItemsUseIfItems"
+    | "infiniteRecursion"
     | "codeLens.noReferences"
     | "codeLens.references"
     | "rename.title"

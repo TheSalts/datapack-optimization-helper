@@ -39,6 +39,7 @@
     "executeRunRedundantRunExecute": "Duplicate 'execute'",
     "scoreboardFakePlayerMissingHash": "Recommend using '#' for fake player",
     "nbtItemsUseIfItems": "Recommend using 'if items' instead of item nbt",
+    "infiniteRecursion": "Infinite recursion: {path}",
     "configNotFound": "datapack.config.json not found. Create one to configure project-level rules.",
     "configCreate": "Create datapack.config.json",
     "configDontShowAgain": "Don't show again",

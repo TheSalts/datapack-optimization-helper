@@ -10,6 +10,7 @@ export const ALL_RULE_IDS: readonly RuleName[] = [
     "execute-run-redundant",
     "execute-run-redundant-run-execute",
     "execute-unnecessary",
+    "infinite-recursion",
     "nbt-items-use-if-items",
     "return-run-duplicate",
     "scoreboard-fake-player-missing-hash",

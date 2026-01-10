@@ -39,6 +39,7 @@
         "executeRunRedundantRunExecute": "중복된 'execute'",
         "scoreboardFakePlayerMissingHash": "가짜 플레이어에 '#' 사용 권장",
         "nbtItemsUseIfItems": "아이템 nbt 대신 'if items' 구문 사용 권장",
+        "infiniteRecursion": "무한 재귀 호출: {path}",
         "configNotFound": "datapack.config.json을 찾을 수 없습니다. 프로젝트 단위 규칙을 설정하려면 생성하세요.",
         "configCreate": "datapack.config.json 생성",
         "configDontShowAgain": "다시 표시 안 함",

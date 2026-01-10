@@ -10,6 +10,8 @@ Vscode Extension for minecraft datapack optimization.
 
 -   Add lint warnings for optimizations
 
+-   Detect infinite recursion calls
+
 -   Add some quick fixes
 
 -   Ctrl+Click on `if`/`unless` in unreachable/always-pass conditions to jump to the score assignment
