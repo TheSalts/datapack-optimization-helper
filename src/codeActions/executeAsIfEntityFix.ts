@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { t } from "../utils/i18n";
 
 const COMPLEX_KEYS = ["scores", "advancements"];
+const DUPLICABLE_KEYS = ["predicate", "tag", "nbt"];
 
 function parseArgs(argsStr: string): { key: string; raw: string }[] {
     if (!argsStr) {
@@ -93,13 +94,15 @@ function getMergedSelector(
         const existingIndex = combined.findIndex((a) => a.key === sArg.key);
 
         if (existingIndex !== -1) {
-            // Key already exists
             if (COMPLEX_KEYS.includes(sArg.key)) {
-                // Merge complex values (scores, advancements)
                 const mergedRaw = mergeComplexValues(combined[existingIndex].raw, finalRaw);
                 combined[existingIndex] = { key: sArg.key, raw: mergedRaw };
+            } else if (DUPLICABLE_KEYS.includes(sArg.key)) {
+                const isDuplicate = combined.some((a) => a.raw === finalRaw);
+                if (!isDuplicate) {
+                    combined.push({ key: sArg.key, raw: finalRaw });
+                }
             }
-            // For non-complex duplicate keys, skip (keep existing)
         } else {
             const isDuplicate = combined.some((a) => a.raw === finalRaw);
             if (!isDuplicate) {

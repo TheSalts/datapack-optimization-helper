@@ -6,6 +6,10 @@
 
 -   Added `infinite-recursion` rule to detect infinite recursion calls
 
+### Fixes
+
+-   Fixed [Wrong merge `as` and `if entity`](https://github.com/TheSalts/datapack-optimization-helper/issues/10)
+
 ## 1.0.25
 
 Fixed tracking score with conditional `return`
