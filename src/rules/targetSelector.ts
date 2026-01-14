@@ -141,11 +141,11 @@ export function checkTargetSelectorTypeOrder(lineIndex: number, line: string): v
     const diagnostics: vscode.Diagnostic[] = [];
 
     for (const selector of selectors) {
-        const keys = selector.arguments.map((arg) => arg.key);
-        const hasType = keys.includes("type");
-        const typeIndex = keys.indexOf("type");
+        const positiveTypeIndex = selector.arguments.findIndex(
+            (arg) => arg.key === "type" && !arg.negated && !arg.value.startsWith("#")
+        );
 
-        if (hasType && typeIndex !== selector.arguments.length - 1) {
+        if (positiveTypeIndex !== -1 && positiveTypeIndex !== selector.arguments.length - 1) {
             const range = new vscode.Range(lineIndex, selector.startIndex, lineIndex, selector.endIndex);
             const message = t("targetSelectorTypeOrder");
             const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);

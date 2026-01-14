@@ -1,14 +1,18 @@
 # Change Log
 
+## 1.0.27
+
+### Fixes
+
+-   Fixed [Wrong merge `as` and `if entity`](https://github.com/TheSalts/datapack-optimization-helper/issues/10)
+-   Fixed `type=!` and `type=#` now allowed as duplicates in selector merge
+-   Fixed `target-selector-type-order` now only applies to positive type (excludes `type=!` and `type=#`)
+
 ## 1.0.26
 
 ### Features
 
 -   Added `infinite-recursion` rule to detect infinite recursion calls
-
-### Fixes
-
--   Fixed [Wrong merge `as` and `if entity`](https://github.com/TheSalts/datapack-optimization-helper/issues/10)
 
 ## 1.0.25
 

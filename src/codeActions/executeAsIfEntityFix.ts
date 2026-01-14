@@ -4,6 +4,14 @@ import { t } from "../utils/i18n";
 const COMPLEX_KEYS = ["scores", "advancements"];
 const DUPLICABLE_KEYS = ["predicate", "tag", "nbt"];
 
+function isDuplicableTypeArg(key: string, raw: string): boolean {
+    if (key !== "type") return false;
+    const eqIndex = raw.indexOf("=");
+    if (eqIndex === -1) return false;
+    const value = raw.slice(eqIndex + 1);
+    return value.startsWith("!") || value.startsWith("#");
+}
+
 function parseArgs(argsStr: string): { key: string; raw: string }[] {
     if (!argsStr) {
         return [];
@@ -97,7 +105,7 @@ function getMergedSelector(
             if (COMPLEX_KEYS.includes(sArg.key)) {
                 const mergedRaw = mergeComplexValues(combined[existingIndex].raw, finalRaw);
                 combined[existingIndex] = { key: sArg.key, raw: mergedRaw };
-            } else if (DUPLICABLE_KEYS.includes(sArg.key)) {
+            } else if (DUPLICABLE_KEYS.includes(sArg.key) || isDuplicableTypeArg(sArg.key, finalRaw)) {
                 const isDuplicate = combined.some((a) => a.raw === finalRaw);
                 if (!isDuplicate) {
                     combined.push({ key: sArg.key, raw: finalRaw });
