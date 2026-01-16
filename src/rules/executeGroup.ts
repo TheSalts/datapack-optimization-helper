@@ -116,9 +116,11 @@ function createGroupFromLines(executeLines: ExecuteLine[]): ExecuteGroup | null 
         return null;
     }
 
+    const prefixEndsWithRun = commonPrefix.trimEnd().endsWith(" run");
+
     const suffixes = allTokens.map((tokens) => {
         let suffixTokens = tokens.slice(commonTokenCount);
-        let hadRun = false;
+        let hadRun = prefixEndsWithRun;
         if (suffixTokens[0] === "run") {
             suffixTokens = suffixTokens.slice(1);
             hadRun = true;

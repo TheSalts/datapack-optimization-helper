@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.28
+
+### Fixes
+
+-   Fixed [Function grouping is broken with `execute summon`](https://github.com/TheSalts/datapack-optimization-helper/issues/7) (regression)
+
 ## 1.0.27
 
 ### Fixes
