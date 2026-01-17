@@ -1,24 +1,30 @@
 # Change Log
 
+## 1.0.29
+
+### Fixes
+
+Fixed [Underline only the duplicated parts for `execute-group`](https://github.com/TheSalts/datapack-optimization-helper/issues/11)
+
 ## 1.0.28
 
 ### Fixes
 
--   Fixed [Function grouping is broken with `execute summon`](https://github.com/TheSalts/datapack-optimization-helper/issues/7) (regression)
+- Fixed [Function grouping is broken with `execute summon`](https://github.com/TheSalts/datapack-optimization-helper/issues/7) (regression)
 
 ## 1.0.27
 
 ### Fixes
 
--   Fixed [Wrong merge `as` and `if entity`](https://github.com/TheSalts/datapack-optimization-helper/issues/10)
--   Fixed `type=!` and `type=#` now allowed as duplicates in selector merge
--   Fixed `target-selector-type-order` now only applies to positive type (excludes `type=!` and `type=#`)
+- Fixed [Wrong merge `as` and `if entity`](https://github.com/TheSalts/datapack-optimization-helper/issues/10)
+- Fixed `type=!` and `type=#` now allowed as duplicates in selector merge
+- Fixed `target-selector-type-order` now only applies to positive type (excludes `type=!` and `type=#`)
 
 ## 1.0.26
 
 ### Features
 
--   Added `infinite-recursion` rule to detect infinite recursion calls
+- Added `infinite-recursion` rule to detect infinite recursion calls
 
 ## 1.0.25
 
@@ -28,20 +34,20 @@ Fixed tracking score with conditional `return`
 
 ### Features
 
--   When using navigation for unreachable/always-pass conditions, if source cannot be found, prompts to report issue
+- When using navigation for unreachable/always-pass conditions, if source cannot be found, prompts to report issue
 
 ### Fixes
 
--   Fixed false positive when score is set by only some callers
--   Fixed macro function calls (`$execute ... run function`) not being tracked
+- Fixed false positive when score is set by only some callers
+- Fixed macro function calls (`$execute ... run function`) not being tracked
 
 ## 1.0.23
 
 ### Features
 
--   Added navigation for unreachable/always-pass conditions
-    -   Ctrl+Click on `if` or `unless` keyword to jump to the score assignment location
--   Fixed multiline execute commands (with `\`) not being parsed correctly for score tracking
+- Added navigation for unreachable/always-pass conditions
+    - Ctrl+Click on `if` or `unless` keyword to jump to the score assignment location
+- Fixed multiline execute commands (with `\`) not being parsed correctly for score tracking
 
 ## 1.0.22
 
@@ -67,12 +73,12 @@ Fixed `target-selector-no-dimension` doesn't work with all quick fix
 
 ### Features
 
--   Added project-level configuration with `datapack.config.json`
-    -   Place in the same folder as `pack.mcmeta`
-    -   Configure disabled rules and execute group settings per project
-    -   Project settings override user settings
-    -   Autocomplete support for rule IDs in config file
--   Added notification to create `datapack.config.json` when opening a datapack workspace
+- Added project-level configuration with `datapack.config.json`
+    - Place in the same folder as `pack.mcmeta`
+    - Configure disabled rules and execute group settings per project
+    - Project settings override user settings
+    - Autocomplete support for rule IDs in config file
+- Added notification to create `datapack.config.json` when opening a datapack workspace
 
 ## 1.0.16
 
@@ -82,17 +88,17 @@ Fixed [multiple execute summon false positive](https://github.com/TheSalts/datap
 
 ### Features
 
--   Added "Show Documentation" quick fix with wiki links
--   Added detection for conflicting score conditions in the same line (e.g., `if score @s foo matches 1 if score @s foo matches 2`)
+- Added "Show Documentation" quick fix with wiki links
+- Added detection for conflicting score conditions in the same line (e.g., `if score @s foo matches 1 if score @s foo matches 2`)
 
 ### Fixes
 
--   Fixed "Fix All" quick fix not applying all fixes at once
--   Fixed `scores` and `advancements` selector arguments not merging correctly in `execute-as-if-entity-s-convert`
+- Fixed "Fix All" quick fix not applying all fixes at once
+- Fixed `scores` and `advancements` selector arguments not merging correctly in `execute-as-if-entity-s-convert`
 
 ### Documentation
 
--   Added wiki documentation for all rules ([English](https://github.com/TheSalts/datapack-optimization-helper/wiki/Rules), [한국어](https://github.com/TheSalts/datapack-optimization-helper/wiki/%EA%B7%9C%EC%B9%99))
+- Added wiki documentation for all rules ([English](https://github.com/TheSalts/datapack-optimization-helper/wiki/Rules), [한국어](https://github.com/TheSalts/datapack-optimization-helper/wiki/%EA%B7%9C%EC%B9%99))
 
 ## 1.0.14
 
@@ -104,12 +110,12 @@ Fixed [string is interpreted as selector](https://github.com/TheSalts/datapack-o
 
 Added `# warn-off` comment to suppress warnings for specific lines or files
 
--   `# warn-off` - Suppress all warnings for the next line
--   `# warn-off rule-id` - Suppress specific rule for the next line
--   `# warn-off-file` - Suppress all warnings for the entire file
--   `# warn-off-file rule-id` - Suppress specific rule for the entire file
--   Quick Fix: "Suppress warning for this line"
--   Autocomplete support for rule IDs
+- `# warn-off` - Suppress all warnings for the next line
+- `# warn-off rule-id` - Suppress specific rule for the next line
+- `# warn-off-file` - Suppress all warnings for the entire file
+- `# warn-off-file rule-id` - Suppress specific rule for the entire file
+- Quick Fix: "Suppress warning for this line"
+- Autocomplete support for rule IDs
 
 ## 1.0.12
 
@@ -159,13 +165,13 @@ Added config item's label and now supports i18n
 
 ### Bugs
 
--   Fixed [issue 1](https://github.com/TheSalts/datapack-optimization-helper/issues/1)
--   Fixed a false positive lint warning when using `execute` before `return`.
--   Fixed the Quick Fix behavior for duplicate `return` commands.
--   Improved function grouping to correctly handle whitespace and comments.
--   Resolved incorrect warnings regarding duplicate `at` subcommands.
--   Fixed an issue where duplicated subcommands were incorrectly reported.
--   Separated `unknown` and `reset` states in scoreboard tracking logic.
+- Fixed [issue 1](https://github.com/TheSalts/datapack-optimization-helper/issues/1)
+- Fixed a false positive lint warning when using `execute` before `return`.
+- Fixed the Quick Fix behavior for duplicate `return` commands.
+- Improved function grouping to correctly handle whitespace and comments.
+- Resolved incorrect warnings regarding duplicate `at` subcommands.
+- Fixed an issue where duplicated subcommands were incorrectly reported.
+- Separated `unknown` and `reset` states in scoreboard tracking logic.
 
 ## 1.0.3
 

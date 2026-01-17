@@ -28,10 +28,7 @@ export function analyzeCommand(lineIndex: number, line: string): vscode.Diagnost
         diagnostics.push(executeAsDiag);
     }
 
-    const executeAsIfEntityDiag = checkExecuteAsIfEntity(lineIndex, line, config);
-    if (executeAsIfEntityDiag) {
-        diagnostics.push(executeAsIfEntityDiag);
-    }
+    diagnostics.push(...checkExecuteAsIfEntity(lineIndex, line, config));
 
     diagnostics.push(...checkScoreboardFakePlayer(lineIndex, line, config));
 

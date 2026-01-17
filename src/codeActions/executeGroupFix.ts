@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import { t } from "../utils/i18n";
-import { findExecuteGroups } from "../rules/executeGroup";
 import { getPackFormat } from "../utils/packMeta";
 import { getExecuteGroupOutputPath, getExecuteGroupOutputName } from "../utils/config";
 
@@ -10,22 +9,30 @@ export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic:
     const action = new vscode.CodeAction(t("executeGroupFix"), vscode.CodeActionKind.QuickFix);
     action.diagnostics = [diagnostic];
 
-    const lines = document.getText().split(/\r?\n/);
-    const groups = findExecuteGroups(lines);
-    const group = groups.find(
-        (g) => g.startLine === diagnostic.range.start.line && g.endLine === diagnostic.range.end.line
-    );
+    let group: { commonPrefix: string; suffixes: string[]; lineIndices: number[] } | undefined;
+
+    if (diagnostic.relatedInformation && diagnostic.relatedInformation.length > 0) {
+        try {
+            group = JSON.parse(diagnostic.relatedInformation[0].message);
+        } catch {
+            return action;
+        }
+    }
 
     if (!group) {
         return action;
     }
+
+    const lines = document.getText().split(/\r?\n/);
+    const startLine = Math.min(...group.lineIndices);
+    const endLine = Math.max(...group.lineIndices);
 
     const filePath = document.uri.fsPath;
     const currentDir = path.dirname(filePath);
     const baseFileName = path.basename(filePath, ".mcfunction");
 
     const outputPath = resolveOutputPath(filePath, currentDir);
-    const newFunctionName = findAvailableName(outputPath, baseFileName, group.startLine);
+    const newFunctionName = findAvailableName(outputPath, baseFileName, startLine);
     const newFilePath = path.join(outputPath, `${newFunctionName}.mcfunction`);
     const newFileUri = vscode.Uri.file(newFilePath);
 
@@ -46,7 +53,7 @@ export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic:
     action.edit.insert(newFileUri, new vscode.Position(0, 0), newFileContent);
 
     const linesToDelete: number[] = [];
-    for (let i = group.startLine; i <= group.endLine; i++) {
+    for (let i = startLine; i <= endLine; i++) {
         const trimmed = lines[i].trim();
         if (trimmed !== "" && !trimmed.startsWith("#")) {
             linesToDelete.push(i);

@@ -11,7 +11,7 @@ export function checkExecuteRun(lineIndex: number, line: string, config?: RuleCo
     if (effectiveConfig.executeRunRedundant && /^execute\s+run\s+/.test(trimmed)) {
         const startIndex = line.indexOf("execute");
         const runIndex = line.indexOf("run", startIndex);
-        const range = new vscode.Range(lineIndex, startIndex, lineIndex, runIndex + 4);
+        const range = new vscode.Range(lineIndex, startIndex, lineIndex, runIndex + 3);
         const message = t("executeRunRedundant");
         const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
         diagnostic.source = DIAGNOSTIC_SOURCE;
