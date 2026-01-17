@@ -9,15 +9,9 @@ export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic:
     const action = new vscode.CodeAction(t("executeGroupFix"), vscode.CodeActionKind.QuickFix);
     action.diagnostics = [diagnostic];
 
-    let group: { commonPrefix: string; suffixes: string[]; lineIndices: number[] } | undefined;
-
-    if (diagnostic.relatedInformation && diagnostic.relatedInformation.length > 0) {
-        try {
-            group = JSON.parse(diagnostic.relatedInformation[0].message);
-        } catch {
-            return action;
-        }
-    }
+    const group = (diagnostic as any).data as
+        | { commonPrefix: string; suffixes: string[]; lineIndices: number[] }
+        | undefined;
 
     if (!group) {
         return action;

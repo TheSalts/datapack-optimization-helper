@@ -20,7 +20,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
     provideCodeActions(
         document: vscode.TextDocument,
         range: vscode.Range,
-        context: vscode.CodeActionContext
+        context: vscode.CodeActionContext,
     ): vscode.CodeAction[] {
         const actions: vscode.CodeAction[] = [];
 
@@ -210,7 +210,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
 
     private createSuppressWarningFixes(
         document: vscode.TextDocument,
-        diagnostic: vscode.Diagnostic
+        diagnostic: vscode.Diagnostic,
     ): vscode.CodeAction[] {
         const actions: vscode.CodeAction[] = [];
         const ruleId = typeof diagnostic.code === "string" ? diagnostic.code : "";
@@ -220,7 +220,13 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
 
         const lineAction = new vscode.CodeAction(t("warnOffLineFix", { ruleId }), vscode.CodeActionKind.QuickFix);
         lineAction.edit = new vscode.WorkspaceEdit();
-        const lineNum = diagnostic.range.start.line;
+        let lineNum = diagnostic.range.start.line;
+        if (ruleId === "execute-group") {
+            const groupData = (diagnostic as any).data as { lineIndices?: number[] } | undefined;
+            if (groupData?.lineIndices && groupData.lineIndices.length > 0) {
+                lineNum = Math.min(...groupData.lineIndices);
+            }
+        }
         const insertPos = new vscode.Position(lineNum, 0);
         lineAction.edit.insert(document.uri, insertPos, `# warn-off ${ruleId}\n`);
         lineAction.diagnostics = [diagnostic];
@@ -251,7 +257,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
 
     private createFixForDiagnostic(
         document: vscode.TextDocument,
-        diagnostic: vscode.Diagnostic
+        diagnostic: vscode.Diagnostic,
     ): vscode.CodeAction | vscode.CodeAction[] | undefined {
         switch (diagnostic.code) {
             case "unreachable-code":

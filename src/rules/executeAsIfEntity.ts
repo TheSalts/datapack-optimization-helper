@@ -132,29 +132,11 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
                 const asDiag = new vscode.Diagnostic(asRange, message, vscode.DiagnosticSeverity.Warning);
                 asDiag.source = DIAGNOSTIC_SOURCE;
                 asDiag.code = "execute-as-if-entity-s-merge";
-                asDiag.relatedInformation = [
-                    new vscode.DiagnosticRelatedInformation(
-                        new vscode.Location(
-                            vscode.Uri.file(""),
-                            new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol),
-                        ),
-                        "related",
-                    ),
-                ];
 
                 const ifRange = new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol);
                 const ifDiag = new vscode.Diagnostic(ifRange, message, vscode.DiagnosticSeverity.Warning);
                 ifDiag.source = DIAGNOSTIC_SOURCE;
                 ifDiag.code = "execute-as-if-entity-s-merge";
-                ifDiag.relatedInformation = [
-                    new vscode.DiagnosticRelatedInformation(
-                        new vscode.Location(
-                            vscode.Uri.file(""),
-                            new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol),
-                        ),
-                        "related",
-                    ),
-                ];
 
                 diagnostics.push(asDiag, ifDiag);
             }
@@ -166,29 +148,11 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
                 const asDiag = new vscode.Diagnostic(asRange, message, vscode.DiagnosticSeverity.Warning);
                 asDiag.source = DIAGNOSTIC_SOURCE;
                 asDiag.code = "unreachable-condition";
-                asDiag.relatedInformation = [
-                    new vscode.DiagnosticRelatedInformation(
-                        new vscode.Location(
-                            vscode.Uri.file(""),
-                            new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol),
-                        ),
-                        "related",
-                    ),
-                ];
 
                 const ifRange = new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol);
                 const ifDiag = new vscode.Diagnostic(ifRange, message, vscode.DiagnosticSeverity.Warning);
                 ifDiag.source = DIAGNOSTIC_SOURCE;
                 ifDiag.code = "unreachable-condition";
-                ifDiag.relatedInformation = [
-                    new vscode.DiagnosticRelatedInformation(
-                        new vscode.Location(
-                            vscode.Uri.file(""),
-                            new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol),
-                        ),
-                        "related",
-                    ),
-                ];
 
                 diagnostics.push(asDiag, ifDiag);
             }
@@ -200,29 +164,11 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
                 const asDiag = new vscode.Diagnostic(asRange, message, vscode.DiagnosticSeverity.Warning);
                 asDiag.source = DIAGNOSTIC_SOURCE;
                 asDiag.code = "execute-as-if-entity-s-convert";
-                asDiag.relatedInformation = [
-                    new vscode.DiagnosticRelatedInformation(
-                        new vscode.Location(
-                            vscode.Uri.file(""),
-                            new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol),
-                        ),
-                        "related",
-                    ),
-                ];
 
                 const ifRange = new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol);
                 const ifDiag = new vscode.Diagnostic(ifRange, message, vscode.DiagnosticSeverity.Warning);
                 ifDiag.source = DIAGNOSTIC_SOURCE;
                 ifDiag.code = "execute-as-if-entity-s-convert";
-                ifDiag.relatedInformation = [
-                    new vscode.DiagnosticRelatedInformation(
-                        new vscode.Location(
-                            vscode.Uri.file(""),
-                            new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol),
-                        ),
-                        "related",
-                    ),
-                ];
 
                 diagnostics.push(asDiag, ifDiag);
             }

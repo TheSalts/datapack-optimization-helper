@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.0.30
+
+### Fixes
+
+- Fixed `relatedInformation` being shown on hover
+
+- Fixed `warn-off execute-group` only affecting the first line
+
 ## 1.0.29
 
 ### Fixes

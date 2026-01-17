@@ -337,6 +337,16 @@ export function checkExecuteGroup(lines: string[]): vscode.Diagnostic[] {
     const diagnostics: vscode.Diagnostic[] = [];
 
     for (const group of groups) {
+        if (group.startLine > 0) {
+            const prevLine = lines[group.startLine - 1].trim();
+            if (
+                /^#\s*warn-off(?:\s|$)/i.test(prevLine) &&
+                (prevLine.includes("execute-group") || !/^#\s*warn-off\s+\S/.test(prevLine))
+            ) {
+                continue;
+            }
+        }
+
         const prefixLength = group.commonPrefix.trimEnd().length;
         for (const lineIndex of group.lineIndices) {
             const lineText = lines[lineIndex];
@@ -346,16 +356,11 @@ export function checkExecuteGroup(lines: string[]): vscode.Diagnostic[] {
             const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = "execute-group";
-            diagnostic.relatedInformation = [
-                new vscode.DiagnosticRelatedInformation(
-                    new vscode.Location(vscode.Uri.file(""), new vscode.Range(group.startLine, 0, group.endLine, 0)),
-                    JSON.stringify({
-                        commonPrefix: group.commonPrefix,
-                        suffixes: group.suffixes,
-                        lineIndices: group.lineIndices,
-                    }),
-                ),
-            ];
+            (diagnostic as any).data = {
+                commonPrefix: group.commonPrefix,
+                suffixes: group.suffixes,
+                lineIndices: group.lineIndices,
+            };
             diagnostics.push(diagnostic);
         }
     }
