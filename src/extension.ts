@@ -31,26 +31,42 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.languages.registerCodeActionsProvider(
             { pattern: "**/*.mcfunction", scheme: "file" },
             new McfunctionCodeActionProvider(),
-            { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
-        )
+            { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] },
+        ),
     );
 
     context.subscriptions.push(
         vscode.languages.registerCompletionItemProvider(
             { pattern: "**/*.mcfunction", scheme: "file" },
             new WarnOffCompletionProvider(),
-            " "
-        )
+            " ",
+        ),
     );
 
+    const debounceTimers = new Map<string, NodeJS.Timeout>();
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(analyzeDocument));
-    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((e) => analyzeDocument(e.document)));
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument((e) => {
+            const uri = e.document.uri.toString();
+            const existing = debounceTimers.get(uri);
+            if (existing) {
+                clearTimeout(existing);
+            }
+            debounceTimers.set(
+                uri,
+                setTimeout(() => {
+                    debounceTimers.delete(uri);
+                    analyzeDocument(e.document);
+                }, 300),
+            );
+        }),
+    );
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor((editor) => {
             if (editor) {
                 analyzeDocument(editor.document);
             }
-        })
+        }),
     );
     context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => diagnosticCollection.delete(doc.uri)));
     context.subscriptions.push(
@@ -63,7 +79,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     analyzeDocument(doc);
                 });
             }
-        })
+        }),
     );
 
     registerRenameHandler(context);
@@ -87,7 +103,7 @@ export async function activate(context: vscode.ExtensionContext) {
             await indexWorkspace();
             codeLensProvider.refresh();
             vscode.workspace.textDocuments.forEach(analyzeDocument);
-        }
+        },
     );
 
     checkAndNotifyConfigMissing(context);
@@ -96,7 +112,7 @@ export async function activate(context: vscode.ExtensionContext) {
 class WarnOffCompletionProvider implements vscode.CompletionItemProvider {
     provideCompletionItems(
         document: vscode.TextDocument,
-        position: vscode.Position
+        position: vscode.Position,
     ): vscode.CompletionItem[] | undefined {
         const lineText = document.lineAt(position.line).text;
         const textBeforeCursor = lineText.substring(0, position.character);

@@ -1,5 +1,18 @@
 # Change Log
 
+## 1.0.31
+
+### Performance
+
+- Optimized infinite recursion detection algorithm (backtracking instead of Set copy)
+- Added result caching for repeated function calls
+- Added debouncing for document analysis
+
+### Fixes
+
+- Fixed conditional return before function call now correctly marks as escapable
+- Fixed [`warn-off` is not working if there is blank line between code](https://github.com/TheSalts/datapack-optimization-helper/issues/12)
+
 ## 1.0.30
 
 ### Fixes

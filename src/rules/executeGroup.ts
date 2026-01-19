@@ -337,14 +337,25 @@ export function checkExecuteGroup(lines: string[]): vscode.Diagnostic[] {
     const diagnostics: vscode.Diagnostic[] = [];
 
     for (const group of groups) {
-        if (group.startLine > 0) {
-            const prevLine = lines[group.startLine - 1].trim();
+        let warnOffFound = false;
+        for (let i = group.startLine - 1; i >= 0; i--) {
+            const prevLine = lines[i].trim();
+            if (prevLine === "") {
+                continue;
+            }
+            if (!prevLine.startsWith("#")) {
+                break;
+            }
             if (
                 /^#\s*warn-off(?:\s|$)/i.test(prevLine) &&
                 (prevLine.includes("execute-group") || !/^#\s*warn-off\s+\S/.test(prevLine))
             ) {
-                continue;
+                warnOffFound = true;
             }
+            break;
+        }
+        if (warnOffFound) {
+            continue;
         }
 
         const prefixLength = group.commonPrefix.trimEnd().length;

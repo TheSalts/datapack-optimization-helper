@@ -71,15 +71,22 @@ export function parseWarnOffFile(lines: string[]): Set<string> {
 export function getDisabledRulesForLine(
     lines: string[],
     lineIndex: number,
-    fileDisabledRules: Set<string>
+    fileDisabledRules: Set<string>,
 ): Set<string> {
     const disabled = new Set(fileDisabledRules);
-    if (lineIndex > 0) {
-        const prevLine = lines[lineIndex - 1].trim();
+    for (let i = lineIndex - 1; i >= 0; i--) {
+        const prevLine = lines[i].trim();
+        if (prevLine === "") {
+            continue;
+        }
+        if (!prevLine.startsWith("#")) {
+            break;
+        }
         const lineRules = parseWarnOff(prevLine);
         if (lineRules) {
             lineRules.forEach((r) => disabled.add(r));
         }
+        break;
     }
     return disabled;
 }

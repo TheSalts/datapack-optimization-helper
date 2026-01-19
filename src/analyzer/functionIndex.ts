@@ -203,8 +203,10 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
             const functionMatch = trimmed.match(/\bfunction\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
             if (functionMatch) {
                 const isScheduleCall = /\bschedule\s+function\b/.test(trimmed);
+                const hasEscapePossibility = hasSeenConditionalReturn;
                 const isConditionalCall =
                     isScheduleCall ||
+                    hasEscapePossibility ||
                     (trimmed.startsWith("execute") &&
                         (/\b(if|unless)\b/.test(trimmed) ||
                             /\bon\s/.test(trimmed) ||
@@ -234,7 +236,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
             }
 
             const setMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/,
             );
             if (setMatch) {
                 const isConditional = trimmed.startsWith("execute") || hasSeenConditionalReturn;
@@ -250,7 +252,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
             }
 
             const addMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/,
             );
             if (addMatch) {
                 const isConditional = trimmed.startsWith("execute") || hasSeenConditionalReturn;
@@ -266,7 +268,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
             }
 
             const resetMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/,
             );
             if (resetMatch) {
                 const isConditional = trimmed.startsWith("execute") || hasSeenConditionalReturn;
@@ -282,7 +284,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
             }
 
             const operationMatch = trimmed.match(
-                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/
+                /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/,
             );
             if (operationMatch) {
                 const isConditional = trimmed.startsWith("execute") || hasSeenConditionalReturn;
@@ -426,7 +428,7 @@ export interface ScoreState {
 export function collectScoreStatesFromCallers(
     functionPath: string,
     visited: Set<string> = new Set(),
-    originalFunctionPath?: string
+    originalFunctionPath?: string,
 ): Map<string, ScoreState[]> {
     const result: Map<string, ScoreState[]> = new Map();
     const origPath = originalFunctionPath ?? functionPath;
@@ -456,7 +458,7 @@ export function collectScoreStatesFromCallers(
             continue;
         }
 
-        const parentStates = collectScoreStatesFromCallers(callerPath, new Set(visited), origPath);
+        const parentStates = collectScoreStatesFromCallers(callerPath, visited, origPath);
 
         const stateMap: Map<string, ScoreState> = new Map();
 
@@ -537,16 +539,19 @@ function isRecursiveFunction(functionPath: string, visited: Set<string> = new Se
     visited.add(functionPath);
     const funcInfo = functionIndex.get(functionPath);
     if (!funcInfo) {
+        visited.delete(functionPath);
         return false;
     }
     for (const call of funcInfo.calls) {
         if (call.isConditional) {
             continue;
         }
-        if (isRecursiveFunction(call.functionName, new Set(visited))) {
+        if (isRecursiveFunction(call.functionName, visited)) {
+            visited.delete(functionPath);
             return true;
         }
     }
+    visited.delete(functionPath);
     return false;
 }
 
@@ -606,7 +611,7 @@ export function getAllScoreChanges(functionPath: string, visited: Set<string> = 
     const allChanges: ScoreChange[] = [...funcInfo.scoreChanges];
 
     for (const call of funcInfo.calls) {
-        const childChanges = getAllScoreChanges(call.functionName, new Set(visited));
+        const childChanges = getAllScoreChanges(call.functionName, visited);
         for (const change of childChanges) {
             const isConditional = change.isConditional || call.isConditional;
             allChanges.push({

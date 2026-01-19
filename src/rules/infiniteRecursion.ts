@@ -12,6 +12,7 @@ function isInfiniteRecursion(targetFunc: string, currentFunc: string, visited: S
 
     const funcInfo = getFunctionInfo(currentFunc);
     if (!funcInfo) {
+        visited.delete(currentFunc);
         return false;
     }
 
@@ -20,12 +21,15 @@ function isInfiniteRecursion(targetFunc: string, currentFunc: string, visited: S
             continue;
         }
         if (call.functionName === targetFunc) {
+            visited.delete(currentFunc);
             return true;
         }
-        if (isInfiniteRecursion(targetFunc, call.functionName, new Set(visited))) {
+        if (isInfiniteRecursion(targetFunc, call.functionName, visited)) {
+            visited.delete(currentFunc);
             return true;
         }
     }
+    visited.delete(currentFunc);
     return false;
 }
 
@@ -41,14 +45,22 @@ export function checkInfiniteRecursion(document: vscode.TextDocument, config?: R
         return [];
     }
 
+    const cache = new Map<string, boolean>();
+
     for (const call of funcInfo.calls) {
         if (call.isConditional || call.hasUnconditionalReturnBefore) {
             continue;
         }
 
-        const isInfinite =
-            call.functionName === funcInfo.fullPath ||
-            isInfiniteRecursion(funcInfo.fullPath, call.functionName, new Set([funcInfo.fullPath]));
+        let isInfinite: boolean;
+        if (call.functionName === funcInfo.fullPath) {
+            isInfinite = true;
+        } else if (cache.has(call.functionName)) {
+            isInfinite = cache.get(call.functionName)!;
+        } else {
+            isInfinite = isInfiniteRecursion(funcInfo.fullPath, call.functionName, new Set([funcInfo.fullPath]));
+            cache.set(call.functionName, isInfinite);
+        }
 
         if (isInfinite) {
             const lineText = document.lineAt(call.line).text;
