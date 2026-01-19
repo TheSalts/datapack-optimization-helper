@@ -1,5 +1,8 @@
 # Datapack Optimization Helper
 
+[![Visual Studio Marketplace](https://img.shields.io/badge/VS%20Marketplace-Install-blue?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=TheSalt.datapack-optimization)
+[![Open VSX](https://img.shields.io/badge/Open%20VSX-Install-purple?logo=eclipse)](https://open-vsx.org/extension/TheSalt/datapack-optimization)
+
 Vscode Extension for minecraft datapack optimization.
 
 [English](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.md) | [한국어](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.ko.md)
@@ -8,28 +11,28 @@ Vscode Extension for minecraft datapack optimization.
 
 ![Example](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/codes.png)
 
--   Add lint warnings for optimizations
+- Add lint warnings for optimizations
 
--   Detect infinite recursion calls
+- Detect infinite recursion calls
 
--   Add some quick fixes
+- Add some quick fixes
 
--   Ctrl+Click on `if`/`unless` in unreachable/always-pass conditions to jump to the score assignment
+- Ctrl+Click on `if`/`unless` in unreachable/always-pass conditions to jump to the score assignment
 
--   Suppress warnings with comments:
-    -   `# warn-off` - Suppress all warnings for the next line
-    -   `# warn-off rule-id` - Suppress specific rule
-    -   `# warn-off-file` - Suppress warnings for entire file
+- Suppress warnings with comments:
+    - `# warn-off` - Suppress all warnings for the next line
+    - `# warn-off rule-id` - Suppress specific rule
+    - `# warn-off-file` - Suppress warnings for entire file
 
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/func_ref.png)
 
--   Show function references with CodeLens
+- Show function references with CodeLens
 
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename.png)
 
--   Automatically update function references when renaming `.mcfunction` files
-    -   Updates `function` and `schedule function` commands
-    -   Optionally updates references in comments
+- Automatically update function references when renaming `.mcfunction` files
+    - Updates `function` and `schedule function` commands
+    - Optionally updates references in comments
 
 ## Configuration
 
@@ -75,10 +78,10 @@ default: `{name}_line_{line}`
 
 Controls how function references are updated when renaming `.mcfunction` files.
 
--   `ask`: Show a dialog to choose (default)
--   `codeOnly`: Only update code references
--   `includeComments`: Update code and comment references
--   `skip`: Don't update references
+- `ask`: Show a dialog to choose (default)
+- `codeOnly`: Only update code references
+- `includeComments`: Update code and comment references
+- `skip`: Don't update references
 
 ## Contributing
 
