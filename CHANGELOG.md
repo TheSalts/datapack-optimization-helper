@@ -4,7 +4,7 @@
 
 ### Performance
 
-- Optimized infinite recursion detection algorithm (backtracking instead of Set copy)
+- Optimized infinite recursion detection algorithm (backtracking)
 - Added result caching for repeated function calls
 - Added debouncing for document analysis
 
