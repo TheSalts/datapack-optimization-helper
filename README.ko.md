@@ -1,6 +1,6 @@
 # Datapack Optimization Helper
 
-[![Visual Studio Marketplace](https://vsmarketplacebadges.dev/installs-short/TheSalt.datapack-optimization.svg?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=TheSalt.datapack-optimization)
+[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/i/TheSalt.datapack-optimization?logo=visualstudiocode&label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=TheSalt.datapack-optimization)
 [![Open VSX](https://img.shields.io/open-vsx/dt/TheSalt/datapack-optimization?logo=eclipse&label=Open%20VSX)](https://open-vsx.org/extension/TheSalt/datapack-optimization)
 
 마인크래프트 데이터팩 최적화를 위한 VSCode 확장 프로그램입니다.
