@@ -106,7 +106,7 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
     const asEndIndex = asMatch.index! + asMatch[0].length;
     const ifIndex = ifEntityMatch.index!;
     const between = trimmed.substring(asEndIndex, ifIndex);
-    if (/\bon\s/.test(between)) {
+    if (/\b(on|positioned|at|in)\s/.test(between)) {
         return diagnostics;
     }
 

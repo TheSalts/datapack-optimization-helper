@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.33
+
+### Fixes
+
+- Fixed [False positive `merge as and if entity`](https://github.com/TheSalts/datapack-optimization-helper/issues/14)
+
 ## 1.0.32
 
 ### Fixes
