@@ -10,7 +10,7 @@ export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic:
     action.diagnostics = [diagnostic];
 
     const group = (diagnostic as any).data as
-        | { commonPrefix: string; suffixes: string[]; lineIndices: number[] }
+        | { commonPrefix: string; suffixes: string[]; lineIndices: number[]; hasReturn?: boolean }
         | undefined;
 
     if (!group) {
@@ -39,7 +39,9 @@ export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic:
     if (!prefix.trim().endsWith("run")) {
         prefix += "run ";
     }
-    const newLine = `${prefix}function ${newFunctionRef}`;
+    const newLine = group.hasReturn
+        ? `${prefix}return run function ${newFunctionRef}`
+        : `${prefix}function ${newFunctionRef}`;
 
     action.edit = new vscode.WorkspaceEdit();
 

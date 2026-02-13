@@ -8,6 +8,7 @@ export interface ExecuteGroup {
     lineIndices: number[];
     startLine: number;
     endLine: number;
+    hasReturn: boolean;
 }
 
 interface ExecuteLine {
@@ -69,19 +70,95 @@ function extractGroupsFromBlock(lines: ExecuteLine[]): ExecuteGroup[] {
             currentBatch.push(line);
         } else {
             if (currentBatch.length >= 2) {
-                const group = createGroupFromLines(currentBatch);
-                if (group) {
-                    results.push(group);
-                }
+                results.push(...finalizeGroupWithReturnHandling(currentBatch));
             }
             currentBatch = [line];
         }
     }
 
     if (currentBatch.length >= 2) {
-        const group = createGroupFromLines(currentBatch);
-        if (group) {
-            results.push(group);
+        results.push(...finalizeGroupWithReturnHandling(currentBatch));
+    }
+
+    return results;
+}
+
+function suffixHasDirectReturn(suffix: string): boolean {
+    return /^return\b/.test(suffix);
+}
+
+function suffixHasConditionalReturn(suffix: string): boolean {
+    return !/^return\b/.test(suffix) && /\brun\s+return\b/.test(suffix);
+}
+
+function finalizeGroupWithReturnHandling(batch: ExecuteLine[]): ExecuteGroup[] {
+    const group = createGroupFromLines(batch);
+    if (!group) {
+        return [];
+    }
+
+    // Check each suffix for return commands
+    const conditionalReturnIndices = new Set<number>();
+    let hasDirectReturn = false;
+
+    for (let i = 0; i < group.suffixes.length; i++) {
+        const suffix = group.suffixes[i];
+        if (suffixHasDirectReturn(suffix)) {
+            hasDirectReturn = true;
+        } else if (suffixHasConditionalReturn(suffix)) {
+            conditionalReturnIndices.add(i);
+        }
+    }
+
+    // No conditional returns - return the group as-is
+    if (conditionalReturnIndices.size === 0) {
+        group.hasReturn = hasDirectReturn;
+        return [group];
+    }
+
+    // Split at conditional return lines (lines where return has extra conditions
+    // beyond the common prefix). These lines cannot be safely grouped into a function.
+    const results: ExecuteGroup[] = [];
+    let currentSubBatch: ExecuteLine[] = [];
+
+    for (let i = 0; i < batch.length; i++) {
+        if (conditionalReturnIndices.has(i)) {
+            if (currentSubBatch.length >= 2) {
+                const subGroup = createGroupFromLines(currentSubBatch);
+                if (subGroup) {
+                    subGroup.hasReturn = subGroup.suffixes.some((s) => suffixHasDirectReturn(s));
+                    results.push(subGroup);
+                }
+            }
+            currentSubBatch = [];
+        } else {
+            if (currentSubBatch.length === 0) {
+                currentSubBatch.push(batch[i]);
+            } else {
+                const testBatch = [...currentSubBatch, batch[i]];
+                const testTokens = testBatch.map((l) => l.tokens);
+                const { commonPrefix } = findCommonExecutePrefix(testTokens);
+                if (commonPrefix !== null) {
+                    currentSubBatch.push(batch[i]);
+                } else {
+                    if (currentSubBatch.length >= 2) {
+                        const subGroup = createGroupFromLines(currentSubBatch);
+                        if (subGroup) {
+                            subGroup.hasReturn = subGroup.suffixes.some((s) => suffixHasDirectReturn(s));
+                            results.push(subGroup);
+                        }
+                    }
+                    currentSubBatch = [batch[i]];
+                }
+            }
+        }
+    }
+
+    if (currentSubBatch.length >= 2) {
+        const subGroup = createGroupFromLines(currentSubBatch);
+        if (subGroup) {
+            subGroup.hasReturn = subGroup.suffixes.some((s) => suffixHasDirectReturn(s));
+            results.push(subGroup);
         }
     }
 
@@ -142,6 +219,7 @@ function createGroupFromLines(executeLines: ExecuteLine[]): ExecuteGroup | null 
         lineIndices: executeLines.map((e) => e.lineIndex),
         startLine: executeLines[0].lineIndex,
         endLine: executeLines[executeLines.length - 1].lineIndex,
+        hasReturn: false,
     };
 }
 
@@ -371,6 +449,7 @@ export function checkExecuteGroup(lines: string[]): vscode.Diagnostic[] {
                 commonPrefix: group.commonPrefix,
                 suffixes: group.suffixes,
                 lineIndices: group.lineIndices,
+                hasReturn: group.hasReturn,
             };
             diagnostics.push(diagnostic);
         }

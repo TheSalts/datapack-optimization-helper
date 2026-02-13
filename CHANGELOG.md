@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.0.32
+
+### Fixes
+
+- Fixed [`execute-group` should not suggest grouping execute that run return commands](https://github.com/TheSalts/datapack-optimization-helper/issues/13)
+    - When the return has no extra conditions, uses `return run function` to preserve return semantics
+    - When the return has extra conditions (e.g., `if entity @a`), excludes the return line from the group
+
 ## 1.0.31
 
 ### Performance
