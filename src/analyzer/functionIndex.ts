@@ -51,7 +51,9 @@ export class FunctionIndex {
     private _initialized = false;
     private _indexing = false;
 
-    isInitialized(): boolean { return this._initialized; }
+    isInitialized(): boolean {
+        return this._initialized;
+    }
 
     getFunctionInfo(functionPath: string): FunctionInfo | undefined {
         return this._functionIndex.get(functionPath);
@@ -178,8 +180,8 @@ export class FunctionIndex {
         functionPath: string,
         visited: Set<string> = new Set(),
         originalFunctionPath?: string,
-    ): Map<string, ScoreState[]> {
-        const result: Map<string, ScoreState[]> = new Map();
+    ): Map<string, BasicScoreState[]> {
+        const result: Map<string, BasicScoreState[]> = new Map();
         const origPath = originalFunctionPath ?? functionPath;
 
         if (visited.has(functionPath)) return result;
@@ -196,7 +198,7 @@ export class FunctionIndex {
             if (!callerInfo) continue;
 
             const parentStates = this.collectScoreStatesFromCallers(caller.callerPath, visited, origPath);
-            const stateMap: Map<string, ScoreState> = new Map();
+            const stateMap: Map<string, BasicScoreState> = new Map();
 
             for (const [key, states] of parentStates) {
                 if (states.length > 0) {
@@ -218,7 +220,11 @@ export class FunctionIndex {
                 }
 
                 if (change.operation === "set") {
-                    stateMap.set(key, { target: change.target, objective: change.objective, value: change.value });
+                    stateMap.set(key, {
+                        target: change.target,
+                        objective: change.objective,
+                        value: change.value,
+                    } as BasicScoreState);
                 } else if (change.operation === "add" && existing && existing.value !== null) {
                     existing.value += change.value!;
                 } else if (change.operation === "remove" && existing && existing.value !== null) {
@@ -232,7 +238,11 @@ export class FunctionIndex {
                             }
                         }
                     } else {
-                        stateMap.set(key, { target: change.target, objective: change.objective, value: null });
+                        stateMap.set(key, {
+                            target: change.target,
+                            objective: change.objective,
+                            value: null,
+                        } as BasicScoreState);
                     }
                 } else if (change.operation === "unknown") {
                     stateMap.delete(key);
@@ -267,14 +277,16 @@ export class FunctionIndex {
         return false;
     }
 
-    getConsensusScoreStates(functionPath: string): Map<string, ScoreState> {
+    getConsensusScoreStates(functionPath: string): Map<string, BasicScoreState> {
         const callers = this.getCallers(functionPath);
-        const nonConditionalCallerCount = callers.filter((c) => !c.isConditional && c.callerPath !== functionPath).length;
+        const nonConditionalCallerCount = callers.filter(
+            (c) => !c.isConditional && c.callerPath !== functionPath,
+        ).length;
 
         if (this.isRecursiveFunction(functionPath)) return new Map();
 
         const allStates = this.collectScoreStatesFromCallers(functionPath);
-        const consensus: Map<string, ScoreState> = new Map();
+        const consensus: Map<string, BasicScoreState> = new Map();
 
         for (const [key, states] of allStates) {
             if (states.length === 0) continue;
@@ -318,10 +330,18 @@ export const functionIndexInstance = new FunctionIndex();
 
 // ── Module-level wrappers for backward compatibility ────────────────────────
 
-export function isIndexInitialized(): boolean { return functionIndexInstance.isInitialized(); }
-export function getFunctionInfo(functionPath: string): FunctionInfo | undefined { return functionIndexInstance.getFunctionInfo(functionPath); }
-export function getFunctionInfoByFile(filePath: string): FunctionInfo | undefined { return functionIndexInstance.getFunctionInfoByFile(filePath); }
-export function getCallers(functionPath: string): ReturnType<FunctionIndex["getCallers"]> { return functionIndexInstance.getCallers(functionPath); }
+export function isIndexInitialized(): boolean {
+    return functionIndexInstance.isInitialized();
+}
+export function getFunctionInfo(functionPath: string): FunctionInfo | undefined {
+    return functionIndexInstance.getFunctionInfo(functionPath);
+}
+export function getFunctionInfoByFile(filePath: string): FunctionInfo | undefined {
+    return functionIndexInstance.getFunctionInfoByFile(filePath);
+}
+export function getCallers(functionPath: string): ReturnType<FunctionIndex["getCallers"]> {
+    return functionIndexInstance.getCallers(functionPath);
+}
 
 function normalizePath(p: string): string {
     return p.replace(/\\/g, "/").toLowerCase();
@@ -563,24 +583,30 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
 
 // ── More module-level wrappers (delegating to singleton) ───────────────────
 
-export async function indexWorkspace(): Promise<void> { return functionIndexInstance.indexWorkspace(); }
-export function reindexFile(filePath: string): void { functionIndexInstance.reindexFile(filePath); }
-export function removeFileFromIndex(filePath: string): void { functionIndexInstance.removeFile(filePath); }
+export async function indexWorkspace(): Promise<void> {
+    return functionIndexInstance.indexWorkspace();
+}
+export function reindexFile(filePath: string): void {
+    functionIndexInstance.reindexFile(filePath);
+}
+export function removeFileFromIndex(filePath: string): void {
+    functionIndexInstance.removeFile(filePath);
+}
 export function collectScoreStatesFromCallers(
     functionPath: string,
     visited?: Set<string>,
     originalFunctionPath?: string,
-): Map<string, ScoreState[]> {
+): Map<string, BasicScoreState[]> {
     return functionIndexInstance.collectScoreStatesFromCallers(functionPath, visited, originalFunctionPath);
 }
-export function getConsensusScoreStates(functionPath: string): Map<string, ScoreState> {
+export function getConsensusScoreStates(functionPath: string): Map<string, BasicScoreState> {
     return functionIndexInstance.getConsensusScoreStates(functionPath);
 }
 export function getAllScoreChanges(functionPath: string, visited?: Set<string>): ScoreChange[] {
     return functionIndexInstance.getAllScoreChanges(functionPath, visited);
 }
 
-export interface ScoreState {
+export interface BasicScoreState {
     target: string;
     objective: string;
     value: number | null;
@@ -588,8 +614,14 @@ export interface ScoreState {
 
 export function watchMcfunctionFiles(context: vscode.ExtensionContext) {
     const watcher = vscode.workspace.createFileSystemWatcher("**/*.mcfunction");
-    watcher.onDidChange((uri) => { reindexFile(uri.fsPath); });
-    watcher.onDidCreate((uri) => { reindexFile(uri.fsPath); });
-    watcher.onDidDelete((uri) => { removeFileFromIndex(uri.fsPath); });
+    watcher.onDidChange((uri) => {
+        reindexFile(uri.fsPath);
+    });
+    watcher.onDidCreate((uri) => {
+        reindexFile(uri.fsPath);
+    });
+    watcher.onDidDelete((uri) => {
+        removeFileFromIndex(uri.fsPath);
+    });
     context.subscriptions.push(watcher);
 }

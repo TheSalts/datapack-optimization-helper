@@ -4,13 +4,7 @@
  * ScoreRange interfaces and all related helper functions.
  */
 
-import {
-    SCORE_SET_RE,
-    SCORE_ADD_RE,
-    SCORE_RESET_RE,
-    SCORE_OPERATION_RE,
-    SCORE_STORE_RE,
-} from "../parser/patterns";
+import { SCORE_SET_RE, SCORE_ADD_RE, SCORE_RESET_RE, SCORE_OPERATION_RE, SCORE_STORE_RE } from "../parser/patterns";
 
 export interface ScoreState {
     target: string;
@@ -198,16 +192,14 @@ export function processScoreboardLine(
     const storeMatch = trimmed.match(SCORE_STORE_RE);
     if (storeMatch) {
         const [, target, objective] = storeMatch;
-        if (!target.startsWith("@") && target !== "*") {
-            scoreStates.set(`${target}:${objective}`, {
-                target,
-                objective,
-                type: "unknown",
-                value: null,
-                line: lineIndex,
-                filePath,
-            });
-        }
+        scoreStates.set(`${target}:${objective}`, {
+            target,
+            objective,
+            type: "unknown",
+            value: null,
+            line: lineIndex,
+            filePath,
+        });
         // store is part of execute; do NOT return early — the run part follows.
     }
 
@@ -259,7 +251,14 @@ export function processScoreboardLine(
             if (objective) {
                 const key = `${target}:${objective}`;
                 if (isConditional) {
-                    scoreStates.set(key, { target, objective, type: "unknown", value: null, line: lineIndex, filePath });
+                    scoreStates.set(key, {
+                        target,
+                        objective,
+                        type: "unknown",
+                        value: null,
+                        line: lineIndex,
+                        filePath,
+                    });
                 } else {
                     scoreStates.set(key, { target, objective, type: "reset", value: null, line: lineIndex, filePath });
                 }

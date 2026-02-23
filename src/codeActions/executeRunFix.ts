@@ -15,36 +15,37 @@ export function fixExecuteRunRedundantNested(line: string): string | null {
 }
 
 export function fixExecuteRunRedundantRunExecute(line: string): string | null {
-    const result = line.replace(/(?<!return\s)run\s+execute\s+/, "");
+    const result = line.replace(/(?<!return\s)run\s+execute\s+(?!run\b)/, "");
     return result !== line ? result : null;
 }
 
 export function createExecuteRunRedundantFix(
     document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic
-): vscode.CodeAction {
-    return (
-        createLineReplaceFix(document, diagnostic, t("executeRunRedundantFix"), fixExecuteRunRedundant) ??
-        new vscode.CodeAction(t("executeRunRedundantFix"), vscode.CodeActionKind.QuickFix)
-    );
+    diagnostic: vscode.Diagnostic,
+): vscode.CodeAction | undefined {
+    return createLineReplaceFix(document, diagnostic, t("executeRunRedundantFix"), fixExecuteRunRedundant) ?? undefined;
 }
 
 export function createExecuteRunRedundantNestedFix(
     document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic
-): vscode.CodeAction {
+    diagnostic: vscode.Diagnostic,
+): vscode.CodeAction | undefined {
     return (
         createLineReplaceFix(document, diagnostic, t("executeRunRedundantFix"), fixExecuteRunRedundantNested) ??
-        new vscode.CodeAction(t("executeRunRedundantFix"), vscode.CodeActionKind.QuickFix)
+        undefined
     );
 }
 
 export function createExecuteRunRedundantRunExecuteFix(
     document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic
-): vscode.CodeAction {
+    diagnostic: vscode.Diagnostic,
+): vscode.CodeAction | undefined {
     return (
-        createLineReplaceFix(document, diagnostic, t("executeRunRedundantRunExecuteFix"), fixExecuteRunRedundantRunExecute) ??
-        new vscode.CodeAction(t("executeRunRedundantRunExecuteFix"), vscode.CodeActionKind.QuickFix)
+        createLineReplaceFix(
+            document,
+            diagnostic,
+            t("executeRunRedundantRunExecuteFix"),
+            fixExecuteRunRedundantRunExecute,
+        ) ?? undefined
     );
 }

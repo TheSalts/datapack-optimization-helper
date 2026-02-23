@@ -142,55 +142,6 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
         return result;
     }
 
-    private applyFixToText(text: string, diagnostic: vscode.Diagnostic): string | null {
-        switch (diagnostic.code) {
-            case "execute-run-redundant":
-                return text.replace(/^(\s*)execute\s+run\s+/, "$1");
-            case "execute-run-redundant-nested":
-                return text.replace(/run\s+execute\s+run\s+/g, "run ");
-            case "execute-run-redundant-run-execute":
-                return text.replace(/(?<!return\s)run\s+execute\s+/g, "");
-            case "execute-as-s-redundant": {
-                let result = text.replace(/(?<!(positioned|rotated)\s)\bas\s+@s\s+/g, "");
-                if (/^(\s*)execute\s+run\s+/.test(result)) {
-                    result = result.replace(/^(\s*)execute\s+run\s+/, "$1");
-                }
-                return result;
-            }
-            case "target-selector-no-dimension": {
-                const match = text.match(/@[aeprns]\[([^\]]*)\]/);
-                if (match) {
-                    const args = match[1];
-                    const newArgs = args ? `${args},distance=0..` : "distance=0..";
-                    return text.replace(match[0], match[0].replace(`[${args}]`, `[${newArgs}]`));
-                }
-                return null;
-            }
-            case "target-selector-type-order": {
-                const regex = /@[aeprns]\[([^\]]*)\]/g;
-                return text.replace(regex, (match, args: string) => {
-                    const typeMatch = args.match(/\btype\s*=\s*[^,\]]+/);
-                    if (typeMatch) {
-                        const typeArg = typeMatch[0];
-                        const otherArgs = args.replace(typeArg, "").replace(/^,|,$/g, "").replace(/,,/g, ",");
-                        const newArgs = otherArgs ? `${otherArgs},${typeArg}` : typeArg;
-                        return match.replace(`[${args}]`, `[${newArgs}]`);
-                    }
-                    return match;
-                });
-            }
-            case "scoreboard-fake-player-missing-hash": {
-                const match = text.match(/scoreboard\s+players\s+\S+\s+\S+\s+(\S+)/);
-                if (match && match[1] && !match[1].startsWith("#") && !match[1].startsWith("@")) {
-                    return text.replace(match[1], `#${match[1]}`);
-                }
-                return null;
-            }
-            default:
-                return null;
-        }
-    }
-
     private createSuppressWarningFixes(
         document: vscode.TextDocument,
         diagnostic: vscode.Diagnostic,
