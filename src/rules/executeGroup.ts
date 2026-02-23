@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { tokenize } from "../parser/tokenizer";
+import { parseArgs } from "../parser/selectorParser";
 import { setDiagnosticData } from "../utils/diagnosticData";
 import { createDiagnostic } from "../utils/diagnostic";
 
@@ -317,31 +318,8 @@ function normalizeSelector(selector: string): string {
         return selector;
     }
 
-    const args: string[] = [];
-    let current = "";
-    let depth = 0;
-
-    for (let i = 0; i < argsStr.length; i++) {
-        const char = argsStr[i];
-        if (char === "{" || char === "[") {
-            depth++;
-            current += char;
-        } else if (char === "}" || char === "]") {
-            depth--;
-            current += char;
-        } else if (char === "," && depth === 0) {
-            if (current.trim()) {
-                args.push(current.trim());
-            }
-            current = "";
-        } else {
-            current += char;
-        }
-    }
-
-    if (current.trim()) {
-        args.push(current.trim());
-    }
+    const parsed = parseArgs(argsStr);
+    const args = parsed.map((a) => a.raw);
 
     args.sort((a, b) => {
         const aIsType = a.startsWith("type=") || a.startsWith("type!=") || a.startsWith("type=!");
