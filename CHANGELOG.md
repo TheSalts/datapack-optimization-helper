@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.34
+
+Optimized the extension
+
 ## 1.0.33
 
 ### Fixes
