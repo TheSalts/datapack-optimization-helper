@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { t } from "../utils/i18n";
-import { parseArgs, DUPLICABLE_KEYS, COMPLEX_KEYS } from "../parser/selectorParser";
+import { parseArgs, DUPLICABLE_KEYS, COMPLEX_KEYS, extractSelector } from "../parser/selectorParser";
 
 function isDuplicableTypeArg(key: string, raw: string): boolean {
     if (key !== "type") return false;
@@ -54,7 +54,7 @@ function getMergedSelector(
     asBase: string,
     asArgsParsed: { key: string; raw: string }[],
     sArgsParsed: { key: string; raw: string }[],
-    isUnless: boolean
+    isUnless: boolean,
 ): string {
     const combined = [...asArgsParsed];
 
@@ -93,40 +93,59 @@ function getMergedSelector(
 
 export function createExecuteAsIfEntitySMergeFix(
     document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic
+    diagnostic: vscode.Diagnostic,
 ): vscode.CodeAction {
     const action = new vscode.CodeAction(t("executeAsIfEntitySMergeFix"), vscode.CodeActionKind.QuickFix);
     action.diagnostics = [diagnostic];
 
     const line = document.lineAt(diagnostic.range.start.line).text;
 
-    const asMatch = line.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
-    const ifEntityMatch = line.match(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?/);
+    const asKeywordMatch = line.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])/);
+    const ifEntityKeywordMatch = line.match(/\b(if|unless)\s+entity\s+(@s)/);
 
-    if (asMatch && ifEntityMatch) {
-        const asBase = asMatch[2];
-        const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
-        const sArgsStr = ifEntityMatch[2] ? ifEntityMatch[2].slice(1, -1) : "";
-        const isUnless = ifEntityMatch[1] === "unless";
+    if (asKeywordMatch && ifEntityKeywordMatch) {
+        const asSelectorMatch = extractSelector(line, asKeywordMatch.index! + asKeywordMatch[0].length - 2);
+        const ifSelectorMatch = extractSelector(line, ifEntityKeywordMatch.index! + ifEntityKeywordMatch[0].length - 2);
 
-        const asArgsParsed = parseArgs(asArgsStr);
-        const sArgsParsed = parseArgs(sArgsStr);
+        if (asSelectorMatch && ifSelectorMatch) {
+            const asBase = asKeywordMatch[2];
+            const asArgsStr =
+                asSelectorMatch.raw.length > 2 && asSelectorMatch.raw.includes("[")
+                    ? asSelectorMatch.raw.slice(3, -1)
+                    : "";
+            const sArgsStr =
+                ifSelectorMatch.raw.length > 2 && ifSelectorMatch.raw.includes("[")
+                    ? ifSelectorMatch.raw.slice(3, -1)
+                    : "";
+            const isUnless = ifEntityKeywordMatch[1] === "unless";
 
-        const mergedSelector = getMergedSelector(asBase, asArgsParsed, sArgsParsed, isUnless);
+            const asArgsParsed = parseArgs(asArgsStr);
+            const sArgsParsed = parseArgs(sArgsStr);
 
-        let optimized = line.replace(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?\s*/, "");
-        optimized = optimized.replace(
-            /(?<!(positioned|rotated)\s)\bas\s+@[aepnrs](\[[^\]]*\])?/,
-            `as ${mergedSelector}`
-        );
-        optimized = optimized.replace(/\s+/g, " ").trim();
+            const mergedSelector = getMergedSelector(asBase, asArgsParsed, sArgsParsed, isUnless);
 
-        action.edit = new vscode.WorkspaceEdit();
-        action.edit.replace(
-            document.uri,
-            new vscode.Range(diagnostic.range.start.line, 0, diagnostic.range.start.line, line.length),
-            optimized
-        );
+            let optimized =
+                line.slice(0, ifEntityKeywordMatch.index!) +
+                line.slice(
+                    ifEntityKeywordMatch.index! + ifEntityKeywordMatch[0].length - 2 + ifSelectorMatch.raw.length,
+                );
+            const asStart = optimized.match(/(?<!(positioned|rotated)\s)\bas\s+@[aepnrs]/)!.index!;
+            const asOriginalMatch = extractSelector(optimized, asStart + 3);
+            if (asOriginalMatch) {
+                optimized =
+                    optimized.slice(0, asStart) +
+                    `as ${mergedSelector}` +
+                    optimized.slice(asStart + 3 + asOriginalMatch.raw.length);
+            }
+            optimized = optimized.replace(/\s+/g, " ").trim();
+
+            action.edit = new vscode.WorkspaceEdit();
+            action.edit.replace(
+                document.uri,
+                new vscode.Range(diagnostic.range.start.line, 0, diagnostic.range.start.line, line.length),
+                optimized,
+            );
+        }
     }
 
     return action;
@@ -134,39 +153,59 @@ export function createExecuteAsIfEntitySMergeFix(
 
 export function createExecuteAsIfEntitySConvertFix(
     document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic
+    diagnostic: vscode.Diagnostic,
 ): vscode.CodeAction {
     const action = new vscode.CodeAction(t("executeAsIfEntitySConvertFix"), vscode.CodeActionKind.QuickFix);
     action.diagnostics = [diagnostic];
 
     const line = document.lineAt(diagnostic.range.start.line).text;
-    const asMatch = line.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
-    const ifEntityMatch = line.match(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?/);
 
-    if (asMatch && ifEntityMatch) {
-        const asBase = asMatch[2];
-        const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
-        const sArgsStr = ifEntityMatch[2] ? ifEntityMatch[2].slice(1, -1) : "";
-        const isUnless = ifEntityMatch[1] === "unless";
+    const asKeywordMatch = line.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])/);
+    const ifEntityKeywordMatch = line.match(/\b(if|unless)\s+entity\s+(@s)/);
 
-        const asArgsParsed = parseArgs(asArgsStr);
-        const sArgsParsed = parseArgs(sArgsStr);
+    if (asKeywordMatch && ifEntityKeywordMatch) {
+        const asSelectorMatch = extractSelector(line, asKeywordMatch.index! + asKeywordMatch[0].length - 2);
+        const ifSelectorMatch = extractSelector(line, ifEntityKeywordMatch.index! + ifEntityKeywordMatch[0].length - 2);
 
-        const mergedSelector = getMergedSelector(asBase, asArgsParsed, sArgsParsed, isUnless);
+        if (asSelectorMatch && ifSelectorMatch) {
+            const asBase = asKeywordMatch[2];
+            const asArgsStr =
+                asSelectorMatch.raw.length > 2 && asSelectorMatch.raw.includes("[")
+                    ? asSelectorMatch.raw.slice(3, -1)
+                    : "";
+            const sArgsStr =
+                ifSelectorMatch.raw.length > 2 && ifSelectorMatch.raw.includes("[")
+                    ? ifSelectorMatch.raw.slice(3, -1)
+                    : "";
+            const isUnless = ifEntityKeywordMatch[1] === "unless";
 
-        let optimized = line.replace(/\b(if|unless)\s+entity\s+@s(\[[^\]]*\])?\s*/, "");
-        optimized = optimized.replace(
-            /(?<!(positioned|rotated)\s)\bas\s+@[aepnrs](\[[^\]]*\])?/,
-            `as ${mergedSelector}`
-        );
-        optimized = optimized.replace(/\s+/g, " ").trim();
+            const asArgsParsed = parseArgs(asArgsStr);
+            const sArgsParsed = parseArgs(sArgsStr);
 
-        action.edit = new vscode.WorkspaceEdit();
-        action.edit.replace(
-            document.uri,
-            new vscode.Range(diagnostic.range.start.line, 0, diagnostic.range.start.line, line.length),
-            optimized
-        );
+            const mergedSelector = getMergedSelector(asBase, asArgsParsed, sArgsParsed, isUnless);
+
+            let optimized =
+                line.slice(0, ifEntityKeywordMatch.index!) +
+                line.slice(
+                    ifEntityKeywordMatch.index! + ifEntityKeywordMatch[0].length - 2 + ifSelectorMatch.raw.length,
+                );
+            const asStart = optimized.match(/(?<!(positioned|rotated)\s)\bas\s+@[aepnrs]/)!.index!;
+            const asOriginalMatch = extractSelector(optimized, asStart + 3);
+            if (asOriginalMatch) {
+                optimized =
+                    optimized.slice(0, asStart) +
+                    `as ${mergedSelector}` +
+                    optimized.slice(asStart + 3 + asOriginalMatch.raw.length);
+            }
+            optimized = optimized.replace(/\s+/g, " ").trim();
+
+            action.edit = new vscode.WorkspaceEdit();
+            action.edit.replace(
+                document.uri,
+                new vscode.Range(diagnostic.range.start.line, 0, diagnostic.range.start.line, line.length),
+                optimized,
+            );
+        }
     }
 
     return action;

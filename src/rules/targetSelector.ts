@@ -17,26 +17,21 @@ export interface ParsedSelector {
     endIndex: number;
 }
 
+import { findSelectors } from "../parser/selectorParser";
+
 export function parseSelectors(line: string): ParsedSelector[] {
-    const selectors: ParsedSelector[] = [];
-    const regex = /(?<!")@([en])(\[[^\]]*\])?/g;
-
-    let match;
-    while ((match = regex.exec(line)) !== null) {
-        const type = match[1];
-        const argsRaw = match[2] || "";
-        const args = parseArguments(argsRaw);
-
-        selectors.push({
+    const raw = findSelectors(line);
+    return raw.map((s) => {
+        const type = s.raw[1];
+        const argsRaw = s.raw.length > 2 && s.raw[2] === "[" ? s.raw.slice(2) : "";
+        return {
             type,
-            arguments: args,
-            raw: match[0],
-            startIndex: match.index,
-            endIndex: match.index + match[0].length,
-        });
-    }
-
-    return selectors;
+            arguments: parseArguments(argsRaw),
+            raw: s.raw,
+            startIndex: s.startIndex,
+            endIndex: s.endIndex,
+        };
+    });
 }
 
 export function parseArguments(argsRaw: string): SelectorArgument[] {

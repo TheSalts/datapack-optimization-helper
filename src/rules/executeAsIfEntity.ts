@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { RuleConfig } from "../utils/config";
-import { parseArgs, DUPLICABLE_KEYS, COMPLEX_KEYS } from "../parser/selectorParser";
+import { parseArgs, DUPLICABLE_KEYS, COMPLEX_KEYS, extractSelector } from "../parser/selectorParser";
 import { createDiagnostic } from "../utils/diagnostic";
 
 function analyzeMerge(asArgsStr: string, sArgsStr: string): "SAFE" | "CONFLICT" | "COMPLEX" {
@@ -46,39 +46,49 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config: 
         return diagnostics;
     }
 
-    const asMatch = trimmed.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
-    if (!asMatch) {
+    const asKeywordMatch = trimmed.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])/);
+    if (!asKeywordMatch) {
         return diagnostics;
     }
 
-    const ifEntityMatch = trimmed.match(/\b(if|unless)\s+entity\s+(@[aepnrs])(\[[^\]]*\])?/);
-    if (!ifEntityMatch) {
+    const ifKeywordMatch = trimmed.match(/\b(if|unless)\s+entity\s+(@[aepnrs])/);
+    if (!ifKeywordMatch) {
         return diagnostics;
     }
 
-    if (asMatch.index! > ifEntityMatch.index!) {
+    if (asKeywordMatch.index! > ifKeywordMatch.index!) {
         return diagnostics;
     }
 
-    const entityBase = ifEntityMatch[2];
+    const asSelectorMatch = extractSelector(trimmed, asKeywordMatch.index! + asKeywordMatch[0].length - 2);
+    const ifSelectorMatch = extractSelector(trimmed, ifKeywordMatch.index! + ifKeywordMatch[0].length - 2);
+
+    if (!asSelectorMatch || !ifSelectorMatch) {
+        return diagnostics;
+    }
+
+    const entityBase = ifSelectorMatch.raw.substring(0, 2);
     const leadingWhitespace = line.length - line.trimStart().length;
 
-    const asEndIndex = asMatch.index! + asMatch[0].length;
-    const ifIndex = ifEntityMatch.index!;
+    const asEndIndex = asKeywordMatch.index! + asKeywordMatch[0].length - 2 + asSelectorMatch.raw.length;
+    const ifIndex = ifKeywordMatch.index!;
     const between = trimmed.substring(asEndIndex, ifIndex);
     if (/\b(on|positioned|at|in)\s/.test(between)) {
         return diagnostics;
     }
 
-    const asStartCol = leadingWhitespace + asMatch.index!;
-    const asEndCol = asStartCol + asMatch[0].length;
-    const ifStartCol = leadingWhitespace + ifEntityMatch.index!;
-    const ifEndCol = ifStartCol + ifEntityMatch[0].length;
+    const asStartCol = leadingWhitespace + asKeywordMatch.index!;
+    const asEndCol = leadingWhitespace + asEndIndex;
+    const ifStartCol = leadingWhitespace + ifKeywordMatch.index!;
+    const ifEndCol =
+        leadingWhitespace + ifKeywordMatch.index! + ifKeywordMatch[0].length - 2 + ifSelectorMatch.raw.length;
 
     if (entityBase === "@s") {
-        const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
-        const sArgsStr = ifEntityMatch[3] ? ifEntityMatch[3].slice(1, -1) : "";
-        const condition = ifEntityMatch[1];
+        const asArgsStr =
+            asSelectorMatch.raw.length > 2 && asSelectorMatch.raw.includes("[") ? asSelectorMatch.raw.slice(3, -1) : "";
+        const sArgsStr =
+            ifSelectorMatch.raw.length > 2 && ifSelectorMatch.raw.includes("[") ? ifSelectorMatch.raw.slice(3, -1) : "";
+        const condition = ifKeywordMatch[1];
 
         const status = analyzeMerge(asArgsStr, sArgsStr);
 

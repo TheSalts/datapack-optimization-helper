@@ -72,14 +72,76 @@ export interface SelectorMatch {
  */
 export function findSelectors(line: string, selectorTypes = "en"): SelectorMatch[] {
     const results: SelectorMatch[] = [];
-    const regex = new RegExp(`(?<!")@([${selectorTypes}])(\\[[^\\]]*\\])?`, "g");
-    let match;
-    while ((match = regex.exec(line)) !== null) {
+    const typeSet = new Set(selectorTypes.split(""));
+
+    for (let i = 0; i < line.length - 1; i++) {
+        if (line[i] !== "@" || !typeSet.has(line[i + 1])) {
+            continue;
+        }
+        if (i > 0 && line[i - 1] === '"') {
+            continue;
+        }
+
+        const start = i;
+        i += 2;
+
+        if (i < line.length && line[i] === "[") {
+            let depth = 1;
+            let inQuote = false;
+            i++;
+            while (i < line.length && depth > 0) {
+                const ch = line[i];
+                if (ch === '"' && (i === 0 || line[i - 1] !== "\\")) {
+                    inQuote = !inQuote;
+                } else if (!inQuote) {
+                    if (ch === "[" || ch === "{") {
+                        depth++;
+                    } else if (ch === "]" || ch === "}") {
+                        depth--;
+                    }
+                }
+                i++;
+            }
+        }
+
         results.push({
-            raw: match[0],
-            startIndex: match.index,
-            endIndex: match.index + match[0].length,
+            raw: line.slice(start, i),
+            startIndex: start,
+            endIndex: i,
         });
+        i--;
     }
     return results;
+}
+
+export function extractSelector(line: string, startIndex: number): SelectorMatch | null {
+    if (startIndex < 0 || startIndex >= line.length || line[startIndex] !== "@") {
+        return null;
+    }
+
+    let i = startIndex + 2;
+    if (i < line.length && line[i] === "[") {
+        let depth = 1;
+        let inQuote = false;
+        i++;
+        while (i < line.length && depth > 0) {
+            const ch = line[i];
+            if (ch === '"' && (i === 0 || line[i - 1] !== "\\")) {
+                inQuote = !inQuote;
+            } else if (!inQuote) {
+                if (ch === "[" || ch === "{") {
+                    depth++;
+                } else if (ch === "]" || ch === "}") {
+                    depth--;
+                }
+            }
+            i++;
+        }
+    }
+
+    return {
+        raw: line.slice(startIndex, i),
+        startIndex,
+        endIndex: i,
+    };
 }
