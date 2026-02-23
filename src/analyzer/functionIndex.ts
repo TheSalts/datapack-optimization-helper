@@ -39,33 +39,289 @@ interface CallerInfo {
     isConditional: boolean;
 }
 
-let functionIndex: Map<string, FunctionInfo> = new Map();
-let callerGraph: Map<string, CallerInfo[]> = new Map();
-let fileToFunction: Map<string, string> = new Map();
-let initialized = false;
-let indexing = false;
+/**
+ * Encapsulates all mutable workspace-index state.
+ * Export the singleton `functionIndexInstance` for production use;
+ * create a fresh instance in tests to avoid shared state.
+ */
+export class FunctionIndex {
+    private _functionIndex: Map<string, FunctionInfo> = new Map();
+    private _callerGraph: Map<string, CallerInfo[]> = new Map();
+    private _fileToFunction: Map<string, string> = new Map();
+    private _initialized = false;
+    private _indexing = false;
 
-export function isIndexInitialized(): boolean {
-    return initialized;
-}
+    isInitialized(): boolean { return this._initialized; }
 
-export function getFunctionInfo(functionPath: string): FunctionInfo | undefined {
-    return functionIndex.get(functionPath);
-}
-
-export function getFunctionInfoByFile(filePath: string): FunctionInfo | undefined {
-    const normalizedPath = normalizePath(filePath);
-    const funcPath = fileToFunction.get(normalizedPath);
-    if (funcPath) {
-        return functionIndex.get(funcPath);
+    getFunctionInfo(functionPath: string): FunctionInfo | undefined {
+        return this._functionIndex.get(functionPath);
     }
-    return undefined;
+
+    getFunctionInfoByFile(filePath: string): FunctionInfo | undefined {
+        const normalizedPath = normalizePath(filePath);
+        const funcPath = this._fileToFunction.get(normalizedPath);
+        return funcPath ? this._functionIndex.get(funcPath) : undefined;
+    }
+
+    getCallers(functionPath: string): CallerInfo[] {
+        return this._callerGraph.get(functionPath) ?? [];
+    }
+
+    private buildCallerGraph(): void {
+        this._callerGraph.clear();
+        for (const [funcPath, info] of this._functionIndex) {
+            for (const call of info.calls) {
+                if (!this._callerGraph.has(call.functionName)) {
+                    this._callerGraph.set(call.functionName, []);
+                }
+                this._callerGraph.get(call.functionName)!.push({
+                    callerPath: funcPath,
+                    line: call.line,
+                    isConditional: call.isConditional,
+                });
+            }
+        }
+    }
+
+    async indexWorkspace(): Promise<void> {
+        if (this._indexing) return;
+        this._indexing = true;
+        this._functionIndex.clear();
+        this._fileToFunction.clear();
+        this._callerGraph.clear();
+
+        const roots = findDatapackRoots();
+        for (const root of roots) {
+            for (const filePath of findMcfunctionFiles(root.functionsPath)) {
+                const info = parseFunctionFile(filePath, root);
+                this._functionIndex.set(info.fullPath, info);
+                this._fileToFunction.set(normalizePath(filePath), info.fullPath);
+            }
+        }
+
+        this.buildCallerGraph();
+        this._initialized = true;
+        this._indexing = false;
+    }
+
+    reindexFile(filePath: string): void {
+        const normalizedPath = normalizePath(filePath);
+        const existingFuncPath = this._fileToFunction.get(normalizedPath);
+
+        if (existingFuncPath) {
+            const oldInfo = this._functionIndex.get(existingFuncPath);
+            if (oldInfo) {
+                for (const call of oldInfo.calls) {
+                    const callers = this._callerGraph.get(call.functionName);
+                    if (callers) {
+                        const newCallers = callers.filter((c) => c.callerPath !== existingFuncPath);
+                        if (newCallers.length === 0) {
+                            this._callerGraph.delete(call.functionName);
+                        } else {
+                            this._callerGraph.set(call.functionName, newCallers);
+                        }
+                    }
+                }
+            }
+            this._functionIndex.delete(existingFuncPath);
+            this._fileToFunction.delete(normalizedPath);
+        }
+
+        const roots = findDatapackRoots();
+        for (const root of roots) {
+            const normalizedFunctionsPath = normalizePath(root.functionsPath);
+            if (normalizedPath.startsWith(normalizedFunctionsPath)) {
+                if (fs.existsSync(filePath)) {
+                    const info = parseFunctionFile(filePath, root);
+                    this._functionIndex.set(info.fullPath, info);
+                    this._fileToFunction.set(normalizedPath, info.fullPath);
+                    for (const call of info.calls) {
+                        if (!this._callerGraph.has(call.functionName)) {
+                            this._callerGraph.set(call.functionName, []);
+                        }
+                        this._callerGraph.get(call.functionName)!.push({
+                            callerPath: info.fullPath,
+                            line: call.line,
+                            isConditional: call.isConditional,
+                        });
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    removeFile(filePath: string): void {
+        const normalizedPath = normalizePath(filePath);
+        const funcPath = this._fileToFunction.get(normalizedPath);
+        if (funcPath) {
+            const info = this._functionIndex.get(funcPath);
+            if (info) {
+                for (const call of info.calls) {
+                    const callers = this._callerGraph.get(call.functionName);
+                    if (callers) {
+                        const newCallers = callers.filter((c) => c.callerPath !== funcPath);
+                        if (newCallers.length === 0) {
+                            this._callerGraph.delete(call.functionName);
+                        } else {
+                            this._callerGraph.set(call.functionName, newCallers);
+                        }
+                    }
+                }
+            }
+            this._functionIndex.delete(funcPath);
+            this._fileToFunction.delete(normalizedPath);
+        }
+    }
+
+    collectScoreStatesFromCallers(
+        functionPath: string,
+        visited: Set<string> = new Set(),
+        originalFunctionPath?: string,
+    ): Map<string, ScoreState[]> {
+        const result: Map<string, ScoreState[]> = new Map();
+        const origPath = originalFunctionPath ?? functionPath;
+
+        if (visited.has(functionPath)) return result;
+        visited.add(functionPath);
+
+        const callers = this.getCallers(functionPath);
+        if (callers.length === 0) return result;
+
+        for (const caller of callers) {
+            if (caller.isConditional) continue;
+            if (caller.callerPath === origPath) continue;
+
+            const callerInfo = this._functionIndex.get(caller.callerPath);
+            if (!callerInfo) continue;
+
+            const parentStates = this.collectScoreStatesFromCallers(caller.callerPath, visited, origPath);
+            const stateMap: Map<string, ScoreState> = new Map();
+
+            for (const [key, states] of parentStates) {
+                if (states.length > 0) {
+                    const firstVal = states[0].value;
+                    if (states.every((s) => s.value === firstVal)) {
+                        stateMap.set(key, { ...states[0] });
+                    }
+                }
+            }
+
+            for (const change of callerInfo.scoreChanges) {
+                if (change.line >= caller.line) break;
+                const key = `${change.target}:${change.objective}`;
+                const existing = stateMap.get(key);
+
+                if (change.isConditional) {
+                    stateMap.set(key, { target: change.target, objective: change.objective, value: null });
+                    continue;
+                }
+
+                if (change.operation === "set") {
+                    stateMap.set(key, { target: change.target, objective: change.objective, value: change.value });
+                } else if (change.operation === "add" && existing && existing.value !== null) {
+                    existing.value += change.value!;
+                } else if (change.operation === "remove" && existing && existing.value !== null) {
+                    existing.value -= change.value!;
+                } else if (change.operation === "reset") {
+                    if (change.objective === "*") {
+                        for (const [k] of stateMap) {
+                            if (k.startsWith(`${change.target}:`)) {
+                                const s = stateMap.get(k);
+                                if (s) s.value = null;
+                            }
+                        }
+                    } else {
+                        stateMap.set(key, { target: change.target, objective: change.objective, value: null });
+                    }
+                } else if (change.operation === "unknown") {
+                    stateMap.delete(key);
+                }
+            }
+
+            for (const [key, state] of stateMap) {
+                if (!result.has(key)) result.set(key, []);
+                result.get(key)!.push(state);
+            }
+        }
+
+        return result;
+    }
+
+    isRecursiveFunction(functionPath: string, visited: Set<string> = new Set()): boolean {
+        if (visited.has(functionPath)) return true;
+        visited.add(functionPath);
+        const funcInfo = this._functionIndex.get(functionPath);
+        if (!funcInfo) {
+            visited.delete(functionPath);
+            return false;
+        }
+        for (const call of funcInfo.calls) {
+            if (call.isConditional) continue;
+            if (this.isRecursiveFunction(call.functionName, visited)) {
+                visited.delete(functionPath);
+                return true;
+            }
+        }
+        visited.delete(functionPath);
+        return false;
+    }
+
+    getConsensusScoreStates(functionPath: string): Map<string, ScoreState> {
+        const callers = this.getCallers(functionPath);
+        const nonConditionalCallerCount = callers.filter((c) => !c.isConditional && c.callerPath !== functionPath).length;
+
+        if (this.isRecursiveFunction(functionPath)) return new Map();
+
+        const allStates = this.collectScoreStatesFromCallers(functionPath);
+        const consensus: Map<string, ScoreState> = new Map();
+
+        for (const [key, states] of allStates) {
+            if (states.length === 0) continue;
+            if (states.length < nonConditionalCallerCount) {
+                consensus.set(key, { target: states[0].target, objective: states[0].objective, value: null });
+                continue;
+            }
+            const firstValue = states[0].value;
+            const allSame = states.every((s) => s.value === firstValue);
+            if (allSame) {
+                consensus.set(key, states[0]);
+            } else {
+                consensus.set(key, { target: states[0].target, objective: states[0].objective, value: null });
+            }
+        }
+
+        return consensus;
+    }
+
+    getAllScoreChanges(functionPath: string, visited: Set<string> = new Set()): ScoreChange[] {
+        if (visited.has(functionPath)) return [];
+        visited.add(functionPath);
+
+        const funcInfo = this._functionIndex.get(functionPath);
+        if (!funcInfo) return [];
+
+        const allChanges: ScoreChange[] = [...funcInfo.scoreChanges];
+        for (const call of funcInfo.calls) {
+            const childChanges = this.getAllScoreChanges(call.functionName, visited);
+            for (const change of childChanges) {
+                allChanges.push({ ...change, isConditional: change.isConditional || call.isConditional });
+            }
+        }
+
+        return allChanges;
+    }
 }
 
-export function getCallers(functionPath: string): CallerInfo[] {
-    const callers = callerGraph.get(functionPath);
-    return callers ? callers : [];
-}
+/** Singleton instance used by all production code. */
+export const functionIndexInstance = new FunctionIndex();
+
+// ── Module-level wrappers for backward compatibility ────────────────────────
+
+export function isIndexInitialized(): boolean { return functionIndexInstance.isInitialized(); }
+export function getFunctionInfo(functionPath: string): FunctionInfo | undefined { return functionIndexInstance.getFunctionInfo(functionPath); }
+export function getFunctionInfoByFile(filePath: string): FunctionInfo | undefined { return functionIndexInstance.getFunctionInfoByFile(filePath); }
+export function getCallers(functionPath: string): ReturnType<FunctionIndex["getCallers"]> { return functionIndexInstance.getCallers(functionPath); }
 
 function normalizePath(p: string): string {
     return p.replace(/\\/g, "/").toLowerCase();
@@ -305,118 +561,23 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
     return info;
 }
 
-function buildCallerGraph() {
-    callerGraph.clear();
+// ── More module-level wrappers (delegating to singleton) ───────────────────
 
-    for (const [funcPath, info] of functionIndex) {
-        for (const call of info.calls) {
-            const calledFunc = call.functionName;
-            if (!callerGraph.has(calledFunc)) {
-                callerGraph.set(calledFunc, []);
-            }
-            callerGraph
-                .get(calledFunc)!
-                .push({ callerPath: funcPath, line: call.line, isConditional: call.isConditional });
-        }
-    }
+export async function indexWorkspace(): Promise<void> { return functionIndexInstance.indexWorkspace(); }
+export function reindexFile(filePath: string): void { functionIndexInstance.reindexFile(filePath); }
+export function removeFileFromIndex(filePath: string): void { functionIndexInstance.removeFile(filePath); }
+export function collectScoreStatesFromCallers(
+    functionPath: string,
+    visited?: Set<string>,
+    originalFunctionPath?: string,
+): Map<string, ScoreState[]> {
+    return functionIndexInstance.collectScoreStatesFromCallers(functionPath, visited, originalFunctionPath);
 }
-
-export async function indexWorkspace(): Promise<void> {
-    if (indexing) {
-        return;
-    }
-
-    indexing = true;
-    functionIndex.clear();
-    fileToFunction.clear();
-    callerGraph.clear();
-
-    const roots = findDatapackRoots();
-
-    for (const root of roots) {
-        const files = findMcfunctionFiles(root.functionsPath);
-
-        for (const filePath of files) {
-            const info = parseFunctionFile(filePath, root);
-            functionIndex.set(info.fullPath, info);
-            fileToFunction.set(normalizePath(filePath), info.fullPath);
-        }
-    }
-
-    buildCallerGraph();
-    initialized = true;
-    indexing = false;
+export function getConsensusScoreStates(functionPath: string): Map<string, ScoreState> {
+    return functionIndexInstance.getConsensusScoreStates(functionPath);
 }
-
-export function reindexFile(filePath: string): void {
-    const normalizedPath = normalizePath(filePath);
-    const existingFuncPath = fileToFunction.get(normalizedPath);
-
-    if (existingFuncPath) {
-        const oldInfo = functionIndex.get(existingFuncPath);
-        if (oldInfo) {
-            for (const call of oldInfo.calls) {
-                const callers = callerGraph.get(call.functionName);
-                if (callers) {
-                    const newCallers = callers.filter((c) => c.callerPath !== existingFuncPath);
-                    if (newCallers.length === 0) {
-                        callerGraph.delete(call.functionName);
-                    } else {
-                        callerGraph.set(call.functionName, newCallers);
-                    }
-                }
-            }
-        }
-        functionIndex.delete(existingFuncPath);
-        fileToFunction.delete(normalizedPath);
-    }
-
-    const roots = findDatapackRoots();
-    for (const root of roots) {
-        const normalizedFunctionsPath = normalizePath(root.functionsPath);
-        if (normalizedPath.startsWith(normalizedFunctionsPath)) {
-            if (fs.existsSync(filePath)) {
-                const info = parseFunctionFile(filePath, root);
-                functionIndex.set(info.fullPath, info);
-                fileToFunction.set(normalizedPath, info.fullPath);
-
-                for (const call of info.calls) {
-                    const calledFunc = call.functionName;
-                    if (!callerGraph.has(calledFunc)) {
-                        callerGraph.set(calledFunc, []);
-                    }
-                    callerGraph
-                        .get(calledFunc)!
-                        .push({ callerPath: info.fullPath, line: call.line, isConditional: call.isConditional });
-                }
-            }
-            break;
-        }
-    }
-}
-
-export function removeFileFromIndex(filePath: string): void {
-    const normalizedPath = normalizePath(filePath);
-    const funcPath = fileToFunction.get(normalizedPath);
-
-    if (funcPath) {
-        const info = functionIndex.get(funcPath);
-        if (info) {
-            for (const call of info.calls) {
-                const callers = callerGraph.get(call.functionName);
-                if (callers) {
-                    const newCallers = callers.filter((c) => c.callerPath !== funcPath);
-                    if (newCallers.length === 0) {
-                        callerGraph.delete(call.functionName);
-                    } else {
-                        callerGraph.set(call.functionName, newCallers);
-                    }
-                }
-            }
-        }
-        functionIndex.delete(funcPath);
-        fileToFunction.delete(normalizedPath);
-    }
+export function getAllScoreChanges(functionPath: string, visited?: Set<string>): ScoreChange[] {
+    return functionIndexInstance.getAllScoreChanges(functionPath, visited);
 }
 
 export interface ScoreState {
@@ -425,219 +586,10 @@ export interface ScoreState {
     value: number | null;
 }
 
-export function collectScoreStatesFromCallers(
-    functionPath: string,
-    visited: Set<string> = new Set(),
-    originalFunctionPath?: string,
-): Map<string, ScoreState[]> {
-    const result: Map<string, ScoreState[]> = new Map();
-    const origPath = originalFunctionPath ?? functionPath;
-
-    if (visited.has(functionPath)) {
-        return result;
-    }
-    visited.add(functionPath);
-
-    const callers = getCallers(functionPath);
-
-    if (callers.length === 0) {
-        return result;
-    }
-
-    for (const caller of callers) {
-        if (caller.isConditional) {
-            continue;
-        }
-        if (caller.callerPath === origPath) {
-            continue;
-        }
-        const callerPath = caller.callerPath;
-        const callLine = caller.line;
-        const callerInfo = functionIndex.get(callerPath);
-        if (!callerInfo) {
-            continue;
-        }
-
-        const parentStates = collectScoreStatesFromCallers(callerPath, visited, origPath);
-
-        const stateMap: Map<string, ScoreState> = new Map();
-
-        for (const [key, states] of parentStates) {
-            if (states.length > 0) {
-                const firstVal = states[0].value;
-                if (states.every((s) => s.value === firstVal)) {
-                    stateMap.set(key, { ...states[0] });
-                }
-            }
-        }
-
-        for (const change of callerInfo.scoreChanges) {
-            // Apply changes ONLY up to the call line
-            if (change.line >= callLine) {
-                break;
-            }
-
-            const key = `${change.target}:${change.objective}`;
-            const existing = stateMap.get(key);
-
-            if (change.isConditional) {
-                stateMap.set(key, {
-                    target: change.target,
-                    objective: change.objective,
-                    value: null,
-                });
-                continue;
-            }
-
-            if (change.operation === "set") {
-                stateMap.set(key, {
-                    target: change.target,
-                    objective: change.objective,
-                    value: change.value,
-                });
-            } else if (change.operation === "add" && existing && existing.value !== null) {
-                existing.value += change.value!;
-            } else if (change.operation === "remove" && existing && existing.value !== null) {
-                existing.value -= change.value!;
-            } else if (change.operation === "reset") {
-                if (change.objective === "*") {
-                    for (const [k] of stateMap) {
-                        if (k.startsWith(`${change.target}:`)) {
-                            const s = stateMap.get(k);
-                            if (s) {
-                                s.value = null;
-                            }
-                        }
-                    }
-                } else {
-                    stateMap.set(key, {
-                        target: change.target,
-                        objective: change.objective,
-                        value: null,
-                    });
-                }
-            } else if (change.operation === "unknown") {
-                stateMap.delete(key);
-            }
-        }
-
-        for (const [key, state] of stateMap) {
-            if (!result.has(key)) {
-                result.set(key, []);
-            }
-            result.get(key)!.push(state);
-        }
-    }
-
-    return result;
-}
-
-function isRecursiveFunction(functionPath: string, visited: Set<string> = new Set()): boolean {
-    if (visited.has(functionPath)) {
-        return true;
-    }
-    visited.add(functionPath);
-    const funcInfo = functionIndex.get(functionPath);
-    if (!funcInfo) {
-        visited.delete(functionPath);
-        return false;
-    }
-    for (const call of funcInfo.calls) {
-        if (call.isConditional) {
-            continue;
-        }
-        if (isRecursiveFunction(call.functionName, visited)) {
-            visited.delete(functionPath);
-            return true;
-        }
-    }
-    visited.delete(functionPath);
-    return false;
-}
-
-export function getConsensusScoreStates(functionPath: string): Map<string, ScoreState> {
-    const callers = getCallers(functionPath);
-    const nonConditionalCallerCount = callers.filter((c) => !c.isConditional && c.callerPath !== functionPath).length;
-
-    if (isRecursiveFunction(functionPath)) {
-        return new Map();
-    }
-
-    const allStates = collectScoreStatesFromCallers(functionPath);
-    const consensus: Map<string, ScoreState> = new Map();
-
-    for (const [key, states] of allStates) {
-        if (states.length === 0) {
-            continue;
-        }
-
-        if (states.length < nonConditionalCallerCount) {
-            consensus.set(key, {
-                target: states[0].target,
-                objective: states[0].objective,
-                value: null,
-            });
-            continue;
-        }
-
-        const firstValue = states[0].value;
-        const allSame = states.every((s) => s.value === firstValue);
-
-        if (allSame) {
-            consensus.set(key, states[0]);
-        } else {
-            consensus.set(key, {
-                target: states[0].target,
-                objective: states[0].objective,
-                value: null,
-            });
-        }
-    }
-
-    return consensus;
-}
-
-export function getAllScoreChanges(functionPath: string, visited: Set<string> = new Set()): ScoreChange[] {
-    if (visited.has(functionPath)) {
-        return [];
-    }
-    visited.add(functionPath);
-
-    const funcInfo = functionIndex.get(functionPath);
-    if (!funcInfo) {
-        return [];
-    }
-
-    const allChanges: ScoreChange[] = [...funcInfo.scoreChanges];
-
-    for (const call of funcInfo.calls) {
-        const childChanges = getAllScoreChanges(call.functionName, visited);
-        for (const change of childChanges) {
-            const isConditional = change.isConditional || call.isConditional;
-            allChanges.push({
-                ...change,
-                isConditional,
-            });
-        }
-    }
-
-    return allChanges;
-}
-
 export function watchMcfunctionFiles(context: vscode.ExtensionContext) {
     const watcher = vscode.workspace.createFileSystemWatcher("**/*.mcfunction");
-
-    watcher.onDidChange((uri) => {
-        reindexFile(uri.fsPath);
-    });
-
-    watcher.onDidCreate((uri) => {
-        reindexFile(uri.fsPath);
-    });
-
-    watcher.onDidDelete((uri) => {
-        removeFileFromIndex(uri.fsPath);
-    });
-
+    watcher.onDidChange((uri) => { reindexFile(uri.fsPath); });
+    watcher.onDidCreate((uri) => { reindexFile(uri.fsPath); });
+    watcher.onDidDelete((uri) => { removeFileFromIndex(uri.fsPath); });
     context.subscriptions.push(watcher);
 }
