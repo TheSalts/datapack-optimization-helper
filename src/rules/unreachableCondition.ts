@@ -87,6 +87,7 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
     const diagnostics: vscode.Diagnostic[] = [];
     const conditionRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
     const conditions: ScoreCondition[] = [];
+    const leadingWhitespace = line.length - line.trimStart().length;
 
     let match;
     while ((match = conditionRegex.exec(trimmed)) !== null) {
@@ -122,7 +123,7 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
         for (let i = 0; i < ifConditions.length; i++) {
             for (let j = i + 1; j < ifConditions.length; j++) {
                 if (!rangesOverlap(ifConditions[i].range, ifConditions[j].range)) {
-                    const startIndex = line.indexOf(ifConditions[j].fullMatch);
+                    const startIndex = leadingWhitespace + ifConditions[j].index;
                     const diagRange = new vscode.Range(
                         lineIndex,
                         startIndex,
@@ -145,7 +146,7 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
         for (const ifCond of ifConditions) {
             for (const unlessCond of unlessConditions) {
                 if (rangesEqual(ifCond.range, unlessCond.range)) {
-                    const startIndex = line.indexOf(unlessCond.fullMatch);
+                    const startIndex = leadingWhitespace + unlessCond.index;
                     const diagRange = new vscode.Range(
                         lineIndex,
                         startIndex,
@@ -174,7 +175,7 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
 
                 // If unless range completely contains if range, it always fails
                 if (unlessMin <= ifMin && unlessMax >= ifMax) {
-                    const startIndex = line.indexOf(ifCond.fullMatch);
+                    const startIndex = leadingWhitespace + ifCond.index;
                     const diagRange = new vscode.Range(
                         lineIndex,
                         startIndex,
@@ -342,6 +343,7 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const trimmed = line.trim();
+        const leadingWhitespace = line.length - line.trimStart().length;
 
         if (trimmed === "" || trimmed.startsWith("#")) {
             continue;
@@ -482,7 +484,7 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
             }
 
             hasUnreachableCondition = true;
-            const startIndex = line.indexOf(fullMatch);
+            const startIndex = leadingWhitespace + match.index;
             const diagRange = new vscode.Range(i, startIndex, i, startIndex + fullMatch.length);
 
             const diagnostic = new vscode.Diagnostic(

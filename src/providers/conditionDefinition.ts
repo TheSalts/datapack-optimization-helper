@@ -72,6 +72,7 @@ export class ConditionDefinitionProvider implements vscode.DefinitionProvider {
         const conditionRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
         let match;
 
+        const leadingWhitespace = line.length - line.trimStart().length;
         while ((match = conditionRegex.exec(trimmed)) !== null) {
             const fullMatch = match[0];
             const condType = match[1];
@@ -79,8 +80,8 @@ export class ConditionDefinitionProvider implements vscode.DefinitionProvider {
             const objective = match[3];
             const rangeStr = match[4];
 
-            const startIndex = line.indexOf(fullMatch);
-            const ifIndex = line.indexOf(condType, startIndex);
+            const startIndex = leadingWhitespace + match.index;
+            const ifIndex = startIndex;
             const ifEndIndex = ifIndex + condType.length;
 
             if (position.character >= ifIndex && position.character <= ifEndIndex) {

@@ -124,6 +124,7 @@ export function checkAlwaysPassCondition(
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const trimmed = line.trim();
+        const leadingWhitespace = line.length - line.trimStart().length;
 
         if (trimmed === "" || trimmed.startsWith("#")) {
             continue;
@@ -302,7 +303,7 @@ export function checkAlwaysPassCondition(
                 }
 
                 if (alwaysPass) {
-                    const startIndex = line.indexOf(match[0]);
+                    const startIndex = leadingWhitespace + match.index;
                     const endIndex = startIndex + match[0].length;
                     const diagRange = new vscode.Range(i, startIndex, i, endIndex);
 
