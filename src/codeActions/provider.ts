@@ -8,6 +8,7 @@ import {
     fixTargetSelectorNoDimension,
 } from "./targetSelectorFix";
 import { createExecuteGroupFix } from "./executeGroupFix";
+import { getDiagnosticData } from "../utils/diagnosticData";
 import { createExecuteDuplicateFix, createExecuteUnnecessaryFix } from "./executeRedundantFix";
 import {
     createExecuteRunRedundantFix,
@@ -156,7 +157,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
         lineAction.edit = new vscode.WorkspaceEdit();
         let lineNum = diagnostic.range.start.line;
         if (ruleId === "execute-group") {
-            const groupData = (diagnostic as any).data as { lineIndices?: number[] } | undefined;
+            const groupData = getDiagnosticData<{ lineIndices?: number[] }>(diagnostic);
             if (groupData?.lineIndices && groupData.lineIndices.length > 0) {
                 lineNum = Math.min(...groupData.lineIndices);
             }

@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
 import { tokenize } from "../parser/tokenizer";
+import { setDiagnosticData } from "../utils/diagnosticData";
 
 export interface ExecuteGroup {
     commonPrefix: string;
@@ -410,12 +411,12 @@ export function checkExecuteGroup(lines: string[]): vscode.Diagnostic[] {
             const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = "execute-group";
-            (diagnostic as any).data = {
+            setDiagnosticData(diagnostic, {
                 commonPrefix: group.commonPrefix,
                 suffixes: group.suffixes,
                 lineIndices: group.lineIndices,
                 hasReturn: group.hasReturn,
-            };
+            });
             diagnostics.push(diagnostic);
         }
     }
