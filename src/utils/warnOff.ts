@@ -1,25 +1,5 @@
-import { RuleName } from "./config";
-
-export const ALL_RULE_IDS: readonly RuleName[] = [
-    "always-pass-condition",
-    "execute-as-if-entity-s-convert",
-    "execute-as-if-entity-s-merge",
-    "execute-as-s-redundant",
-    "execute-duplicate",
-    "execute-group",
-    "execute-run-redundant",
-    "execute-run-redundant-run-execute",
-    "execute-unnecessary",
-    "infinite-recursion",
-    "nbt-items-use-if-items",
-    "return-run-duplicate",
-    "scoreboard-fake-player-missing-hash",
-    "target-selector-no-dimension",
-    "target-selector-no-type",
-    "target-selector-type-order",
-    "unreachable-code",
-    "unreachable-condition",
-] as const;
+import { RuleName, ALL_RULE_IDS } from "./config";
+export { ALL_RULE_IDS };
 
 const WARN_OFF_PATTERN = /^#\s*warn-off(?:\s+(.*))?$/i;
 const WARN_OFF_FILE_PATTERN = /^#\s*warn-off-file(?:\s+(.*))?$/i;

@@ -3,46 +3,34 @@ import * as path from "path";
 import * as fs from "fs";
 import { t } from "./i18n";
 
-export type RuleName =
-    | "always-pass-condition"
-    | "execute-as-if-entity-s-convert"
-    | "execute-as-if-entity-s-merge"
-    | "execute-as-s-redundant"
-    | "execute-duplicate"
-    | "execute-group"
-    | "execute-run-redundant"
-    | "execute-run-redundant-run-execute"
-    | "execute-unnecessary"
-    | "infinite-recursion"
-    | "nbt-items-use-if-items"
-    | "return-run-duplicate"
-    | "scoreboard-fake-player-missing-hash"
-    | "target-selector-no-dimension"
-    | "target-selector-no-type"
-    | "target-selector-type-order"
-    | "unreachable-code"
-    | "unreachable-condition";
+export const ALL_RULE_IDS = [
+    "always-pass-condition",
+    "execute-as-if-entity-s-convert",
+    "execute-as-if-entity-s-merge",
+    "execute-as-s-redundant",
+    "execute-duplicate",
+    "execute-group",
+    "execute-run-redundant",
+    "execute-run-redundant-run-execute",
+    "execute-unnecessary",
+    "infinite-recursion",
+    "nbt-items-use-if-items",
+    "return-run-duplicate",
+    "scoreboard-fake-player-missing-hash",
+    "target-selector-no-dimension",
+    "target-selector-no-type",
+    "target-selector-type-order",
+    "unreachable-code",
+    "unreachable-condition",
+] as const;
 
-export interface RuleConfig {
-    alwaysPassCondition: boolean;
-    executeAsIfEntitySConvert: boolean;
-    executeAsIfEntitySMerge: boolean;
-    executeAsSRedundant: boolean;
-    executeDuplicate: boolean;
-    executeGroup: boolean;
-    executeRunRedundant: boolean;
-    executeRunRedundantRunExecute: boolean;
-    executeUnnecessary: boolean;
-    infiniteRecursion: boolean;
-    nbtItemsUseIfItems: boolean;
-    returnRunDuplicate: boolean;
-    scoreboardFakePlayerMissingHash: boolean;
-    targetSelectorNoDimension: boolean;
-    targetSelectorNoType: boolean;
-    targetSelectorTypeOrder: boolean;
-    unreachableCode: boolean;
-    unreachableCondition: boolean;
-}
+export type RuleName = (typeof ALL_RULE_IDS)[number];
+
+type KebabToCamel<S extends string> = S extends `${infer L}-${infer R}` ? `${L}${Capitalize<KebabToCamel<R>>}` : S;
+
+export type RuleConfig = {
+    [K in RuleName as KebabToCamel<K>]: boolean;
+};
 
 export interface DatapackConfig {
     rules?: {
@@ -162,6 +150,10 @@ export function watchDatapackConfig(context: vscode.ExtensionContext, onChange?:
     context.subscriptions.push(watcher);
 }
 
+function kebabToCamel(s: string): string {
+    return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
 export function getRuleConfig(): RuleConfig {
     const config = vscode.workspace.getConfiguration("datapackOptimization");
     const userDisabledRules = config.get<RuleName[]>("rules.disabled", []);
@@ -171,26 +163,11 @@ export function getRuleConfig(): RuleConfig {
 
     const disabledSet = new Set([...userDisabledRules, ...projectDisabledRules]);
 
-    return {
-        alwaysPassCondition: !disabledSet.has("always-pass-condition"),
-        executeAsIfEntitySConvert: !disabledSet.has("execute-as-if-entity-s-convert"),
-        executeAsIfEntitySMerge: !disabledSet.has("execute-as-if-entity-s-merge"),
-        executeAsSRedundant: !disabledSet.has("execute-as-s-redundant"),
-        executeDuplicate: !disabledSet.has("execute-duplicate"),
-        executeGroup: !disabledSet.has("execute-group"),
-        executeRunRedundant: !disabledSet.has("execute-run-redundant"),
-        executeRunRedundantRunExecute: !disabledSet.has("execute-run-redundant-run-execute"),
-        executeUnnecessary: !disabledSet.has("execute-unnecessary"),
-        infiniteRecursion: !disabledSet.has("infinite-recursion"),
-        nbtItemsUseIfItems: !disabledSet.has("nbt-items-use-if-items"),
-        returnRunDuplicate: !disabledSet.has("return-run-duplicate"),
-        scoreboardFakePlayerMissingHash: !disabledSet.has("scoreboard-fake-player-missing-hash"),
-        targetSelectorNoDimension: !disabledSet.has("target-selector-no-dimension"),
-        targetSelectorNoType: !disabledSet.has("target-selector-no-type"),
-        targetSelectorTypeOrder: !disabledSet.has("target-selector-type-order"),
-        unreachableCode: !disabledSet.has("unreachable-code"),
-        unreachableCondition: !disabledSet.has("unreachable-condition"),
-    };
+    const result: Record<string, boolean> = {};
+    for (const id of ALL_RULE_IDS) {
+        result[kebabToCamel(id)] = !disabledSet.has(id);
+    }
+    return result as RuleConfig;
 }
 
 export function getExecuteGroupOutputPath(): string {
