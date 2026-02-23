@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import koData from "./i18n/ko.json";
 import enData from "./i18n/en.json";
 
-type MessageKey =
+export type MessageKey =
     | "initializing"
     | "unreachableCode"
     | "unreachableCodeFix"

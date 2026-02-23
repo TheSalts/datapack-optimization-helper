@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
 import { RuleConfig } from "../utils/config";
+import { createDiagnostic } from "../utils/diagnostic";
 
 export interface SelectorArgument {
     key: string;
@@ -112,22 +111,14 @@ export function checkTargetSelector(lineIndex: number, line: string, config: Rul
         if (config.targetSelectorNoType) {
             const hasType = keys.includes("type");
             if (!hasType) {
-                const message = t("targetSelectorNoType");
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "target-selector-no-type";
-                diagnostics.push(diagnostic);
+                diagnostics.push(createDiagnostic(range, "targetSelectorNoType", "target-selector-no-type"));
             }
         }
 
         if (config.targetSelectorNoDimension) {
             const hasDimension = DIMENSION_KEYS.some((key) => keys.includes(key));
             if (!hasDimension) {
-                const message = t("targetSelectorNoDimension");
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "target-selector-no-dimension";
-                diagnostics.push(diagnostic);
+                diagnostics.push(createDiagnostic(range, "targetSelectorNoDimension", "target-selector-no-dimension"));
             }
         }
     }
@@ -146,11 +137,7 @@ export function checkTargetSelectorTypeOrder(lineIndex: number, line: string): v
 
         if (positiveTypeIndex !== -1 && positiveTypeIndex !== selector.arguments.length - 1) {
             const range = new vscode.Range(lineIndex, selector.startIndex, lineIndex, selector.endIndex);
-            const message = t("targetSelectorTypeOrder");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "target-selector-type-order";
-            diagnostics.push(diagnostic);
+            diagnostics.push(createDiagnostic(range, "targetSelectorTypeOrder", "target-selector-type-order"));
         }
     }
 

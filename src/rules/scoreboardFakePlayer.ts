@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
 import { RuleConfig } from "../utils/config";
+import { createDiagnostic } from "../utils/diagnostic";
 
 const SCOREBOARD_PLAYERS_PATTERN = /scoreboard\s+players\s+(add|remove|set|reset|get|list|operation)\s+/i;
 
@@ -37,11 +36,9 @@ export function checkScoreboardFakePlayer(lineIndex: number, line: string, confi
             if (!isTargetSelector(target) && !target.startsWith("#")) {
                 const targetIndex = line.indexOf(target);
                 const range = new vscode.Range(lineIndex, targetIndex, lineIndex, targetIndex + target.length);
-                const message = t("scoreboardFakePlayerMissingHash");
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "scoreboard-fake-player-missing-hash";
-                diagnostics.push(diagnostic);
+                diagnostics.push(
+                    createDiagnostic(range, "scoreboardFakePlayerMissingHash", "scoreboard-fake-player-missing-hash"),
+                );
             }
         }
     } else if (command === "get") {
@@ -51,11 +48,9 @@ export function checkScoreboardFakePlayer(lineIndex: number, line: string, confi
             if (!isTargetSelector(target) && !target.startsWith("#")) {
                 const targetIndex = line.indexOf(target);
                 const range = new vscode.Range(lineIndex, targetIndex, lineIndex, targetIndex + target.length);
-                const message = t("scoreboardFakePlayerMissingHash");
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "scoreboard-fake-player-missing-hash";
-                diagnostics.push(diagnostic);
+                diagnostics.push(
+                    createDiagnostic(range, "scoreboardFakePlayerMissingHash", "scoreboard-fake-player-missing-hash"),
+                );
             }
         }
     } else if (command === "operation") {
@@ -66,11 +61,9 @@ export function checkScoreboardFakePlayer(lineIndex: number, line: string, confi
             if (!isTargetSelector(target) && !target.startsWith("#")) {
                 targetIndex = line.indexOf(target);
                 const range = new vscode.Range(lineIndex, targetIndex, lineIndex, targetIndex + target.length);
-                const message = t("scoreboardFakePlayerMissingHash");
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "scoreboard-fake-player-missing-hash";
-                diagnostics.push(diagnostic);
+                diagnostics.push(
+                    createDiagnostic(range, "scoreboardFakePlayerMissingHash", "scoreboard-fake-player-missing-hash"),
+                );
             } else {
                 targetIndex = line.indexOf(target);
             }
@@ -80,14 +73,13 @@ export function checkScoreboardFakePlayer(lineIndex: number, line: string, confi
                 const sourceIndex = line.indexOf(source, targetIndex >= 0 ? targetIndex + target.length : 0);
                 if (sourceIndex !== -1) {
                     const range = new vscode.Range(lineIndex, sourceIndex, lineIndex, sourceIndex + source.length);
-                    const diagnostic = new vscode.Diagnostic(
-                        range,
-                        t("scoreboardFakePlayerMissingHash"),
-                        vscode.DiagnosticSeverity.Warning,
+                    diagnostics.push(
+                        createDiagnostic(
+                            range,
+                            "scoreboardFakePlayerMissingHash",
+                            "scoreboard-fake-player-missing-hash",
+                        ),
                     );
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "scoreboard-fake-player-missing-hash";
-                    diagnostics.push(diagnostic);
                 }
             }
         }
@@ -98,11 +90,9 @@ export function checkScoreboardFakePlayer(lineIndex: number, line: string, confi
             if (!isTargetSelector(target) && !target.startsWith("#")) {
                 const targetIndex = line.indexOf(target);
                 const range = new vscode.Range(lineIndex, targetIndex, lineIndex, targetIndex + target.length);
-                const message = t("scoreboardFakePlayerMissingHash");
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "scoreboard-fake-player-missing-hash";
-                diagnostics.push(diagnostic);
+                diagnostics.push(
+                    createDiagnostic(range, "scoreboardFakePlayerMissingHash", "scoreboard-fake-player-missing-hash"),
+                );
             }
         }
     }

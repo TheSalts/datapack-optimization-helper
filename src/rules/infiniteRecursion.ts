@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
 import { RuleConfig } from "../utils/config";
 import { getFunctionInfoByFile, getFunctionInfo } from "../analyzer/functionIndex";
+import { createDiagnostic } from "../utils/diagnostic";
 
 function isInfiniteRecursion(targetFunc: string, currentFunc: string, visited: Set<string>): boolean {
     if (visited.has(currentFunc)) {
@@ -67,11 +66,15 @@ export function checkInfiniteRecursion(document: vscode.TextDocument, config: Ru
             if (funcMatch) {
                 const startIndex = lineText.indexOf(funcMatch[0]);
                 const range = new vscode.Range(call.line, startIndex, call.line, startIndex + funcMatch[0].length);
-                const message = t("infiniteRecursion", { path: call.functionName.split(":").pop() || "" });
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "infinite-recursion";
-                diagnostics.push(diagnostic);
+                diagnostics.push(
+                    createDiagnostic(
+                        range,
+                        "infiniteRecursion",
+                        "infinite-recursion",
+                        vscode.DiagnosticSeverity.Warning,
+                        { path: call.functionName.split(":").pop() || "" },
+                    ),
+                );
             }
         }
     }

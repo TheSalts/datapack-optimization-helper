@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
 import { tokenize } from "../parser/tokenizer";
 import { setDiagnosticData } from "../utils/diagnosticData";
+import { createDiagnostic } from "../utils/diagnostic";
 
 export interface ExecuteGroup {
     commonPrefix: string;
@@ -407,10 +406,7 @@ export function checkExecuteGroup(lines: string[]): vscode.Diagnostic[] {
             const lineText = lines[lineIndex];
             const leadingWhitespace = lineText.length - lineText.trimStart().length;
             const range = new vscode.Range(lineIndex, leadingWhitespace, lineIndex, leadingWhitespace + prefixLength);
-            const message = t("executeGroup");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "execute-group";
+            const diagnostic = createDiagnostic(range, "executeGroup", "execute-group");
             setDiagnosticData(diagnostic, {
                 commonPrefix: group.commonPrefix,
                 suffixes: group.suffixes,

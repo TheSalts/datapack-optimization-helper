@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
 import { RuleConfig } from "../utils/config";
+import { createDiagnostic } from "../utils/diagnostic";
 
 export function checkExecuteRun(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
     const diagnostics: vscode.Diagnostic[] = [];
@@ -11,11 +10,7 @@ export function checkExecuteRun(lineIndex: number, line: string, config: RuleCon
         const startIndex = line.indexOf("execute");
         const runIndex = line.indexOf("run", startIndex);
         const range = new vscode.Range(lineIndex, startIndex, lineIndex, runIndex + 3);
-        const message = t("executeRunRedundant");
-        const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-        diagnostic.source = DIAGNOSTIC_SOURCE;
-        diagnostic.code = "execute-run-redundant";
-        diagnostics.push(diagnostic);
+        diagnostics.push(createDiagnostic(range, "executeRunRedundant", "execute-run-redundant"));
     }
 
     if (config.executeRunRedundant) {
@@ -23,11 +18,7 @@ export function checkExecuteRun(lineIndex: number, line: string, config: RuleCon
         if (nestedMatch) {
             const matchIndex = line.indexOf(nestedMatch[1]);
             const range = new vscode.Range(lineIndex, matchIndex, lineIndex, matchIndex + nestedMatch[1].length - 1);
-            const message = t("executeRunRedundant");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "execute-run-redundant-nested";
-            diagnostics.push(diagnostic);
+            diagnostics.push(createDiagnostic(range, "executeRunRedundant", "execute-run-redundant-nested"));
         }
     }
 
@@ -38,11 +29,9 @@ export function checkExecuteRun(lineIndex: number, line: string, config: RuleCon
             const matchIndex = line.indexOf(matchText);
             if (matchIndex !== -1) {
                 const range = new vscode.Range(lineIndex, matchIndex, lineIndex, matchIndex + matchText.length - 1);
-                const message = t("executeRunRedundantRunExecute");
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "execute-run-redundant-run-execute";
-                diagnostics.push(diagnostic);
+                diagnostics.push(
+                    createDiagnostic(range, "executeRunRedundantRunExecute", "execute-run-redundant-run-execute"),
+                );
             }
         }
     }

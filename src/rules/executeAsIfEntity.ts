@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
 import { RuleConfig } from "../utils/config";
 import { parseArgs, DUPLICABLE_KEYS, COMPLEX_KEYS } from "../parser/selectorParser";
+import { createDiagnostic } from "../utils/diagnostic";
 
 function analyzeMerge(asArgsStr: string, sArgsStr: string): "SAFE" | "CONFLICT" | "COMPLEX" {
     const asArgs = parseArgs(asArgsStr);
@@ -85,51 +84,54 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config: 
 
         if (status === "SAFE") {
             if (config.executeAsIfEntitySMerge) {
-                const message = t("executeAsIfEntitySMerge", { condition });
-
                 const asRange = new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol);
-                const asDiag = new vscode.Diagnostic(asRange, message, vscode.DiagnosticSeverity.Warning);
-                asDiag.source = DIAGNOSTIC_SOURCE;
-                asDiag.code = "execute-as-if-entity-s-merge";
-
                 const ifRange = new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol);
-                const ifDiag = new vscode.Diagnostic(ifRange, message, vscode.DiagnosticSeverity.Warning);
-                ifDiag.source = DIAGNOSTIC_SOURCE;
-                ifDiag.code = "execute-as-if-entity-s-merge";
-
-                diagnostics.push(asDiag, ifDiag);
+                diagnostics.push(
+                    createDiagnostic(
+                        asRange,
+                        "executeAsIfEntitySMerge",
+                        "execute-as-if-entity-s-merge",
+                        vscode.DiagnosticSeverity.Warning,
+                        { condition },
+                    ),
+                    createDiagnostic(
+                        ifRange,
+                        "executeAsIfEntitySMerge",
+                        "execute-as-if-entity-s-merge",
+                        vscode.DiagnosticSeverity.Warning,
+                        { condition },
+                    ),
+                );
             }
         } else if (status === "CONFLICT") {
             if (config.unreachableCondition) {
-                const message = t("unreachableCondition");
-
                 const asRange = new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol);
-                const asDiag = new vscode.Diagnostic(asRange, message, vscode.DiagnosticSeverity.Warning);
-                asDiag.source = DIAGNOSTIC_SOURCE;
-                asDiag.code = "unreachable-condition";
-
                 const ifRange = new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol);
-                const ifDiag = new vscode.Diagnostic(ifRange, message, vscode.DiagnosticSeverity.Warning);
-                ifDiag.source = DIAGNOSTIC_SOURCE;
-                ifDiag.code = "unreachable-condition";
-
-                diagnostics.push(asDiag, ifDiag);
+                diagnostics.push(
+                    createDiagnostic(asRange, "unreachableCondition", "unreachable-condition"),
+                    createDiagnostic(ifRange, "unreachableCondition", "unreachable-condition"),
+                );
             }
         } else {
             if (config.executeAsIfEntitySConvert) {
-                const message = t("executeAsIfEntitySConvert", { condition });
-
                 const asRange = new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol);
-                const asDiag = new vscode.Diagnostic(asRange, message, vscode.DiagnosticSeverity.Warning);
-                asDiag.source = DIAGNOSTIC_SOURCE;
-                asDiag.code = "execute-as-if-entity-s-convert";
-
                 const ifRange = new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol);
-                const ifDiag = new vscode.Diagnostic(ifRange, message, vscode.DiagnosticSeverity.Warning);
-                ifDiag.source = DIAGNOSTIC_SOURCE;
-                ifDiag.code = "execute-as-if-entity-s-convert";
-
-                diagnostics.push(asDiag, ifDiag);
+                diagnostics.push(
+                    createDiagnostic(
+                        asRange,
+                        "executeAsIfEntitySConvert",
+                        "execute-as-if-entity-s-convert",
+                        vscode.DiagnosticSeverity.Warning,
+                        { condition },
+                    ),
+                    createDiagnostic(
+                        ifRange,
+                        "executeAsIfEntitySConvert",
+                        "execute-as-if-entity-s-convert",
+                        vscode.DiagnosticSeverity.Warning,
+                        { condition },
+                    ),
+                );
             }
         }
     }

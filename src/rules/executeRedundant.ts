@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
 import { RuleConfig } from "../utils/config";
 import { tokenize, TokenInfo } from "../parser/tokenizer";
+import { createDiagnostic } from "../utils/diagnostic";
 
 interface ExecuteToken {
     subcommand: string;
@@ -46,11 +45,8 @@ export function checkExecuteRedundant(lineIndex: number, line: string, config: R
         }
 
         const messageKey = reason === "duplicate" ? "executeDuplicate" : "executeUnnecessary";
-        const message = t(messageKey);
-        const diagnostic = new vscode.Diagnostic(token.range, message, vscode.DiagnosticSeverity.Warning);
-        diagnostic.source = DIAGNOSTIC_SOURCE;
-        diagnostic.code = reason === "duplicate" ? "execute-duplicate" : "execute-unnecessary";
-        diagnostics.push(diagnostic);
+        const code = reason === "duplicate" ? "execute-duplicate" : "execute-unnecessary";
+        diagnostics.push(createDiagnostic(token.range, messageKey, code));
     }
 
     return diagnostics;

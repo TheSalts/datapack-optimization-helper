@@ -1,9 +1,8 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
 import { parseArguments, SelectorArgument } from "./targetSelector";
 import { findSelectors } from "../parser/selectorParser";
 import { RuleConfig } from "../utils/config";
+import { createDiagnostic } from "../utils/diagnostic";
 
 const ITEM_NBT_KEYS = ["SelectedItem", "equipment", "Inventory", "EnderItems"];
 
@@ -102,12 +101,7 @@ export function checkNbtItems(lineIndex: number, line: string, config: RuleConfi
                     const nbtArgEnd = nbtArgStart + arg.raw.length;
                     const range = new vscode.Range(lineIndex, nbtArgStart, lineIndex, nbtArgEnd);
 
-                    const message = t("nbtItemsUseIfItems");
-                    const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "nbt-items-use-if-items";
-
-                    diagnostics.push(diagnostic);
+                    diagnostics.push(createDiagnostic(range, "nbtItemsUseIfItems", "nbt-items-use-if-items"));
                 }
             }
         }
