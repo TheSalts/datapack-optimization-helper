@@ -1,15 +1,24 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { createRemoveUnreachableFix } from "./unreachableFix";
-import { createTargetSelectorNoDimensionFix, createTargetSelectorTypeOrderFix } from "./targetSelectorFix";
+import {
+    createTargetSelectorNoDimensionFix,
+    createTargetSelectorTypeOrderFix,
+    fixTargetSelectorTypeOrder,
+    fixTargetSelectorNoDimension,
+} from "./targetSelectorFix";
 import { createExecuteGroupFix } from "./executeGroupFix";
+import { getDiagnosticData } from "../utils/diagnosticData";
 import { createExecuteDuplicateFix, createExecuteUnnecessaryFix } from "./executeRedundantFix";
 import {
     createExecuteRunRedundantFix,
     createExecuteRunRedundantNestedFix,
     createExecuteRunRedundantRunExecuteFix,
+    fixExecuteRunRedundant,
+    fixExecuteRunRedundantNested,
+    fixExecuteRunRedundantRunExecute,
 } from "./executeRunFix";
-import { createExecuteAsSRedundantFix } from "./executeAsSFix";
+import { createExecuteAsSRedundantFix, fixExecuteAsS } from "./executeAsSFix";
 import { createExecuteAsIfEntitySMergeFix, createExecuteAsIfEntitySConvertFix } from "./executeAsIfEntityFix";
 import { createUnreachableConditionFix, createAlwaysPassConditionFix } from "./unreachableConditionFix";
 import { createScoreboardFakePlayerFix } from "./scoreboardFakePlayerFix";
@@ -109,103 +118,29 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private applyAllFixes(text: string): string {
+        const fixPasses: Array<(line: string) => string | null> = [
+            fixExecuteAsS,
+            fixExecuteRunRedundantRunExecute,
+            fixExecuteRunRedundantNested,
+            fixExecuteRunRedundant,
+            fixTargetSelectorTypeOrder,
+            fixTargetSelectorNoDimension,
+        ];
+
         let result = text;
         let changed = true;
-
         while (changed) {
             changed = false;
-            const prev = result;
-
-            // execute-as-s-redundant
-            result = result.replace(/(?<!(positioned|rotated)\s)\bas\s+@s\s+/g, "");
-
-            // execute-run-redundant-run-execute (before execute-run-redundant)
-            result = result.replace(/(?<!return\s)run\s+execute\s+(?!run\b)/g, "");
-
-            // execute-run-redundant-nested
-            result = result.replace(/run\s+execute\s+run\s+/g, "run ");
-
-            // execute-run-redundant (at start of line)
-            result = result.replace(/^(\s*)execute\s+run\s+/, "$1");
-
-            // target-selector-type-order
-            result = result.replace(/@([aeprns])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
-                const typeMatch = args.match(/\btype\s*=\s*[^,\]]+/);
-                if (typeMatch) {
-                    const typeArg = typeMatch[0];
-                    const otherArgs = args.replace(typeArg, "").replace(/^,|,$/g, "").replace(/,,/g, ",");
-                    const newArgs = otherArgs ? `${otherArgs},${typeArg}` : typeArg;
-                    return `@${selector}[${newArgs}]`;
+            for (const fix of fixPasses) {
+                const next = fix(result);
+                if (next !== null && next !== result) {
+                    result = next;
+                    changed = true;
                 }
-                return match;
-            });
-
-            // target-selector-no-dimension
-            result = result.replace(/@([aeprns])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
-                const dimensionKeys = ["x", "y", "z", "dx", "dy", "dz", "distance"];
-                const hasDimension = dimensionKeys.some((key) => new RegExp(`\\b${key}\\s*=`).test(args));
-                if (!hasDimension) {
-                    const newArgs = args ? `${args},distance=0..` : "distance=0..";
-                    return `@${selector}[${newArgs}]`;
-                }
-                return match;
-            });
-
-            if (result !== prev) {
-                changed = true;
             }
         }
 
         return result;
-    }
-
-    private applyFixToText(text: string, diagnostic: vscode.Diagnostic): string | null {
-        switch (diagnostic.code) {
-            case "execute-run-redundant":
-                return text.replace(/^(\s*)execute\s+run\s+/, "$1");
-            case "execute-run-redundant-nested":
-                return text.replace(/run\s+execute\s+run\s+/g, "run ");
-            case "execute-run-redundant-run-execute":
-                return text.replace(/(?<!return\s)run\s+execute\s+/g, "");
-            case "execute-as-s-redundant": {
-                let result = text.replace(/(?<!(positioned|rotated)\s)\bas\s+@s\s+/g, "");
-                if (/^(\s*)execute\s+run\s+/.test(result)) {
-                    result = result.replace(/^(\s*)execute\s+run\s+/, "$1");
-                }
-                return result;
-            }
-            case "target-selector-no-dimension": {
-                const match = text.match(/@[aeprns]\[([^\]]*)\]/);
-                if (match) {
-                    const args = match[1];
-                    const newArgs = args ? `${args},distance=0..` : "distance=0..";
-                    return text.replace(match[0], match[0].replace(`[${args}]`, `[${newArgs}]`));
-                }
-                return null;
-            }
-            case "target-selector-type-order": {
-                const regex = /@[aeprns]\[([^\]]*)\]/g;
-                return text.replace(regex, (match, args: string) => {
-                    const typeMatch = args.match(/\btype\s*=\s*[^,\]]+/);
-                    if (typeMatch) {
-                        const typeArg = typeMatch[0];
-                        const otherArgs = args.replace(typeArg, "").replace(/^,|,$/g, "").replace(/,,/g, ",");
-                        const newArgs = otherArgs ? `${otherArgs},${typeArg}` : typeArg;
-                        return match.replace(`[${args}]`, `[${newArgs}]`);
-                    }
-                    return match;
-                });
-            }
-            case "scoreboard-fake-player-missing-hash": {
-                const match = text.match(/scoreboard\s+players\s+\S+\s+\S+\s+(\S+)/);
-                if (match && match[1] && !match[1].startsWith("#") && !match[1].startsWith("@")) {
-                    return text.replace(match[1], `#${match[1]}`);
-                }
-                return null;
-            }
-            default:
-                return null;
-        }
     }
 
     private createSuppressWarningFixes(
@@ -222,7 +157,7 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
         lineAction.edit = new vscode.WorkspaceEdit();
         let lineNum = diagnostic.range.start.line;
         if (ruleId === "execute-group") {
-            const groupData = (diagnostic as any).data as { lineIndices?: number[] } | undefined;
+            const groupData = getDiagnosticData<{ lineIndices?: number[] }>(diagnostic);
             if (groupData?.lineIndices && groupData.lineIndices.length > 0) {
                 lineNum = Math.min(...groupData.lineIndices);
             }

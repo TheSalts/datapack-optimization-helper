@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
+import { tokenize, TokenInfo } from "../parser/tokenizer";
+import { createDiagnostic } from "../utils/diagnostic";
 
 interface ExecuteToken {
     subcommand: string;
@@ -18,9 +18,8 @@ interface RedundantToken {
     reason: RedundancyReason;
 }
 
-export function checkExecuteRedundant(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
-    const effectiveConfig = config || getRuleConfig();
-    if (!effectiveConfig.executeDuplicate && !effectiveConfig.executeUnnecessary) {
+export function checkExecuteRedundant(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
+    if (!config.executeDuplicate && !config.executeUnnecessary) {
         return [];
     }
 
@@ -38,19 +37,16 @@ export function checkExecuteRedundant(lineIndex: number, line: string, config?: 
     const redundants = findRedundantSubcommands(tokens);
 
     for (const { token, reason } of redundants) {
-        if (reason === "duplicate" && !effectiveConfig.executeDuplicate) {
+        if (reason === "duplicate" && !config.executeDuplicate) {
             continue;
         }
-        if (reason === "unnecessary" && !effectiveConfig.executeUnnecessary) {
+        if (reason === "unnecessary" && !config.executeUnnecessary) {
             continue;
         }
 
         const messageKey = reason === "duplicate" ? "executeDuplicate" : "executeUnnecessary";
-        const message = t(messageKey);
-        const diagnostic = new vscode.Diagnostic(token.range, message, vscode.DiagnosticSeverity.Warning);
-        diagnostic.source = DIAGNOSTIC_SOURCE;
-        diagnostic.code = reason === "duplicate" ? "execute-duplicate" : "execute-unnecessary";
-        diagnostics.push(diagnostic);
+        const code = reason === "duplicate" ? "execute-duplicate" : "execute-unnecessary";
+        diagnostics.push(createDiagnostic(token.range, messageKey, code));
     }
 
     return diagnostics;
@@ -74,7 +70,7 @@ function parseExecuteTokens(lineIndex: number, line: string): ExecuteToken[] {
         "store",
     ];
 
-    const words = tokenizeLine(line);
+    const words = tokenize(line);
     if (words[0].text !== "execute") {
         return tokens;
     }
@@ -126,53 +122,6 @@ function parseExecuteTokens(lineIndex: number, line: string): ExecuteToken[] {
         } else {
             i++;
         }
-    }
-
-    return tokens;
-}
-
-interface TokenInfo {
-    text: string;
-    start: number;
-    end: number;
-}
-
-function tokenizeLine(line: string): TokenInfo[] {
-    const tokens: TokenInfo[] = [];
-    let current = "";
-    let start = -1;
-    let depth = 0;
-    let inQuote = false;
-
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-
-        if (start === -1 && char !== " ") {
-            start = i;
-        }
-
-        if (char === '"' && (i === 0 || line[i - 1] !== "\\")) {
-            inQuote = !inQuote;
-            current += char;
-        } else if (!inQuote && (char === "{" || char === "[")) {
-            depth++;
-            current += char;
-        } else if (!inQuote && (char === "}" || char === "]")) {
-            depth--;
-            current += char;
-        } else if (!inQuote && depth === 0 && char === " ") {
-            if (current) {
-                tokens.push({ text: current, start, end: i });
-                current = "";
-                start = -1;
-            }
-        } else {
-            current += char;
-        }
-    }
-
-    if (current) {
-        tokens.push({ text: current, start, end: line.length });
     }
 
     return tokens;
@@ -357,7 +306,7 @@ function findRedundantSubcommands(tokens: ExecuteToken[]): RedundantToken[] {
 
 export function getOptimizedExecute(
     line: string,
-    strategy: "preserve-semantics" | "remove" = "preserve-semantics"
+    strategy: "preserve-semantics" | "remove" = "preserve-semantics",
 ): string | null {
     const tokens = parseExecuteTokens(0, line);
     const redundants = findRedundantSubcommands(tokens);

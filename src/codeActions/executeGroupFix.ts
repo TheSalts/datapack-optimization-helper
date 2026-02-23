@@ -4,14 +4,20 @@ import * as fs from "fs";
 import { t } from "../utils/i18n";
 import { getPackFormat } from "../utils/packMeta";
 import { getExecuteGroupOutputPath, getExecuteGroupOutputName } from "../utils/config";
+import { getDiagnosticData } from "../utils/diagnosticData";
+
+export interface ExecuteGroupData {
+    commonPrefix: string;
+    suffixes: string[];
+    lineIndices: number[];
+    hasReturn?: boolean;
+}
 
 export function createExecuteGroupFix(document: vscode.TextDocument, diagnostic: vscode.Diagnostic): vscode.CodeAction {
     const action = new vscode.CodeAction(t("executeGroupFix"), vscode.CodeActionKind.QuickFix);
     action.diagnostics = [diagnostic];
 
-    const group = (diagnostic as any).data as
-        | { commonPrefix: string; suffixes: string[]; lineIndices: number[]; hasReturn?: boolean }
-        | undefined;
+    const group = getDiagnosticData<ExecuteGroupData>(diagnostic);
 
     if (!group) {
         return action;

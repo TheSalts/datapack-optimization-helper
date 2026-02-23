@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
+import { tokenize } from "../parser/tokenizer";
+import { parseArgs } from "../parser/selectorParser";
+import { setDiagnosticData } from "../utils/diagnosticData";
+import { createDiagnostic } from "../utils/diagnostic";
 
 export interface ExecuteGroup {
     commonPrefix: string;
@@ -316,31 +318,8 @@ function normalizeSelector(selector: string): string {
         return selector;
     }
 
-    const args: string[] = [];
-    let current = "";
-    let depth = 0;
-
-    for (let i = 0; i < argsStr.length; i++) {
-        const char = argsStr[i];
-        if (char === "{" || char === "[") {
-            depth++;
-            current += char;
-        } else if (char === "}" || char === "]") {
-            depth--;
-            current += char;
-        } else if (char === "," && depth === 0) {
-            if (current.trim()) {
-                args.push(current.trim());
-            }
-            current = "";
-        } else {
-            current += char;
-        }
-    }
-
-    if (current.trim()) {
-        args.push(current.trim());
-    }
+    const parsed = parseArgs(argsStr);
+    const args = parsed.map((a) => a.raw);
 
     args.sort((a, b) => {
         const aIsType = a.startsWith("type=") || a.startsWith("type!=") || a.startsWith("type=!");
@@ -356,48 +335,12 @@ function normalizeSelector(selector: string): string {
     return `${base}[${args.join(",")}]`;
 }
 
-function tokenizeExecute(line: string): string[] {
-    const tokens: string[] = [];
-    let current = "";
-    let depth = 0;
-    let inQuote = false;
-
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-
-        if (char === '"' && (i === 0 || line[i - 1] !== "\\")) {
-            inQuote = !inQuote;
-            current += char;
-        } else if (!inQuote && (char === "{" || char === "[")) {
-            depth++;
-            current += char;
-        } else if (!inQuote && (char === "}" || char === "]")) {
-            depth--;
-            current += char;
-        } else if (!inQuote && depth === 0 && char === " ") {
-            if (current) {
-                tokens.push(current);
-                current = "";
-            }
-        } else {
-            current += char;
-        }
-    }
-
-    if (current) {
-        tokens.push(current);
-    }
-
-    return tokens;
-}
-
 function tokenizeExecuteNormalized(line: string): string[] {
-    const tokens = tokenizeExecute(line);
-    return tokens.map((token) => {
-        if (token.startsWith("@")) {
-            return normalizeSelector(token);
+    return tokenize(line).map((token) => {
+        if (token.text.startsWith("@")) {
+            return normalizeSelector(token.text);
         }
-        return token;
+        return token.text;
     });
 }
 
@@ -415,42 +358,18 @@ export function checkExecuteGroup(lines: string[]): vscode.Diagnostic[] {
     const diagnostics: vscode.Diagnostic[] = [];
 
     for (const group of groups) {
-        let warnOffFound = false;
-        for (let i = group.startLine - 1; i >= 0; i--) {
-            const prevLine = lines[i].trim();
-            if (prevLine === "") {
-                continue;
-            }
-            if (!prevLine.startsWith("#")) {
-                break;
-            }
-            if (
-                /^#\s*warn-off(?:\s|$)/i.test(prevLine) &&
-                (prevLine.includes("execute-group") || !/^#\s*warn-off\s+\S/.test(prevLine))
-            ) {
-                warnOffFound = true;
-            }
-            break;
-        }
-        if (warnOffFound) {
-            continue;
-        }
-
         const prefixLength = group.commonPrefix.trimEnd().length;
         for (const lineIndex of group.lineIndices) {
             const lineText = lines[lineIndex];
             const leadingWhitespace = lineText.length - lineText.trimStart().length;
             const range = new vscode.Range(lineIndex, leadingWhitespace, lineIndex, leadingWhitespace + prefixLength);
-            const message = t("executeGroup");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "execute-group";
-            (diagnostic as any).data = {
+            const diagnostic = createDiagnostic(range, "executeGroup", "execute-group");
+            setDiagnosticData(diagnostic, {
                 commonPrefix: group.commonPrefix,
                 suffixes: group.suffixes,
                 lineIndices: group.lineIndices,
                 hasReturn: group.hasReturn,
-            };
+            });
             diagnostics.push(diagnostic);
         }
     }

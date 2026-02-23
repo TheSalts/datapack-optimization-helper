@@ -1,63 +1,51 @@
 import * as vscode from "vscode";
 import { t } from "../utils/i18n";
+import { createLineReplaceFix } from "./utils";
+
+// ── Pure line-transform functions (also used by provider.ts applyAllFixes) ──
+
+export function fixExecuteRunRedundant(line: string): string | null {
+    const result = line.replace(/^(\s*)execute\s+run\s+/, "$1");
+    return result !== line ? result : null;
+}
+
+export function fixExecuteRunRedundantNested(line: string): string | null {
+    const result = line.replace(/run\s+execute\s+run\s+/, "run ");
+    return result !== line ? result : null;
+}
+
+export function fixExecuteRunRedundantRunExecute(line: string): string | null {
+    const result = line.replace(/(?<!return\s)run\s+execute\s+(?!run\b)/, "");
+    return result !== line ? result : null;
+}
 
 export function createExecuteRunRedundantFix(
     document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic
-): vscode.CodeAction {
-    const action = new vscode.CodeAction(t("executeRunRedundantFix"), vscode.CodeActionKind.QuickFix);
-    action.diagnostics = [diagnostic];
-
-    const line = document.lineAt(diagnostic.range.start.line).text;
-    const optimized = line.replace(/^(\s*)execute\s+run\s+/, "$1");
-
-    action.edit = new vscode.WorkspaceEdit();
-    action.edit.replace(
-        document.uri,
-        new vscode.Range(diagnostic.range.start.line, 0, diagnostic.range.start.line, line.length),
-        optimized
-    );
-
-    return action;
+    diagnostic: vscode.Diagnostic,
+): vscode.CodeAction | undefined {
+    return createLineReplaceFix(document, diagnostic, t("executeRunRedundantFix"), fixExecuteRunRedundant) ?? undefined;
 }
 
 export function createExecuteRunRedundantNestedFix(
     document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic
-): vscode.CodeAction {
-    const action = new vscode.CodeAction(t("executeRunRedundantFix"), vscode.CodeActionKind.QuickFix);
-    action.diagnostics = [diagnostic];
-
-    const line = document.lineAt(diagnostic.range.start.line).text;
-    const optimized = line.replace(/run\s+execute\s+run\s+/, "run ");
-
-    action.edit = new vscode.WorkspaceEdit();
-    action.edit.replace(
-        document.uri,
-        new vscode.Range(diagnostic.range.start.line, 0, diagnostic.range.start.line, line.length),
-        optimized
+    diagnostic: vscode.Diagnostic,
+): vscode.CodeAction | undefined {
+    return (
+        createLineReplaceFix(document, diagnostic, t("executeRunRedundantFix"), fixExecuteRunRedundantNested) ??
+        undefined
     );
-
-    return action;
 }
 
 export function createExecuteRunRedundantRunExecuteFix(
     document: vscode.TextDocument,
-    diagnostic: vscode.Diagnostic
-): vscode.CodeAction {
-    const action = new vscode.CodeAction(t("executeRunRedundantRunExecuteFix"), vscode.CodeActionKind.QuickFix);
-    action.diagnostics = [diagnostic];
-
-    const line = document.lineAt(diagnostic.range.start.line).text;
-    const optimized = line.replace(/(?<!return\s)run\s+execute\s+/, "");
-
-    action.edit = new vscode.WorkspaceEdit();
-    action.edit.replace(
-        document.uri,
-        new vscode.Range(diagnostic.range.start.line, 0, diagnostic.range.start.line, line.length),
-        optimized
+    diagnostic: vscode.Diagnostic,
+): vscode.CodeAction | undefined {
+    return (
+        createLineReplaceFix(
+            document,
+            diagnostic,
+            t("executeRunRedundantRunExecuteFix"),
+            fixExecuteRunRedundantRunExecute,
+        ) ?? undefined
     );
-
-    return action;
 }
-

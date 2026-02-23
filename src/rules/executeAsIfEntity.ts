@@ -1,47 +1,7 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
-
-const DUPLICABLE_KEYS = ["predicate", "tag", "nbt"];
-const COMPLEX_KEYS = ["scores", "advancements"];
-
-function parseArgs(argsStr: string): { key: string; raw: string }[] {
-    if (!argsStr) {
-        return [];
-    }
-    const args: { key: string; raw: string }[] = [];
-    let current = "";
-    let depth = 0;
-
-    for (let i = 0; i < argsStr.length; i++) {
-        const char = argsStr[i];
-        if (char === "{" || char === "[") {
-            depth++;
-            current += char;
-        } else if (char === "}" || char === "]") {
-            depth--;
-            current += char;
-        } else if (char === "," && depth === 0) {
-            if (current.trim()) {
-                const eqIndex = current.indexOf("=");
-                const key = eqIndex !== -1 ? current.slice(0, eqIndex).trim() : current.trim();
-                args.push({ key, raw: current.trim() });
-            }
-            current = "";
-        } else {
-            current += char;
-        }
-    }
-
-    if (current.trim()) {
-        const eqIndex = current.indexOf("=");
-        const key = eqIndex !== -1 ? current.slice(0, eqIndex).trim() : current.trim();
-        args.push({ key, raw: current.trim() });
-    }
-
-    return args;
-}
+import { RuleConfig } from "../utils/config";
+import { parseArgs, DUPLICABLE_KEYS, COMPLEX_KEYS, extractSelector } from "../parser/selectorParser";
+import { createDiagnostic } from "../utils/diagnostic";
 
 function analyzeMerge(asArgsStr: string, sArgsStr: string): "SAFE" | "CONFLICT" | "COMPLEX" {
     const asArgs = parseArgs(asArgsStr);
@@ -78,7 +38,7 @@ function analyzeMerge(asArgsStr: string, sArgsStr: string): "SAFE" | "CONFLICT" 
     return isComplex ? "COMPLEX" : "SAFE";
 }
 
-export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
+export function checkExecuteAsIfEntity(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
     const trimmed = line.trim();
     const diagnostics: vscode.Diagnostic[] = [];
 
@@ -86,91 +46,102 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
         return diagnostics;
     }
 
-    const asMatch = trimmed.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])(\[[^\]]*\])?/);
-    if (!asMatch) {
+    const asKeywordMatch = trimmed.match(/(?<!(positioned|rotated)\s)\bas\s+(@[aepnrs])/);
+    if (!asKeywordMatch) {
         return diagnostics;
     }
 
-    const ifEntityMatch = trimmed.match(/\b(if|unless)\s+entity\s+(@[aepnrs])(\[[^\]]*\])?/);
-    if (!ifEntityMatch) {
+    const ifKeywordMatch = trimmed.match(/\b(if|unless)\s+entity\s+(@[aepnrs])/);
+    if (!ifKeywordMatch) {
         return diagnostics;
     }
 
-    if (asMatch.index! > ifEntityMatch.index!) {
+    if (asKeywordMatch.index! > ifKeywordMatch.index!) {
         return diagnostics;
     }
 
-    const entityBase = ifEntityMatch[2];
+    const asSelectorMatch = extractSelector(trimmed, asKeywordMatch.index! + asKeywordMatch[0].length - 2);
+    const ifSelectorMatch = extractSelector(trimmed, ifKeywordMatch.index! + ifKeywordMatch[0].length - 2);
+
+    if (!asSelectorMatch || !ifSelectorMatch) {
+        return diagnostics;
+    }
+
+    const entityBase = ifSelectorMatch.raw.substring(0, 2);
     const leadingWhitespace = line.length - line.trimStart().length;
 
-    const asEndIndex = asMatch.index! + asMatch[0].length;
-    const ifIndex = ifEntityMatch.index!;
+    const asEndIndex = asKeywordMatch.index! + asKeywordMatch[0].length - 2 + asSelectorMatch.raw.length;
+    const ifIndex = ifKeywordMatch.index!;
     const between = trimmed.substring(asEndIndex, ifIndex);
     if (/\b(on|positioned|at|in)\s/.test(between)) {
         return diagnostics;
     }
 
-    const asStartCol = leadingWhitespace + asMatch.index!;
-    const asEndCol = asStartCol + asMatch[0].length;
-    const ifStartCol = leadingWhitespace + ifEntityMatch.index!;
-    const ifEndCol = ifStartCol + ifEntityMatch[0].length;
-
-    const effectiveConfig = config || getRuleConfig();
+    const asStartCol = leadingWhitespace + asKeywordMatch.index!;
+    const asEndCol = leadingWhitespace + asEndIndex;
+    const ifStartCol = leadingWhitespace + ifKeywordMatch.index!;
+    const ifEndCol =
+        leadingWhitespace + ifKeywordMatch.index! + ifKeywordMatch[0].length - 2 + ifSelectorMatch.raw.length;
 
     if (entityBase === "@s") {
-        const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
-        const sArgsStr = ifEntityMatch[3] ? ifEntityMatch[3].slice(1, -1) : "";
-        const condition = ifEntityMatch[1];
+        const asArgsStr =
+            asSelectorMatch.raw.length > 2 && asSelectorMatch.raw.includes("[") ? asSelectorMatch.raw.slice(3, -1) : "";
+        const sArgsStr =
+            ifSelectorMatch.raw.length > 2 && ifSelectorMatch.raw.includes("[") ? ifSelectorMatch.raw.slice(3, -1) : "";
+        const condition = ifKeywordMatch[1];
 
         const status = analyzeMerge(asArgsStr, sArgsStr);
 
         if (status === "SAFE") {
-            if (effectiveConfig.executeAsIfEntitySMerge) {
-                const message = t("executeAsIfEntitySMerge", { condition });
-
+            if (config.executeAsIfEntitySMerge) {
                 const asRange = new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol);
-                const asDiag = new vscode.Diagnostic(asRange, message, vscode.DiagnosticSeverity.Warning);
-                asDiag.source = DIAGNOSTIC_SOURCE;
-                asDiag.code = "execute-as-if-entity-s-merge";
-
                 const ifRange = new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol);
-                const ifDiag = new vscode.Diagnostic(ifRange, message, vscode.DiagnosticSeverity.Warning);
-                ifDiag.source = DIAGNOSTIC_SOURCE;
-                ifDiag.code = "execute-as-if-entity-s-merge";
-
-                diagnostics.push(asDiag, ifDiag);
+                diagnostics.push(
+                    createDiagnostic(
+                        asRange,
+                        "executeAsIfEntitySMerge",
+                        "execute-as-if-entity-s-merge",
+                        vscode.DiagnosticSeverity.Warning,
+                        { condition },
+                    ),
+                    createDiagnostic(
+                        ifRange,
+                        "executeAsIfEntitySMerge",
+                        "execute-as-if-entity-s-merge",
+                        vscode.DiagnosticSeverity.Warning,
+                        { condition },
+                    ),
+                );
             }
         } else if (status === "CONFLICT") {
-            if (effectiveConfig.unreachableCondition) {
-                const message = t("unreachableCondition");
-
+            if (config.unreachableCondition) {
                 const asRange = new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol);
-                const asDiag = new vscode.Diagnostic(asRange, message, vscode.DiagnosticSeverity.Warning);
-                asDiag.source = DIAGNOSTIC_SOURCE;
-                asDiag.code = "unreachable-condition";
-
                 const ifRange = new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol);
-                const ifDiag = new vscode.Diagnostic(ifRange, message, vscode.DiagnosticSeverity.Warning);
-                ifDiag.source = DIAGNOSTIC_SOURCE;
-                ifDiag.code = "unreachable-condition";
-
-                diagnostics.push(asDiag, ifDiag);
+                diagnostics.push(
+                    createDiagnostic(asRange, "unreachableCondition", "unreachable-condition"),
+                    createDiagnostic(ifRange, "unreachableCondition", "unreachable-condition"),
+                );
             }
         } else {
-            if (effectiveConfig.executeAsIfEntitySConvert) {
-                const message = t("executeAsIfEntitySConvert", { condition });
-
+            if (config.executeAsIfEntitySConvert) {
                 const asRange = new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol);
-                const asDiag = new vscode.Diagnostic(asRange, message, vscode.DiagnosticSeverity.Warning);
-                asDiag.source = DIAGNOSTIC_SOURCE;
-                asDiag.code = "execute-as-if-entity-s-convert";
-
                 const ifRange = new vscode.Range(lineIndex, ifStartCol, lineIndex, ifEndCol);
-                const ifDiag = new vscode.Diagnostic(ifRange, message, vscode.DiagnosticSeverity.Warning);
-                ifDiag.source = DIAGNOSTIC_SOURCE;
-                ifDiag.code = "execute-as-if-entity-s-convert";
-
-                diagnostics.push(asDiag, ifDiag);
+                diagnostics.push(
+                    createDiagnostic(
+                        asRange,
+                        "executeAsIfEntitySConvert",
+                        "execute-as-if-entity-s-convert",
+                        vscode.DiagnosticSeverity.Warning,
+                        { condition },
+                    ),
+                    createDiagnostic(
+                        ifRange,
+                        "executeAsIfEntitySConvert",
+                        "execute-as-if-entity-s-convert",
+                        vscode.DiagnosticSeverity.Warning,
+                        { condition },
+                    ),
+                );
             }
         }
     }

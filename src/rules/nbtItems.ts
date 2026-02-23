@@ -1,31 +1,10 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
-import { parseSelectors, parseArguments, SelectorArgument } from "./targetSelector";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { parseArguments, SelectorArgument } from "./targetSelector";
+import { findSelectors } from "../parser/selectorParser";
+import { RuleConfig } from "../utils/config";
+import { createDiagnostic } from "../utils/diagnostic";
 
 const ITEM_NBT_KEYS = ["SelectedItem", "equipment", "Inventory", "EnderItems"];
-
-function parseAllSelectors(
-    line: string
-): Array<{ arguments: SelectorArgument[]; startIndex: number; endIndex: number }> {
-    const selectors: Array<{ arguments: SelectorArgument[]; startIndex: number; endIndex: number }> = [];
-    const regex = /(?<!")@([aepnrs])(\[[^\]]*\])?/g;
-
-    let match;
-    while ((match = regex.exec(line)) !== null) {
-        const argsRaw = match[2] || "";
-        const args = parseArguments(argsRaw);
-
-        selectors.push({
-            arguments: args,
-            startIndex: match.index,
-            endIndex: match.index + match[0].length,
-        });
-    }
-
-    return selectors;
-}
 
 function extractNbtKeys(nbtValue: string): string[] {
     const keys: string[] = [];
@@ -95,14 +74,19 @@ function extractNbtKeys(nbtValue: string): string[] {
     return keys;
 }
 
-export function checkNbtItems(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
+export function checkNbtItems(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
     const diagnostics: vscode.Diagnostic[] = [];
-    const effectiveConfig = config || getRuleConfig();
-    if (!effectiveConfig.nbtItemsUseIfItems) {
+    if (!config.nbtItemsUseIfItems) {
         return diagnostics;
     }
 
-    const selectors = parseAllSelectors(line);
+    // @x is always 2 chars (@e, @a, etc.); the rest is the optional [args] part.
+    const rawSelectors = findSelectors(line, "aepnrs");
+    const selectors = rawSelectors.map((s) => ({
+        arguments: parseArguments(s.raw.slice(2)) as SelectorArgument[],
+        startIndex: s.startIndex,
+        endIndex: s.endIndex,
+    }));
 
     for (const selector of selectors) {
         for (const arg of selector.arguments) {
@@ -117,12 +101,7 @@ export function checkNbtItems(lineIndex: number, line: string, config?: RuleConf
                     const nbtArgEnd = nbtArgStart + arg.raw.length;
                     const range = new vscode.Range(lineIndex, nbtArgStart, lineIndex, nbtArgEnd);
 
-                    const message = t("nbtItemsUseIfItems");
-                    const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "nbt-items-use-if-items";
-
-                    diagnostics.push(diagnostic);
+                    diagnostics.push(createDiagnostic(range, "nbtItemsUseIfItems", "nbt-items-use-if-items"));
                 }
             }
         }

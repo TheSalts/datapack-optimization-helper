@@ -6,60 +6,13 @@ import {
     isIndexInitialized,
 } from "../analyzer/functionIndex";
 import { t } from "../utils/i18n";
-
-interface ScoreState {
-    target: string;
-    objective: string;
-    type: "known" | "unknown" | "reset";
-    value: number | null;
-    line: number;
-    filePath?: string;
-}
-
-function parseRange(rangeStr: string): { min: number | null; max: number | null } {
-    if (rangeStr.includes("..")) {
-        const parts = rangeStr.split("..");
-        const min = parts[0] === "" ? null : parseInt(parts[0], 10);
-        const max = parts[1] === "" ? null : parseInt(parts[1], 10);
-        return { min, max };
-    }
-    const value = parseInt(rangeStr, 10);
-    return { min: value, max: value };
-}
-
-function matchesRange(value: number, range: { min: number | null; max: number | null }): boolean {
-    if (range.min !== null && value < range.min) {
-        return false;
-    }
-    if (range.max !== null && value > range.max) {
-        return false;
-    }
-    return true;
-}
-
-function isConditionUnreachable(state: ScoreState, condType: string, rangeStr: string): boolean {
-    if (state.type === "unknown") {
-        return false;
-    }
-    if (state.type === "reset") {
-        return condType === "if";
-    }
-    if (state.type === "known" && state.value !== null) {
-        const range = parseRange(rangeStr);
-        const matches = matchesRange(state.value, range);
-        return condType === "if" ? !matches : matches;
-    }
-    return false;
-}
-
-function isConditionAlwaysTrue(state: ScoreState, condType: string, rangeStr: string): boolean {
-    if (state.type !== "known" || state.value === null) {
-        return false;
-    }
-    const range = parseRange(rangeStr);
-    const matches = matchesRange(state.value, range);
-    return condType === "if" ? matches : !matches;
-}
+import {
+    ScoreState,
+    isConditionUnreachable,
+    isConditionAlwaysTrue,
+    processScoreboardLine,
+    SCORE_CONDITION_RE,
+} from "../analyzer/scoreTracker";
 
 export class ConditionDefinitionProvider implements vscode.DefinitionProvider {
     provideDefinition(
@@ -69,18 +22,17 @@ export class ConditionDefinitionProvider implements vscode.DefinitionProvider {
         const line = document.lineAt(position.line).text;
         const trimmed = line.trim();
 
-        const conditionRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
+        const conditionRegex = new RegExp(SCORE_CONDITION_RE.source, "g");
         let match;
+        const leadingWhitespace = line.length - line.trimStart().length;
 
         while ((match = conditionRegex.exec(trimmed)) !== null) {
-            const fullMatch = match[0];
             const condType = match[1];
             const target = match[2];
             const objective = match[3];
             const rangeStr = match[4];
 
-            const startIndex = line.indexOf(fullMatch);
-            const ifIndex = line.indexOf(condType, startIndex);
+            const ifIndex = leadingWhitespace + match.index;
             const ifEndIndex = ifIndex + condType.length;
 
             if (position.character >= ifIndex && position.character <= ifEndIndex) {
@@ -149,135 +101,7 @@ export class ConditionDefinitionProvider implements vscode.DefinitionProvider {
                 continue;
             }
 
-            const isConditional = trimmed.startsWith("execute");
-
-            const storeMatch = trimmed.match(/\bstore\s+(?:result|success)\s+score\s+(\S+)\s+(\S+)/);
-            if (storeMatch) {
-                const target = storeMatch[1];
-                const objective = storeMatch[2];
-                scoreStates.set(`${target}:${objective}`, {
-                    target,
-                    objective,
-                    type: "unknown",
-                    value: null,
-                    line: i,
-                    filePath,
-                });
-            }
-
-            const setMatch = trimmed.match(
-                /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/
-            );
-            if (setMatch) {
-                const target = setMatch[1];
-                const objective = setMatch[2];
-                const value = parseInt(setMatch[3], 10);
-
-                if (!target.startsWith("@") && target !== "*") {
-                    const key = `${target}:${objective}`;
-                    if (isConditional) {
-                        scoreStates.set(key, { target, objective, type: "unknown", value: null, line: i, filePath });
-                    } else {
-                        scoreStates.set(key, { target, objective, type: "known", value, line: i, filePath });
-                    }
-                }
-                continue;
-            }
-
-            const addMatch = trimmed.match(
-                /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/
-            );
-            if (addMatch) {
-                const op = addMatch[1];
-                const target = addMatch[2];
-                const objective = addMatch[3];
-                const amount = parseInt(addMatch[4], 10);
-
-                if (!target.startsWith("@") && target !== "*") {
-                    const key = `${target}:${objective}`;
-                    const existing = scoreStates.get(key);
-
-                    if (existing) {
-                        if (isConditional) {
-                            existing.type = "unknown";
-                            existing.value = null;
-                        } else if (existing.type === "known" && existing.value !== null) {
-                            if (op === "add") {
-                                existing.value += amount;
-                            } else {
-                                existing.value -= amount;
-                            }
-                        } else if (existing.type === "reset") {
-                            existing.type = "unknown";
-                            existing.value = null;
-                        }
-                        existing.line = i;
-                        existing.filePath = filePath;
-                    } else {
-                        scoreStates.set(key, { target, objective, type: "unknown", value: null, line: i, filePath });
-                    }
-                }
-                continue;
-            }
-
-            const resetMatch = trimmed.match(
-                /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/
-            );
-            if (resetMatch) {
-                const target = resetMatch[1];
-                const objective = resetMatch[2];
-
-                if (!target.startsWith("@") && target !== "*") {
-                    if (objective) {
-                        const key = `${target}:${objective}`;
-                        if (isConditional) {
-                            scoreStates.set(key, {
-                                target,
-                                objective,
-                                type: "unknown",
-                                value: null,
-                                line: i,
-                                filePath,
-                            });
-                        } else {
-                            scoreStates.set(key, { target, objective, type: "reset", value: null, line: i, filePath });
-                        }
-                    } else {
-                        for (const [key, state] of scoreStates.entries()) {
-                            if (key.startsWith(`${target}:`)) {
-                                if (isConditional) {
-                                    state.type = "unknown";
-                                    state.value = null;
-                                } else {
-                                    state.type = "reset";
-                                    state.value = null;
-                                }
-                                state.line = i;
-                                state.filePath = filePath;
-                            }
-                        }
-                    }
-                }
-                continue;
-            }
-
-            const operationMatch = trimmed.match(
-                /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/
-            );
-            if (operationMatch) {
-                const target = operationMatch[1];
-                const objective = operationMatch[2];
-
-                if (!target.startsWith("@") && target !== "*") {
-                    scoreStates.set(`${target}:${objective}`, {
-                        target,
-                        objective,
-                        type: "unknown",
-                        value: null,
-                        line: i,
-                        filePath,
-                    });
-                }
+            if (processScoreboardLine(trimmed, scoreStates, i, filePath)) {
                 continue;
             }
 

@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
+import { createDiagnostic } from "../utils/diagnostic";
 
 export interface SelectorArgument {
     key: string;
@@ -18,26 +17,21 @@ export interface ParsedSelector {
     endIndex: number;
 }
 
+import { findSelectors } from "../parser/selectorParser";
+
 export function parseSelectors(line: string): ParsedSelector[] {
-    const selectors: ParsedSelector[] = [];
-    const regex = /(?<!")@([en])(\[[^\]]*\])?/g;
-
-    let match;
-    while ((match = regex.exec(line)) !== null) {
-        const type = match[1];
-        const argsRaw = match[2] || "";
-        const args = parseArguments(argsRaw);
-
-        selectors.push({
+    const raw = findSelectors(line);
+    return raw.map((s) => {
+        const type = s.raw[1];
+        const argsRaw = s.raw.length > 2 && s.raw[2] === "[" ? s.raw.slice(2) : "";
+        return {
             type,
-            arguments: args,
-            raw: match[0],
-            startIndex: match.index,
-            endIndex: match.index + match[0].length,
-        });
-    }
-
-    return selectors;
+            arguments: parseArguments(argsRaw),
+            raw: s.raw,
+            startIndex: s.startIndex,
+            endIndex: s.endIndex,
+        };
+    });
 }
 
 export function parseArguments(argsRaw: string): SelectorArgument[] {
@@ -101,34 +95,25 @@ function parseArgument(arg: string): SelectorArgument | null {
 
 const DIMENSION_KEYS = ["x", "y", "z", "dx", "dy", "dz", "distance"];
 
-export function checkTargetSelector(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
+export function checkTargetSelector(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
     const selectors = parseSelectors(line);
     const diagnostics: vscode.Diagnostic[] = [];
-    const effectiveConfig = config || getRuleConfig();
 
     for (const selector of selectors) {
         const keys = selector.arguments.map((arg) => arg.key);
         const range = new vscode.Range(lineIndex, selector.startIndex, lineIndex, selector.endIndex);
 
-        if (effectiveConfig.targetSelectorNoType) {
+        if (config.targetSelectorNoType) {
             const hasType = keys.includes("type");
             if (!hasType) {
-                const message = t("targetSelectorNoType");
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "target-selector-no-type";
-                diagnostics.push(diagnostic);
+                diagnostics.push(createDiagnostic(range, "targetSelectorNoType", "target-selector-no-type"));
             }
         }
 
-        if (effectiveConfig.targetSelectorNoDimension) {
+        if (config.targetSelectorNoDimension) {
             const hasDimension = DIMENSION_KEYS.some((key) => keys.includes(key));
             if (!hasDimension) {
-                const message = t("targetSelectorNoDimension");
-                const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-                diagnostic.source = DIAGNOSTIC_SOURCE;
-                diagnostic.code = "target-selector-no-dimension";
-                diagnostics.push(diagnostic);
+                diagnostics.push(createDiagnostic(range, "targetSelectorNoDimension", "target-selector-no-dimension"));
             }
         }
     }
@@ -142,16 +127,12 @@ export function checkTargetSelectorTypeOrder(lineIndex: number, line: string): v
 
     for (const selector of selectors) {
         const positiveTypeIndex = selector.arguments.findIndex(
-            (arg) => arg.key === "type" && !arg.negated && !arg.value.startsWith("#")
+            (arg) => arg.key === "type" && !arg.negated && !arg.value.startsWith("#"),
         );
 
         if (positiveTypeIndex !== -1 && positiveTypeIndex !== selector.arguments.length - 1) {
             const range = new vscode.Range(lineIndex, selector.startIndex, lineIndex, selector.endIndex);
-            const message = t("targetSelectorTypeOrder");
-            const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "target-selector-type-order";
-            diagnostics.push(diagnostic);
+            diagnostics.push(createDiagnostic(range, "targetSelectorTypeOrder", "target-selector-type-order"));
         }
     }
 

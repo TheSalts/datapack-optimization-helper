@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
+import { createDiagnostic } from "../utils/diagnostic";
 import {
     getFunctionInfoByFile,
     getConsensusScoreStates,
@@ -8,58 +7,18 @@ import {
     isIndexInitialized,
     getAllScoreChanges,
 } from "../analyzer/functionIndex";
-
-interface ScoreState {
-    target: string;
-    objective: string;
-    type: "known" | "unknown" | "reset";
-    value: number | null;
-    line: number;
-}
-
-interface ScoreRange {
-    min: number | null;
-    max: number | null;
-}
-
-function parseRange(rangeStr: string): ScoreRange {
-    if (rangeStr.includes("..")) {
-        const parts = rangeStr.split("..");
-        const min = parts[0] === "" ? null : parseInt(parts[0], 10);
-        const max = parts[1] === "" ? null : parseInt(parts[1], 10);
-        return { min, max };
-    }
-    const value = parseInt(rangeStr, 10);
-    return { min: value, max: value };
-}
-
-function matchesRange(value: number, range: ScoreRange): boolean {
-    if (range.min !== null && value < range.min) {
-        return false;
-    }
-    if (range.max !== null && value > range.max) {
-        return false;
-    }
-    return true;
-}
-
-function isConditionUnreachable(state: ScoreState, condType: string, rangeStr: string): boolean {
-    if (state.type === "unknown") {
-        return false;
-    }
-
-    if (state.type === "reset") {
-        return condType === "if";
-    }
-
-    if (state.type === "known" && state.value !== null) {
-        const range = parseRange(rangeStr);
-        const matches = matchesRange(state.value, range);
-        return condType === "if" ? !matches : matches;
-    }
-
-    return false;
-}
+import {
+    ScoreState,
+    ScoreRange,
+    parseRange,
+    matchesRange,
+    isConditionUnreachable,
+    isConditionAlwaysTrue,
+    isExecuteConditional,
+    applyScoreChange,
+    processScoreboardLine,
+    SCORE_CONDITION_RE,
+} from "../analyzer/scoreTracker";
 
 function rangesOverlap(r1: ScoreRange, r2: ScoreRange): boolean {
     const min1 = r1.min ?? -2147483648;
@@ -87,6 +46,7 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
     const diagnostics: vscode.Diagnostic[] = [];
     const conditionRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
     const conditions: ScoreCondition[] = [];
+    const leadingWhitespace = line.length - line.trimStart().length;
 
     let match;
     while ((match = conditionRegex.exec(trimmed)) !== null) {
@@ -122,21 +82,25 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
         for (let i = 0; i < ifConditions.length; i++) {
             for (let j = i + 1; j < ifConditions.length; j++) {
                 if (!rangesOverlap(ifConditions[i].range, ifConditions[j].range)) {
-                    const startIndex = line.indexOf(ifConditions[j].fullMatch);
+                    const startIndex = leadingWhitespace + ifConditions[j].index;
                     const diagRange = new vscode.Range(
                         lineIndex,
                         startIndex,
                         lineIndex,
-                        startIndex + ifConditions[j].fullMatch.length
+                        startIndex + ifConditions[j].fullMatch.length,
                     );
-                    const diagnostic = new vscode.Diagnostic(
-                        diagRange,
-                        t("unreachableCondition"),
-                        vscode.DiagnosticSeverity.Warning
+                    diagnostics.push(
+                        createDiagnostic(
+                            new vscode.Range(
+                                lineIndex,
+                                startIndex,
+                                lineIndex,
+                                startIndex + ifConditions[j].fullMatch.length,
+                            ),
+                            "unreachableCondition",
+                            "unreachable-condition",
+                        ),
                     );
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "unreachable-condition";
-                    diagnostics.push(diagnostic);
                 }
             }
         }
@@ -145,21 +109,25 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
         for (const ifCond of ifConditions) {
             for (const unlessCond of unlessConditions) {
                 if (rangesEqual(ifCond.range, unlessCond.range)) {
-                    const startIndex = line.indexOf(unlessCond.fullMatch);
+                    const startIndex = leadingWhitespace + unlessCond.index;
                     const diagRange = new vscode.Range(
                         lineIndex,
                         startIndex,
                         lineIndex,
-                        startIndex + unlessCond.fullMatch.length
+                        startIndex + unlessCond.fullMatch.length,
                     );
-                    const diagnostic = new vscode.Diagnostic(
-                        diagRange,
-                        t("unreachableCondition"),
-                        vscode.DiagnosticSeverity.Warning
+                    diagnostics.push(
+                        createDiagnostic(
+                            new vscode.Range(
+                                lineIndex,
+                                startIndex,
+                                lineIndex,
+                                startIndex + unlessCond.fullMatch.length,
+                            ),
+                            "unreachableCondition",
+                            "unreachable-condition",
+                        ),
                     );
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "unreachable-condition";
-                    diagnostics.push(diagnostic);
                 }
             }
         }
@@ -174,148 +142,26 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
 
                 // If unless range completely contains if range, it always fails
                 if (unlessMin <= ifMin && unlessMax >= ifMax) {
-                    const startIndex = line.indexOf(ifCond.fullMatch);
+                    const startIndex = leadingWhitespace + ifCond.index;
                     const diagRange = new vscode.Range(
                         lineIndex,
                         startIndex,
                         lineIndex,
-                        startIndex + ifCond.fullMatch.length
+                        startIndex + ifCond.fullMatch.length,
                     );
-                    const diagnostic = new vscode.Diagnostic(
-                        diagRange,
-                        t("unreachableCondition"),
-                        vscode.DiagnosticSeverity.Warning
+                    diagnostics.push(
+                        createDiagnostic(
+                            new vscode.Range(lineIndex, startIndex, lineIndex, startIndex + ifCond.fullMatch.length),
+                            "unreachableCondition",
+                            "unreachable-condition",
+                        ),
                     );
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "unreachable-condition";
-                    diagnostics.push(diagnostic);
                 }
             }
         }
     }
 
     return diagnostics;
-}
-
-function isConditionAlwaysTrue(state: ScoreState, condType: string, rangeStr: string): boolean {
-    if (state.type !== "known" || state.value === null) {
-        return false;
-    }
-
-    const range = parseRange(rangeStr);
-    const matches = matchesRange(state.value, range);
-    return condType === "if" ? matches : !matches;
-}
-
-function isExecuteConditional(trimmed: string, scoreStates: Map<string, ScoreState>): boolean {
-    if (!trimmed.startsWith("execute")) {
-        return false;
-    }
-
-    if (/\bon\s/.test(trimmed)) {
-        return true;
-    }
-
-    if (/\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed)) {
-        return true;
-    }
-
-    if (/\b(if|unless)\s+(?!score\b)/.test(trimmed)) {
-        return true;
-    }
-
-    if (/\b(if|unless)\s+score\b/.test(trimmed)) {
-        const scoreCondRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
-        let condMatch;
-        while ((condMatch = scoreCondRegex.exec(trimmed)) !== null) {
-            const [, condType, target, objective, rangeStr] = condMatch;
-            const key = `${target}:${objective}`;
-            const state = scoreStates.get(key);
-            if (!state || !isConditionAlwaysTrue(state, condType, rangeStr)) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-function applyScoreChange(
-    scoreStates: Map<string, ScoreState>,
-    change: { target: string; objective: string; operation: string; value: number | null; isConditional: boolean },
-    line: number
-): void {
-    const key = `${change.target}:${change.objective}`;
-
-    if (change.isConditional) {
-        scoreStates.set(key, {
-            target: change.target,
-            objective: change.objective,
-            type: "unknown",
-            value: null,
-            line,
-        });
-        return;
-    }
-
-    if (change.operation === "set") {
-        scoreStates.set(key, {
-            target: change.target,
-            objective: change.objective,
-            type: "known",
-            value: change.value,
-            line,
-        });
-        return;
-    }
-
-    if (change.operation === "add" || change.operation === "remove") {
-        const existing = scoreStates.get(key);
-        if (existing?.type === "known" && existing.value !== null && change.value !== null) {
-            existing.value += change.operation === "add" ? change.value : -change.value;
-            existing.line = line;
-        } else {
-            scoreStates.set(key, {
-                target: change.target,
-                objective: change.objective,
-                type: "unknown",
-                value: null,
-                line,
-            });
-        }
-        return;
-    }
-
-    if (change.operation === "reset") {
-        if (change.objective === "*") {
-            for (const [k, state] of scoreStates.entries()) {
-                if (k.startsWith(`${change.target}:`)) {
-                    state.type = "reset";
-                    state.value = null;
-                    state.line = line;
-                }
-            }
-        } else {
-            scoreStates.set(key, {
-                target: change.target,
-                objective: change.objective,
-                type: "reset",
-                value: null,
-                line,
-            });
-        }
-        return;
-    }
-
-    if (change.operation === "unknown") {
-        scoreStates.set(key, {
-            target: change.target,
-            objective: change.objective,
-            type: "unknown",
-            value: null,
-            line,
-        });
-    }
 }
 
 export function checkUnreachableCondition(lines: string[], filePath?: string): vscode.Diagnostic[] {
@@ -327,11 +173,10 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
         if (funcInfo) {
             const inheritedStates = getConsensusScoreStates(funcInfo.fullPath);
             for (const [key, state] of inheritedStates) {
-                // Determine type based on inherited state.
                 scoreStates.set(key, {
                     target: state.target,
                     objective: state.objective,
-                    type: state.value === null ? "unknown" : "known", // Default to unknown for null in inheritance
+                    type: state.value === null ? "unknown" : "known",
                     value: state.value,
                     line: -1,
                 });
@@ -342,6 +187,7 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const trimmed = line.trim();
+        const leadingWhitespace = line.length - line.trimStart().length;
 
         if (trimmed === "" || trimmed.startsWith("#")) {
             continue;
@@ -351,124 +197,12 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
         const conflictDiagnostics = checkConflictingConditionsInLine(trimmed, line, i);
         diagnostics.push(...conflictDiagnostics);
 
-        const isConditional = trimmed.startsWith("execute");
-
-        // Parse 'execute store (result|success) score ...'
-        const storeMatch = trimmed.match(/\bstore\s+(?:result|success)\s+score\s+(\S+)\s+(\S+)/);
-        if (storeMatch) {
-            const target = storeMatch[1];
-            const objective = storeMatch[2];
-            const key = `${target}:${objective}`;
-            scoreStates.set(key, {
-                target,
-                objective,
-                type: "unknown",
-                value: null,
-                line: i,
-            });
-        }
-
-        const setMatch = trimmed.match(
-            /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/
-        );
-        if (setMatch) {
-            const target = setMatch[1];
-            const objective = setMatch[2];
-            const value = parseInt(setMatch[3], 10);
-
-            if (!target.startsWith("@") && target !== "*") {
-                const key = `${target}:${objective}`;
-                if (isConditional) {
-                    scoreStates.set(key, { target, objective, type: "unknown", value: null, line: i });
-                } else {
-                    scoreStates.set(key, { target, objective, type: "known", value, line: i });
-                }
-            }
+        // Process scoreboard commands and advance to next line if one was found
+        if (processScoreboardLine(trimmed, scoreStates, i)) {
             continue;
         }
 
-        const addMatch = trimmed.match(
-            /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/
-        );
-        if (addMatch) {
-            const op = addMatch[1];
-            const target = addMatch[2];
-            const objective = addMatch[3];
-            const amount = parseInt(addMatch[4], 10);
-
-            if (!target.startsWith("@") && target !== "*") {
-                const key = `${target}:${objective}`;
-                const existing = scoreStates.get(key);
-
-                if (existing) {
-                    if (isConditional) {
-                        existing.type = "unknown";
-                        existing.value = null;
-                    } else if (existing.type === "known" && existing.value !== null) {
-                        if (op === "add") {
-                            existing.value += amount;
-                        } else {
-                            existing.value -= amount;
-                        }
-                    } else if (existing.type === "reset") {
-                        existing.type = "unknown";
-                        existing.value = null;
-                    }
-                    existing.line = i;
-                } else {
-                    scoreStates.set(key, { target, objective, type: "unknown", value: null, line: i });
-                }
-            }
-            continue;
-        }
-
-        const resetMatch = trimmed.match(
-            /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/
-        );
-        if (resetMatch) {
-            const target = resetMatch[1];
-            const objective = resetMatch[2];
-
-            if (!target.startsWith("@") && target !== "*") {
-                if (objective) {
-                    const key = `${target}:${objective}`;
-                    if (isConditional) {
-                        scoreStates.set(key, { target, objective, type: "unknown", value: null, line: i });
-                    } else {
-                        scoreStates.set(key, { target, objective, type: "reset", value: null, line: i });
-                    }
-                } else {
-                    for (const [key, state] of scoreStates.entries()) {
-                        if (key.startsWith(`${target}:`)) {
-                            if (isConditional) {
-                                state.type = "unknown";
-                                state.value = null;
-                            } else {
-                                state.type = "reset";
-                                state.value = null;
-                            }
-                            state.line = i;
-                        }
-                    }
-                }
-            }
-            continue;
-        }
-
-        const operationMatch = trimmed.match(
-            /^(?:execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/
-        );
-        if (operationMatch) {
-            const target = operationMatch[1];
-            const objective = operationMatch[2];
-
-            if (!target.startsWith("@") && target !== "*") {
-                scoreStates.set(`${target}:${objective}`, { target, objective, type: "unknown", value: null, line: i });
-            }
-            continue;
-        }
-
-        const conditionRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
+        const conditionRegex = new RegExp(SCORE_CONDITION_RE.source, "g");
         let match;
         let hasUnreachableCondition = false;
 
@@ -482,31 +216,18 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
             }
 
             hasUnreachableCondition = true;
-            const startIndex = line.indexOf(fullMatch);
+            const startIndex = leadingWhitespace + match.index;
             const diagRange = new vscode.Range(i, startIndex, i, startIndex + fullMatch.length);
 
-            const diagnostic = new vscode.Diagnostic(
-                diagRange,
-                t("unreachableCondition"),
-                vscode.DiagnosticSeverity.Warning
-            );
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "unreachable-condition";
-            diagnostics.push(diagnostic);
+            diagnostics.push(createDiagnostic(diagRange, "unreachableCondition", "unreachable-condition"));
         }
-
-        if (trimmed.match(/\b(if|unless)\b/)) {
-            if (hasUnreachableCondition) {
-                continue;
-            }
-        }
-
-        const functionMatch = trimmed.match(/^(?:\$?execute\s+.*\s+run\s+)?function\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
-        const ifFunctionMatch = trimmed.match(/\b(if|unless)\s+function\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
 
         if (hasUnreachableCondition) {
             continue;
         }
+
+        const functionMatch = trimmed.match(/^(?:\$?execute\s+.*\s+run\s+)?function\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
+        const ifFunctionMatch = trimmed.match(/\b(if|unless)\s+function\s+([a-z0-9_.-]+:[a-z0-9_./-]+)/i);
 
         if (functionMatch && isIndexInitialized()) {
             const calledFunctionPath = functionMatch[1];
