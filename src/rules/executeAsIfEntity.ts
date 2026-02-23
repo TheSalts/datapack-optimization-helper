@@ -2,46 +2,7 @@ import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
 import { RuleConfig, getRuleConfig } from "../utils/config";
-
-const DUPLICABLE_KEYS = ["predicate", "tag", "nbt"];
-const COMPLEX_KEYS = ["scores", "advancements"];
-
-function parseArgs(argsStr: string): { key: string; raw: string }[] {
-    if (!argsStr) {
-        return [];
-    }
-    const args: { key: string; raw: string }[] = [];
-    let current = "";
-    let depth = 0;
-
-    for (let i = 0; i < argsStr.length; i++) {
-        const char = argsStr[i];
-        if (char === "{" || char === "[") {
-            depth++;
-            current += char;
-        } else if (char === "}" || char === "]") {
-            depth--;
-            current += char;
-        } else if (char === "," && depth === 0) {
-            if (current.trim()) {
-                const eqIndex = current.indexOf("=");
-                const key = eqIndex !== -1 ? current.slice(0, eqIndex).trim() : current.trim();
-                args.push({ key, raw: current.trim() });
-            }
-            current = "";
-        } else {
-            current += char;
-        }
-    }
-
-    if (current.trim()) {
-        const eqIndex = current.indexOf("=");
-        const key = eqIndex !== -1 ? current.slice(0, eqIndex).trim() : current.trim();
-        args.push({ key, raw: current.trim() });
-    }
-
-    return args;
-}
+import { parseArgs, DUPLICABLE_KEYS, COMPLEX_KEYS } from "../parser/selectorParser";
 
 function analyzeMerge(asArgsStr: string, sArgsStr: string): "SAFE" | "CONFLICT" | "COMPLEX" {
     const asArgs = parseArgs(asArgsStr);

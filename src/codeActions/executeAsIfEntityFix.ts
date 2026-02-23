@@ -1,8 +1,6 @@
 import * as vscode from "vscode";
 import { t } from "../utils/i18n";
-
-const COMPLEX_KEYS = ["scores", "advancements"];
-const DUPLICABLE_KEYS = ["predicate", "tag", "nbt"];
+import { parseArgs, DUPLICABLE_KEYS, COMPLEX_KEYS } from "../parser/selectorParser";
 
 function isDuplicableTypeArg(key: string, raw: string): boolean {
     if (key !== "type") return false;
@@ -10,43 +8,6 @@ function isDuplicableTypeArg(key: string, raw: string): boolean {
     if (eqIndex === -1) return false;
     const value = raw.slice(eqIndex + 1);
     return value.startsWith("!") || value.startsWith("#");
-}
-
-function parseArgs(argsStr: string): { key: string; raw: string }[] {
-    if (!argsStr) {
-        return [];
-    }
-    const args: { key: string; raw: string }[] = [];
-    let current = "";
-    let depth = 0;
-
-    for (let i = 0; i < argsStr.length; i++) {
-        const char = argsStr[i];
-        if (char === "{" || char === "[") {
-            depth++;
-            current += char;
-        } else if (char === "}" || char === "]") {
-            depth--;
-            current += char;
-        } else if (char === "," && depth === 0) {
-            if (current.trim()) {
-                const eqIndex = current.indexOf("=");
-                const key = eqIndex !== -1 ? current.slice(0, eqIndex).trim() : current.trim();
-                args.push({ key, raw: current.trim() });
-            }
-            current = "";
-        } else {
-            current += char;
-        }
-    }
-
-    if (current.trim()) {
-        const eqIndex = current.indexOf("=");
-        const key = eqIndex !== -1 ? current.slice(0, eqIndex).trim() : current.trim();
-        args.push({ key, raw: current.trim() });
-    }
-
-    return args;
 }
 
 function negateArg(raw: string): string {
