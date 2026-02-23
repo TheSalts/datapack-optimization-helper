@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
+import { tokenize } from "../parser/tokenizer";
 
 export interface ExecuteGroup {
     commonPrefix: string;
@@ -356,48 +357,12 @@ function normalizeSelector(selector: string): string {
     return `${base}[${args.join(",")}]`;
 }
 
-function tokenizeExecute(line: string): string[] {
-    const tokens: string[] = [];
-    let current = "";
-    let depth = 0;
-    let inQuote = false;
-
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-
-        if (char === '"' && (i === 0 || line[i - 1] !== "\\")) {
-            inQuote = !inQuote;
-            current += char;
-        } else if (!inQuote && (char === "{" || char === "[")) {
-            depth++;
-            current += char;
-        } else if (!inQuote && (char === "}" || char === "]")) {
-            depth--;
-            current += char;
-        } else if (!inQuote && depth === 0 && char === " ") {
-            if (current) {
-                tokens.push(current);
-                current = "";
-            }
-        } else {
-            current += char;
-        }
-    }
-
-    if (current) {
-        tokens.push(current);
-    }
-
-    return tokens;
-}
-
 function tokenizeExecuteNormalized(line: string): string[] {
-    const tokens = tokenizeExecute(line);
-    return tokens.map((token) => {
-        if (token.startsWith("@")) {
-            return normalizeSelector(token);
+    return tokenize(line).map((token) => {
+        if (token.text.startsWith("@")) {
+            return normalizeSelector(token.text);
         }
-        return token;
+        return token.text;
     });
 }
 

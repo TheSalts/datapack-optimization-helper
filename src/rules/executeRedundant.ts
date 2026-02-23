@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
 import { RuleConfig, getRuleConfig } from "../utils/config";
+import { tokenize, TokenInfo } from "../parser/tokenizer";
 
 interface ExecuteToken {
     subcommand: string;
@@ -74,7 +75,7 @@ function parseExecuteTokens(lineIndex: number, line: string): ExecuteToken[] {
         "store",
     ];
 
-    const words = tokenizeLine(line);
+    const words = tokenize(line);
     if (words[0].text !== "execute") {
         return tokens;
     }
@@ -131,52 +132,6 @@ function parseExecuteTokens(lineIndex: number, line: string): ExecuteToken[] {
     return tokens;
 }
 
-interface TokenInfo {
-    text: string;
-    start: number;
-    end: number;
-}
-
-function tokenizeLine(line: string): TokenInfo[] {
-    const tokens: TokenInfo[] = [];
-    let current = "";
-    let start = -1;
-    let depth = 0;
-    let inQuote = false;
-
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-
-        if (start === -1 && char !== " ") {
-            start = i;
-        }
-
-        if (char === '"' && (i === 0 || line[i - 1] !== "\\")) {
-            inQuote = !inQuote;
-            current += char;
-        } else if (!inQuote && (char === "{" || char === "[")) {
-            depth++;
-            current += char;
-        } else if (!inQuote && (char === "}" || char === "]")) {
-            depth--;
-            current += char;
-        } else if (!inQuote && depth === 0 && char === " ") {
-            if (current) {
-                tokens.push({ text: current, start, end: i });
-                current = "";
-                start = -1;
-            }
-        } else {
-            current += char;
-        }
-    }
-
-    if (current) {
-        tokens.push({ text: current, start, end: line.length });
-    }
-
-    return tokens;
-}
 
 type StateComponent = "executor" | "position" | "rotation" | "dimension" | "anchor";
 
