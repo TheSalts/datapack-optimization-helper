@@ -68,7 +68,17 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
     );
-    context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => diagnosticCollection.delete(doc.uri)));
+    context.subscriptions.push(
+        vscode.workspace.onDidCloseTextDocument((doc) => {
+            diagnosticCollection.delete(doc.uri);
+            const uri = doc.uri.toString();
+            const existing = debounceTimers.get(uri);
+            if (existing) {
+                clearTimeout(existing);
+                debounceTimers.delete(uri);
+            }
+        }),
+    );
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((e) => {
             if (e.affectsConfiguration("datapackOptimization")) {
