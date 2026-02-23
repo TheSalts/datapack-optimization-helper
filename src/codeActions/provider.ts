@@ -1,15 +1,23 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { createRemoveUnreachableFix } from "./unreachableFix";
-import { createTargetSelectorNoDimensionFix, createTargetSelectorTypeOrderFix } from "./targetSelectorFix";
+import {
+    createTargetSelectorNoDimensionFix,
+    createTargetSelectorTypeOrderFix,
+    fixTargetSelectorTypeOrder,
+    fixTargetSelectorNoDimension,
+} from "./targetSelectorFix";
 import { createExecuteGroupFix } from "./executeGroupFix";
 import { createExecuteDuplicateFix, createExecuteUnnecessaryFix } from "./executeRedundantFix";
 import {
     createExecuteRunRedundantFix,
     createExecuteRunRedundantNestedFix,
     createExecuteRunRedundantRunExecuteFix,
+    fixExecuteRunRedundant,
+    fixExecuteRunRedundantNested,
+    fixExecuteRunRedundantRunExecute,
 } from "./executeRunFix";
-import { createExecuteAsSRedundantFix } from "./executeAsSFix";
+import { createExecuteAsSRedundantFix, fixExecuteAsS } from "./executeAsSFix";
 import { createExecuteAsIfEntitySMergeFix, createExecuteAsIfEntitySConvertFix } from "./executeAsIfEntityFix";
 import { createUnreachableConditionFix, createAlwaysPassConditionFix } from "./unreachableConditionFix";
 import { createScoreboardFakePlayerFix } from "./scoreboardFakePlayerFix";
@@ -109,50 +117,25 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private applyAllFixes(text: string): string {
+        const fixPasses: Array<(line: string) => string | null> = [
+            fixExecuteAsS,
+            fixExecuteRunRedundantRunExecute,
+            fixExecuteRunRedundantNested,
+            fixExecuteRunRedundant,
+            fixTargetSelectorTypeOrder,
+            fixTargetSelectorNoDimension,
+        ];
+
         let result = text;
         let changed = true;
-
         while (changed) {
             changed = false;
-            const prev = result;
-
-            // execute-as-s-redundant
-            result = result.replace(/(?<!(positioned|rotated)\s)\bas\s+@s\s+/g, "");
-
-            // execute-run-redundant-run-execute (before execute-run-redundant)
-            result = result.replace(/(?<!return\s)run\s+execute\s+(?!run\b)/g, "");
-
-            // execute-run-redundant-nested
-            result = result.replace(/run\s+execute\s+run\s+/g, "run ");
-
-            // execute-run-redundant (at start of line)
-            result = result.replace(/^(\s*)execute\s+run\s+/, "$1");
-
-            // target-selector-type-order
-            result = result.replace(/@([aeprns])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
-                const typeMatch = args.match(/\btype\s*=\s*[^,\]]+/);
-                if (typeMatch) {
-                    const typeArg = typeMatch[0];
-                    const otherArgs = args.replace(typeArg, "").replace(/^,|,$/g, "").replace(/,,/g, ",");
-                    const newArgs = otherArgs ? `${otherArgs},${typeArg}` : typeArg;
-                    return `@${selector}[${newArgs}]`;
+            for (const fix of fixPasses) {
+                const next = fix(result);
+                if (next !== null && next !== result) {
+                    result = next;
+                    changed = true;
                 }
-                return match;
-            });
-
-            // target-selector-no-dimension
-            result = result.replace(/@([aeprns])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
-                const dimensionKeys = ["x", "y", "z", "dx", "dy", "dz", "distance"];
-                const hasDimension = dimensionKeys.some((key) => new RegExp(`\\b${key}\\s*=`).test(args));
-                if (!hasDimension) {
-                    const newArgs = args ? `${args},distance=0..` : "distance=0..";
-                    return `@${selector}[${newArgs}]`;
-                }
-                return match;
-            });
-
-            if (result !== prev) {
-                changed = true;
             }
         }
 
