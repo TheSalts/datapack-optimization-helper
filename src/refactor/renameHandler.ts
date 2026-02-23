@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { getPackFormat } from "../utils/packMeta";
 import { t } from "../utils/i18n";
+import { getCallers, getFunctionInfo, isIndexInitialized } from "../analyzer/functionIndex";
 
 type RenameBehavior = "ask" | "codeOnly" | "includeComments" | "skip";
 
@@ -228,6 +229,42 @@ function extractFunctionReference(filePath: string): string | null {
 }
 
 async function findReferences(ref: string, commentsOnly: boolean): Promise<number> {
+    if (!commentsOnly && isIndexInitialized()) {
+        return countCodeReferencesViaIndex(ref);
+    }
+    return countReferencesByScanning(ref, commentsOnly);
+}
+
+/** Fast path: use the caller graph to only read files known to call `ref`. */
+async function countCodeReferencesViaIndex(ref: string): Promise<number> {
+    const callers = getCallers(ref);
+    const codePatterns = [
+        new RegExp(`\\$?function\\s+${escapeRegex(ref)}\\b`, "g"),
+        new RegExp(`\\$?schedule\\s+function\\s+${escapeRegex(ref)}\\b`, "g"),
+    ];
+
+    let count = 0;
+    for (const caller of callers) {
+        const callerInfo = getFunctionInfo(caller.callerPath);
+        if (!callerInfo) continue;
+
+        const content = await vscode.workspace.fs.readFile(vscode.Uri.file(callerInfo.filePath));
+        const text = Buffer.from(content).toString("utf-8");
+
+        for (const line of text.split(/\r?\n/)) {
+            if (line.trim().startsWith("#")) continue;
+            for (const pattern of codePatterns) {
+                pattern.lastIndex = 0;
+                const matches = line.match(pattern);
+                if (matches) count += matches.length;
+            }
+        }
+    }
+    return count;
+}
+
+/** Slow path (comments or unindexed): scan every mcfunction file. */
+async function countReferencesByScanning(ref: string, commentsOnly: boolean): Promise<number> {
     let count = 0;
     const files = await vscode.workspace.findFiles("**/*.mcfunction");
 
@@ -239,33 +276,24 @@ async function findReferences(ref: string, commentsOnly: boolean): Promise<numbe
         for (const line of lines) {
             const trimmed = line.trim();
             const isComment = trimmed.startsWith("#");
-
-            if (commentsOnly !== isComment) {
-                continue;
-            }
+            if (commentsOnly !== isComment) continue;
 
             if (commentsOnly) {
                 const pattern = new RegExp(escapeRegex(ref), "g");
                 const matches = line.match(pattern);
-                if (matches) {
-                    count += matches.length;
-                }
+                if (matches) count += matches.length;
             } else {
                 const patterns = [
                     new RegExp(`\\$?function\\s+${escapeRegex(ref)}\\b`, "g"),
                     new RegExp(`\\$?schedule\\s+function\\s+${escapeRegex(ref)}\\b`, "g"),
                 ];
-
                 for (const pattern of patterns) {
                     const matches = line.match(pattern);
-                    if (matches) {
-                        count += matches.length;
-                    }
+                    if (matches) count += matches.length;
                 }
             }
         }
     }
-
     return count;
 }
 
