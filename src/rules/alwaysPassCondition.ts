@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
+import { createDiagnostic } from "../utils/diagnostic";
 import {
     getFunctionInfoByFile,
     getConsensusScoreStates,
@@ -25,7 +24,7 @@ export interface AlwaysReturnInfo {
 
 export function checkAlwaysPassCondition(
     lines: string[],
-    filePath?: string
+    filePath?: string,
 ): { diagnostics: vscode.Diagnostic[]; alwaysReturns: AlwaysReturnInfo[] } {
     const diagnostics: vscode.Diagnostic[] = [];
     const alwaysReturns: AlwaysReturnInfo[] = [];
@@ -108,12 +107,7 @@ export function checkAlwaysPassCondition(
                     const startIndex = leadingWhitespace + match.index;
                     const endIndex = startIndex + match[0].length;
                     const diagRange = new vscode.Range(i, startIndex, i, endIndex);
-
-                    const message = t("alwaysPassCondition");
-                    const diagnostic = new vscode.Diagnostic(diagRange, message, vscode.DiagnosticSeverity.Warning);
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "always-pass-condition";
-                    diagnostics.push(diagnostic);
+                    diagnostics.push(createDiagnostic(diagRange, "alwaysPassCondition", "always-pass-condition"));
                 }
             } else {
                 allConditionsAlwaysPass = false;
@@ -126,7 +120,7 @@ export function checkAlwaysPassCondition(
 
             if (hasReturn && !hasAs) {
                 const allScoreConditions = Array.from(
-                    trimmed.matchAll(/\b(if|unless)\s+score\s+\S+\s+\S+\s+matches\s+\S+/g)
+                    trimmed.matchAll(/\b(if|unless)\s+score\s+\S+\s+\S+\s+matches\s+\S+/g),
                 );
                 const allConditions = Array.from(trimmed.matchAll(/\b(if|unless)\s+\S+/g));
                 const hasOtherCondition = allConditions.length > allScoreConditions.length;

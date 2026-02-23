@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-import { DIAGNOSTIC_SOURCE } from "../constants";
-import { t } from "../utils/i18n";
+import { createDiagnostic } from "../utils/diagnostic";
 import {
     getFunctionInfoByFile,
     getConsensusScoreStates,
@@ -88,16 +87,20 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
                         lineIndex,
                         startIndex,
                         lineIndex,
-                        startIndex + ifConditions[j].fullMatch.length
+                        startIndex + ifConditions[j].fullMatch.length,
                     );
-                    const diagnostic = new vscode.Diagnostic(
-                        diagRange,
-                        t("unreachableCondition"),
-                        vscode.DiagnosticSeverity.Warning
+                    diagnostics.push(
+                        createDiagnostic(
+                            new vscode.Range(
+                                lineIndex,
+                                startIndex,
+                                lineIndex,
+                                startIndex + ifConditions[j].fullMatch.length,
+                            ),
+                            "unreachableCondition",
+                            "unreachable-condition",
+                        ),
                     );
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "unreachable-condition";
-                    diagnostics.push(diagnostic);
                 }
             }
         }
@@ -111,16 +114,20 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
                         lineIndex,
                         startIndex,
                         lineIndex,
-                        startIndex + unlessCond.fullMatch.length
+                        startIndex + unlessCond.fullMatch.length,
                     );
-                    const diagnostic = new vscode.Diagnostic(
-                        diagRange,
-                        t("unreachableCondition"),
-                        vscode.DiagnosticSeverity.Warning
+                    diagnostics.push(
+                        createDiagnostic(
+                            new vscode.Range(
+                                lineIndex,
+                                startIndex,
+                                lineIndex,
+                                startIndex + unlessCond.fullMatch.length,
+                            ),
+                            "unreachableCondition",
+                            "unreachable-condition",
+                        ),
                     );
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "unreachable-condition";
-                    diagnostics.push(diagnostic);
                 }
             }
         }
@@ -140,16 +147,15 @@ function checkConflictingConditionsInLine(trimmed: string, line: string, lineInd
                         lineIndex,
                         startIndex,
                         lineIndex,
-                        startIndex + ifCond.fullMatch.length
+                        startIndex + ifCond.fullMatch.length,
                     );
-                    const diagnostic = new vscode.Diagnostic(
-                        diagRange,
-                        t("unreachableCondition"),
-                        vscode.DiagnosticSeverity.Warning
+                    diagnostics.push(
+                        createDiagnostic(
+                            new vscode.Range(lineIndex, startIndex, lineIndex, startIndex + ifCond.fullMatch.length),
+                            "unreachableCondition",
+                            "unreachable-condition",
+                        ),
                     );
-                    diagnostic.source = DIAGNOSTIC_SOURCE;
-                    diagnostic.code = "unreachable-condition";
-                    diagnostics.push(diagnostic);
                 }
             }
         }
@@ -213,14 +219,7 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
             const startIndex = leadingWhitespace + match.index;
             const diagRange = new vscode.Range(i, startIndex, i, startIndex + fullMatch.length);
 
-            const diagnostic = new vscode.Diagnostic(
-                diagRange,
-                t("unreachableCondition"),
-                vscode.DiagnosticSeverity.Warning
-            );
-            diagnostic.source = DIAGNOSTIC_SOURCE;
-            diagnostic.code = "unreachable-condition";
-            diagnostics.push(diagnostic);
+            diagnostics.push(createDiagnostic(diagRange, "unreachableCondition", "unreachable-condition"));
         }
 
         if (hasUnreachableCondition) {
