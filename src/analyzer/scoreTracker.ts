@@ -4,6 +4,14 @@
  * ScoreRange interfaces and all related helper functions.
  */
 
+import {
+    SCORE_SET_RE,
+    SCORE_ADD_RE,
+    SCORE_RESET_RE,
+    SCORE_OPERATION_RE,
+    SCORE_STORE_RE,
+} from "../parser/patterns";
+
 export interface ScoreState {
     target: string;
     objective: string;
@@ -163,23 +171,16 @@ export function applyScoreChange(
     });
 }
 
-// ── Regex constants used when parsing scoreboard commands ──────────────────
+// ── Re-export the canonical regex constants from parser/patterns ────────────
 
-export const SCORE_SET_RE =
-    /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+set\s+(\S+)\s+(\S+)\s+(-?\d+)/;
-
-export const SCORE_ADD_RE =
-    /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+(add|remove)\s+(\S+)\s+(\S+)\s+(-?\d+)/;
-
-export const SCORE_RESET_RE =
-    /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/;
-
-export const SCORE_OPERATION_RE =
-    /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/;
-
-export const SCORE_STORE_RE = /\bstore\s+(?:result|success)\s+score\s+(\S+)\s+(\S+)/;
-
-export const SCORE_CONDITION_RE = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
+export {
+    SCORE_SET_RE,
+    SCORE_ADD_RE,
+    SCORE_RESET_RE,
+    SCORE_OPERATION_RE,
+    SCORE_STORE_RE,
+    SCORE_CONDITION_RE,
+} from "../parser/patterns";
 
 /**
  * Process a single (trimmed) line and update scoreStates in-place.
