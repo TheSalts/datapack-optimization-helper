@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
 import { parseArgs, DUPLICABLE_KEYS, COMPLEX_KEYS } from "../parser/selectorParser";
 
 function analyzeMerge(asArgsStr: string, sArgsStr: string): "SAFE" | "CONFLICT" | "COMPLEX" {
@@ -39,7 +39,7 @@ function analyzeMerge(asArgsStr: string, sArgsStr: string): "SAFE" | "CONFLICT" 
     return isComplex ? "COMPLEX" : "SAFE";
 }
 
-export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
+export function checkExecuteAsIfEntity(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
     const trimmed = line.trim();
     const diagnostics: vscode.Diagnostic[] = [];
 
@@ -76,8 +76,6 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
     const ifStartCol = leadingWhitespace + ifEntityMatch.index!;
     const ifEndCol = ifStartCol + ifEntityMatch[0].length;
 
-    const effectiveConfig = config || getRuleConfig();
-
     if (entityBase === "@s") {
         const asArgsStr = asMatch[3] ? asMatch[3].slice(1, -1) : "";
         const sArgsStr = ifEntityMatch[3] ? ifEntityMatch[3].slice(1, -1) : "";
@@ -86,7 +84,7 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
         const status = analyzeMerge(asArgsStr, sArgsStr);
 
         if (status === "SAFE") {
-            if (effectiveConfig.executeAsIfEntitySMerge) {
+            if (config.executeAsIfEntitySMerge) {
                 const message = t("executeAsIfEntitySMerge", { condition });
 
                 const asRange = new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol);
@@ -102,7 +100,7 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
                 diagnostics.push(asDiag, ifDiag);
             }
         } else if (status === "CONFLICT") {
-            if (effectiveConfig.unreachableCondition) {
+            if (config.unreachableCondition) {
                 const message = t("unreachableCondition");
 
                 const asRange = new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol);
@@ -118,7 +116,7 @@ export function checkExecuteAsIfEntity(lineIndex: number, line: string, config?:
                 diagnostics.push(asDiag, ifDiag);
             }
         } else {
-            if (effectiveConfig.executeAsIfEntitySConvert) {
+            if (config.executeAsIfEntitySConvert) {
                 const message = t("executeAsIfEntitySConvert", { condition });
 
                 const asRange = new vscode.Range(lineIndex, asStartCol, lineIndex, asEndCol);

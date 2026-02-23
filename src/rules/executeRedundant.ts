@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
 import { tokenize, TokenInfo } from "../parser/tokenizer";
 
 interface ExecuteToken {
@@ -19,9 +19,8 @@ interface RedundantToken {
     reason: RedundancyReason;
 }
 
-export function checkExecuteRedundant(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
-    const effectiveConfig = config || getRuleConfig();
-    if (!effectiveConfig.executeDuplicate && !effectiveConfig.executeUnnecessary) {
+export function checkExecuteRedundant(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
+    if (!config.executeDuplicate && !config.executeUnnecessary) {
         return [];
     }
 
@@ -39,10 +38,10 @@ export function checkExecuteRedundant(lineIndex: number, line: string, config?: 
     const redundants = findRedundantSubcommands(tokens);
 
     for (const { token, reason } of redundants) {
-        if (reason === "duplicate" && !effectiveConfig.executeDuplicate) {
+        if (reason === "duplicate" && !config.executeDuplicate) {
             continue;
         }
-        if (reason === "unnecessary" && !effectiveConfig.executeUnnecessary) {
+        if (reason === "unnecessary" && !config.executeUnnecessary) {
             continue;
         }
 
@@ -131,7 +130,6 @@ function parseExecuteTokens(lineIndex: number, line: string): ExecuteToken[] {
 
     return tokens;
 }
-
 
 type StateComponent = "executor" | "position" | "rotation" | "dimension" | "anchor";
 
@@ -312,7 +310,7 @@ function findRedundantSubcommands(tokens: ExecuteToken[]): RedundantToken[] {
 
 export function getOptimizedExecute(
     line: string,
-    strategy: "preserve-semantics" | "remove" = "preserve-semantics"
+    strategy: "preserve-semantics" | "remove" = "preserve-semantics",
 ): string | null {
     const tokens = parseExecuteTokens(0, line);
     const redundants = findRedundantSubcommands(tokens);

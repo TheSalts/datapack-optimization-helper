@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
 import { getFunctionInfoByFile, getFunctionInfo } from "../analyzer/functionIndex";
 
 function isInfiniteRecursion(targetFunc: string, currentFunc: string, visited: Set<string>): boolean {
@@ -33,9 +33,8 @@ function isInfiniteRecursion(targetFunc: string, currentFunc: string, visited: S
     return false;
 }
 
-export function checkInfiniteRecursion(document: vscode.TextDocument, config?: RuleConfig): vscode.Diagnostic[] {
-    const effectiveConfig = config || getRuleConfig();
-    if (!effectiveConfig.infiniteRecursion) {
+export function checkInfiniteRecursion(document: vscode.TextDocument, config: RuleConfig): vscode.Diagnostic[] {
+    if (!config.infiniteRecursion) {
         return [];
     }
 

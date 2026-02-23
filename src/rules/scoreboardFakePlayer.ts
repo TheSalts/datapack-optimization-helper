@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
 
 const SCOREBOARD_PLAYERS_PATTERN = /scoreboard\s+players\s+(add|remove|set|reset|get|list|operation)\s+/i;
 
@@ -10,10 +10,9 @@ function isTargetSelector(name: string): boolean {
     return /^@[aenprs](\[[^\]]*\])?$/.test(trimmed);
 }
 
-export function checkScoreboardFakePlayer(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
+export function checkScoreboardFakePlayer(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
     const diagnostics: vscode.Diagnostic[] = [];
-    const effectiveConfig = config || getRuleConfig();
-    if (!effectiveConfig.scoreboardFakePlayerMissingHash) {
+    if (!config.scoreboardFakePlayerMissingHash) {
         return diagnostics;
     }
 
@@ -84,7 +83,7 @@ export function checkScoreboardFakePlayer(lineIndex: number, line: string, confi
                     const diagnostic = new vscode.Diagnostic(
                         range,
                         t("scoreboardFakePlayerMissingHash"),
-                        vscode.DiagnosticSeverity.Warning
+                        vscode.DiagnosticSeverity.Warning,
                     );
                     diagnostic.source = DIAGNOSTIC_SOURCE;
                     diagnostic.code = "scoreboard-fake-player-missing-hash";

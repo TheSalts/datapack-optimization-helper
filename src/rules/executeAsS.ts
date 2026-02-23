@@ -1,11 +1,10 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
 
-export function checkExecuteAsS(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic | null {
-    const effectiveConfig = config || getRuleConfig();
-    if (!effectiveConfig.executeAsSRedundant) {
+export function checkExecuteAsS(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic | null {
+    if (!config.executeAsSRedundant) {
         return null;
     }
 
@@ -27,4 +26,3 @@ export function checkExecuteAsS(lineIndex: number, line: string, config?: RuleCo
 
     return null;
 }
-

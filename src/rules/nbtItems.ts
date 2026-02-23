@@ -3,7 +3,7 @@ import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
 import { parseArguments, SelectorArgument } from "./targetSelector";
 import { findSelectors } from "../parser/selectorParser";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
 
 const ITEM_NBT_KEYS = ["SelectedItem", "equipment", "Inventory", "EnderItems"];
 
@@ -75,10 +75,9 @@ function extractNbtKeys(nbtValue: string): string[] {
     return keys;
 }
 
-export function checkNbtItems(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
+export function checkNbtItems(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
     const diagnostics: vscode.Diagnostic[] = [];
-    const effectiveConfig = config || getRuleConfig();
-    if (!effectiveConfig.nbtItemsUseIfItems) {
+    if (!config.nbtItemsUseIfItems) {
         return diagnostics;
     }
 

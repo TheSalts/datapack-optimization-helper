@@ -1,14 +1,13 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
 
-export function checkExecuteRun(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
+export function checkExecuteRun(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
     const diagnostics: vscode.Diagnostic[] = [];
     const trimmed = line.trim();
-    const effectiveConfig = config || getRuleConfig();
 
-    if (effectiveConfig.executeRunRedundant && /^execute\s+run\s+/.test(trimmed)) {
+    if (config.executeRunRedundant && /^execute\s+run\s+/.test(trimmed)) {
         const startIndex = line.indexOf("execute");
         const runIndex = line.indexOf("run", startIndex);
         const range = new vscode.Range(lineIndex, startIndex, lineIndex, runIndex + 3);
@@ -19,7 +18,7 @@ export function checkExecuteRun(lineIndex: number, line: string, config?: RuleCo
         diagnostics.push(diagnostic);
     }
 
-    if (effectiveConfig.executeRunRedundant) {
+    if (config.executeRunRedundant) {
         const nestedMatch = trimmed.match(/run\s+(execute\s+run\s+)/);
         if (nestedMatch) {
             const matchIndex = line.indexOf(nestedMatch[1]);
@@ -32,7 +31,7 @@ export function checkExecuteRun(lineIndex: number, line: string, config?: RuleCo
         }
     }
 
-    if (effectiveConfig.executeRunRedundantRunExecute) {
+    if (config.executeRunRedundantRunExecute) {
         const runExecuteMatch = trimmed.match(/(?<!return\s)run\s+(execute\s+)/);
         if (runExecuteMatch) {
             const matchText = runExecuteMatch[0];

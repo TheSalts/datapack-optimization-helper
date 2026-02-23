@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { DIAGNOSTIC_SOURCE } from "../constants";
 import { t } from "../utils/i18n";
-import { RuleConfig, getRuleConfig } from "../utils/config";
+import { RuleConfig } from "../utils/config";
 
 export interface SelectorArgument {
     key: string;
@@ -101,16 +101,15 @@ function parseArgument(arg: string): SelectorArgument | null {
 
 const DIMENSION_KEYS = ["x", "y", "z", "dx", "dy", "dz", "distance"];
 
-export function checkTargetSelector(lineIndex: number, line: string, config?: RuleConfig): vscode.Diagnostic[] {
+export function checkTargetSelector(lineIndex: number, line: string, config: RuleConfig): vscode.Diagnostic[] {
     const selectors = parseSelectors(line);
     const diagnostics: vscode.Diagnostic[] = [];
-    const effectiveConfig = config || getRuleConfig();
 
     for (const selector of selectors) {
         const keys = selector.arguments.map((arg) => arg.key);
         const range = new vscode.Range(lineIndex, selector.startIndex, lineIndex, selector.endIndex);
 
-        if (effectiveConfig.targetSelectorNoType) {
+        if (config.targetSelectorNoType) {
             const hasType = keys.includes("type");
             if (!hasType) {
                 const message = t("targetSelectorNoType");
@@ -121,7 +120,7 @@ export function checkTargetSelector(lineIndex: number, line: string, config?: Ru
             }
         }
 
-        if (effectiveConfig.targetSelectorNoDimension) {
+        if (config.targetSelectorNoDimension) {
             const hasDimension = DIMENSION_KEYS.some((key) => keys.includes(key));
             if (!hasDimension) {
                 const message = t("targetSelectorNoDimension");
@@ -142,7 +141,7 @@ export function checkTargetSelectorTypeOrder(lineIndex: number, line: string): v
 
     for (const selector of selectors) {
         const positiveTypeIndex = selector.arguments.findIndex(
-            (arg) => arg.key === "type" && !arg.negated && !arg.value.startsWith("#")
+            (arg) => arg.key === "type" && !arg.negated && !arg.value.startsWith("#"),
         );
 
         if (positiveTypeIndex !== -1 && positiveTypeIndex !== selector.arguments.length - 1) {
