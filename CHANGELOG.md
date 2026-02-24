@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.36
+
+### Fixes
+
+- Fixed `@warnoff execute-group` working only on first line
+
 ## 1.0.35
 
 Improved tracking scoreboard

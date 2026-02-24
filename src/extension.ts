@@ -5,6 +5,7 @@ import { isTerminatingCommand, createUnreachableDiagnostics } from "./unreachabl
 import { registerRenameHandler } from "./refactor/renameHandler";
 import { getPackMeta, watchPackMeta } from "./utils/packMeta";
 import { checkExecuteGroup } from "./rules/executeGroup";
+import { getDiagnosticData } from "./utils/diagnosticData";
 import { checkUnreachableCondition } from "./rules/unreachableCondition";
 import { checkAlwaysPassCondition } from "./rules/alwaysPassCondition";
 import { checkInfiniteRecursion } from "./rules/infiniteRecursion";
@@ -192,7 +193,9 @@ function analyzeDocument(document: vscode.TextDocument) {
     if (config.executeGroup && !isRuleDisabled("execute-group", fileDisabledRules)) {
         const groupDiags = checkExecuteGroup(lines);
         for (const diag of groupDiags) {
-            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
+            const data = getDiagnosticData<{ lineIndices?: number[] }>(diag);
+            const checkLine = data?.lineIndices?.[0] ?? diag.range.start.line;
+            const lineDisabled = getDisabledRulesForLine(lines, checkLine, fileDisabledRules);
             if (!isRuleDisabled("execute-group", lineDisabled)) {
                 diagnostics.push(diag);
             }
