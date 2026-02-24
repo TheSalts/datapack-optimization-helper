@@ -19,6 +19,8 @@ import { registerReferencesCodeLens } from "./providers/referencesCodeLens";
 import { t } from "./utils/i18n";
 import { parseWarnOffFile, getDisabledRulesForLine, isRuleDisabled, ALL_RULE_IDS } from "./utils/warnOff";
 import { registerConditionDefinition } from "./providers/conditionDefinition";
+import { registerScoreboardInlayHints } from "./providers/scoreboardInlayHints";
+import { registerScoreboardHover } from "./providers/scoreboardHover";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -103,6 +105,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const codeLensProvider = registerReferencesCodeLens(context);
     registerConditionDefinition(context);
+    registerScoreboardInlayHints(context);
+    registerScoreboardHover(context);
 
     await vscode.window.withProgress(
         {

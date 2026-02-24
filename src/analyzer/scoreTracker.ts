@@ -1,9 +1,3 @@
-/**
- * Shared score-tracking utilities used by unreachableCondition, alwaysPassCondition,
- * and conditionDefinition. Consolidates the previously duplicated ScoreState /
- * ScoreRange interfaces and all related helper functions.
- */
-
 import { SCORE_SET_RE, SCORE_ADD_RE, SCORE_RESET_RE, SCORE_OPERATION_RE, SCORE_STORE_RE } from "../parser/patterns";
 
 export interface ScoreState {
@@ -13,7 +7,47 @@ export interface ScoreState {
     value: number | null;
     line: number;
     filePath?: string;
+    expression?: string;
+    expressionPrecedence?: number;
 }
+
+function opPrecedence(op: string): number {
+    if (op === "*" || op === "/" || op === "%") {
+        return 2;
+    }
+    if (op === "+" || op === "-") {
+        return 1;
+    }
+    return 0;
+}
+
+function wrapIfNeeded(expr: string, innerPrec: number | undefined, outerOp: string): string {
+    if (!expr.includes(" ")) {
+        return expr;
+    }
+    const outerPrec = opPrecedence(outerOp);
+    const prec = innerPrec ?? 0;
+    if (prec < outerPrec) {
+        return `(${expr})`;
+    }
+    return expr;
+}
+
+function isTrackableTarget(target: string): boolean {
+    return !target.startsWith("@") && target !== "*";
+}
+
+function mkUnknown(target: string, objective: string, lineIndex: number, filePath?: string): ScoreState {
+    return { target, objective, type: "unknown", value: null, line: lineIndex, filePath };
+}
+
+const OP_TO_MATH: Record<string, string> = {
+    "+=": "+",
+    "-=": "-",
+    "*=": "*",
+    "/=": "/",
+    "%=": "%",
+};
 
 export interface ScoreRange {
     min: number | null;
@@ -35,14 +69,22 @@ export function parseRange(rangeStr: string): ScoreRange {
 }
 
 export function matchesRange(value: number, range: ScoreRange): boolean {
-    if (range.min !== null && value < range.min) return false;
-    if (range.max !== null && value > range.max) return false;
+    if (range.min !== null && value < range.min) {
+        return false;
+    }
+    if (range.max !== null && value > range.max) {
+        return false;
+    }
     return true;
 }
 
 export function isConditionUnreachable(state: ScoreState, condType: string, rangeStr: string): boolean {
-    if (state.type === "unknown") return false;
-    if (state.type === "reset") return condType === "if";
+    if (state.type === "unknown") {
+        return false;
+    }
+    if (state.type === "reset") {
+        return condType === "if";
+    }
     if (state.type === "known" && state.value !== null) {
         const range = parseRange(rangeStr);
         const matches = matchesRange(state.value, range);
@@ -52,17 +94,27 @@ export function isConditionUnreachable(state: ScoreState, condType: string, rang
 }
 
 export function isConditionAlwaysTrue(state: ScoreState, condType: string, rangeStr: string): boolean {
-    if (state.type !== "known" || state.value === null) return false;
+    if (state.type !== "known" || state.value === null) {
+        return false;
+    }
     const range = parseRange(rangeStr);
     const matches = matchesRange(state.value, range);
     return condType === "if" ? matches : !matches;
 }
 
 export function isExecuteConditional(trimmed: string, scoreStates: Map<string, ScoreState>): boolean {
-    if (!trimmed.startsWith("execute")) return false;
-    if (/\bon\s/.test(trimmed)) return true;
-    if (/\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed)) return true;
-    if (/\b(if|unless)\s+(?!score\b)/.test(trimmed)) return true;
+    if (!trimmed.startsWith("execute")) {
+        return false;
+    }
+    if (/\bon\s/.test(trimmed)) {
+        return true;
+    }
+    if (/\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed)) {
+        return true;
+    }
+    if (/\b(if|unless)\s+(?!score\b)/.test(trimmed)) {
+        return true;
+    }
     if (/\b(if|unless)\s+score\b/.test(trimmed)) {
         const scoreCondRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
         let condMatch;
@@ -70,16 +122,14 @@ export function isExecuteConditional(trimmed: string, scoreStates: Map<string, S
             const [, condType, target, objective, rangeStr] = condMatch;
             const key = `${target}:${objective}`;
             const state = scoreStates.get(key);
-            if (!state || !isConditionAlwaysTrue(state, condType, rangeStr)) return true;
+            if (!state || !isConditionAlwaysTrue(state, condType, rangeStr)) {
+                return true;
+            }
         }
     }
     return false;
 }
 
-/**
- * Apply a single score change (from a scoreboard command or function call)
- * to the given state map.
- */
 export function applyScoreChange(
     scoreStates: Map<string, ScoreState>,
     change: { target: string; objective: string; operation: string; value: number | null; isConditional: boolean },
@@ -89,14 +139,7 @@ export function applyScoreChange(
     const key = `${change.target}:${change.objective}`;
 
     if (change.isConditional) {
-        scoreStates.set(key, {
-            target: change.target,
-            objective: change.objective,
-            type: "unknown",
-            value: null,
-            line: lineIndex,
-            filePath,
-        });
+        scoreStates.set(key, mkUnknown(change.target, change.objective, lineIndex, filePath));
         return;
     }
 
@@ -117,16 +160,11 @@ export function applyScoreChange(
         if (existing?.type === "known" && existing.value !== null && change.value !== null) {
             existing.value += change.operation === "add" ? change.value : -change.value;
             existing.line = lineIndex;
-            if (filePath !== undefined) existing.filePath = filePath;
+            if (filePath !== undefined) {
+                existing.filePath = filePath;
+            }
         } else {
-            scoreStates.set(key, {
-                target: change.target,
-                objective: change.objective,
-                type: "unknown",
-                value: null,
-                line: lineIndex,
-                filePath,
-            });
+            scoreStates.set(key, mkUnknown(change.target, change.objective, lineIndex, filePath));
         }
         return;
     }
@@ -138,7 +176,9 @@ export function applyScoreChange(
                     state.type = "reset";
                     state.value = null;
                     state.line = lineIndex;
-                    if (filePath !== undefined) state.filePath = filePath;
+                    if (filePath !== undefined) {
+                        state.filePath = filePath;
+                    }
                 }
             }
         } else {
@@ -154,18 +194,8 @@ export function applyScoreChange(
         return;
     }
 
-    // "unknown" or any unrecognised operation
-    scoreStates.set(key, {
-        target: change.target,
-        objective: change.objective,
-        type: "unknown",
-        value: null,
-        line: lineIndex,
-        filePath,
-    });
+    scoreStates.set(key, mkUnknown(change.target, change.objective, lineIndex, filePath));
 }
-
-// ── Re-export the canonical regex constants from parser/patterns ────────────
 
 export {
     SCORE_SET_RE,
@@ -176,11 +206,6 @@ export {
     SCORE_CONDITION_RE,
 } from "../parser/patterns";
 
-/**
- * Process a single (trimmed) line and update scoreStates in-place.
- * Returns true when a scoreboard command was found (caller may skip
- * further processing of this line, as unreachableCondition.ts does).
- */
 export function processScoreboardLine(
     trimmed: string,
     scoreStates: Map<string, ScoreState>,
@@ -192,14 +217,7 @@ export function processScoreboardLine(
     const storeMatch = trimmed.match(SCORE_STORE_RE);
     if (storeMatch) {
         const [, target, objective] = storeMatch;
-        scoreStates.set(`${target}:${objective}`, {
-            target,
-            objective,
-            type: "unknown",
-            value: null,
-            line: lineIndex,
-            filePath,
-        });
+        scoreStates.set(`${target}:${objective}`, mkUnknown(target, objective, lineIndex, filePath));
         // store is part of execute; do NOT return early — the run part follows.
     }
 
@@ -207,10 +225,10 @@ export function processScoreboardLine(
     if (setMatch) {
         const [, target, objective, rawValue] = setMatch;
         const value = parseInt(rawValue, 10);
-        if (!target.startsWith("@") && target !== "*") {
+        if (isTrackableTarget(target)) {
             const key = `${target}:${objective}`;
             if (isConditional) {
-                scoreStates.set(key, { target, objective, type: "unknown", value: null, line: lineIndex, filePath });
+                scoreStates.set(key, mkUnknown(target, objective, lineIndex, filePath));
             } else {
                 scoreStates.set(key, { target, objective, type: "known", value, line: lineIndex, filePath });
             }
@@ -222,23 +240,33 @@ export function processScoreboardLine(
     if (addMatch) {
         const [, op, target, objective, rawAmount] = addMatch;
         const amount = parseInt(rawAmount, 10);
-        if (!target.startsWith("@") && target !== "*") {
+        if (isTrackableTarget(target)) {
             const key = `${target}:${objective}`;
             const existing = scoreStates.get(key);
             if (existing) {
                 if (isConditional) {
                     existing.type = "unknown";
                     existing.value = null;
+                    existing.expression = undefined;
                 } else if (existing.type === "known" && existing.value !== null) {
                     existing.value += op === "add" ? amount : -amount;
                 } else if (existing.type === "reset") {
-                    existing.type = "unknown";
-                    existing.value = null;
+                    existing.type = "known";
+                    existing.value = op === "add" ? amount : -amount;
+                    existing.expression = undefined;
+                } else if (existing.type === "unknown") {
+                    const baseExpr = existing.expression ?? key;
+                    const sign = op === "add" ? "+" : "-";
+                    const wrapped = wrapIfNeeded(baseExpr, existing.expressionPrecedence, sign);
+                    existing.expression = `${wrapped} ${sign} ${amount}`;
+                    existing.expressionPrecedence = 1;
                 }
                 existing.line = lineIndex;
-                if (filePath !== undefined) existing.filePath = filePath;
+                if (filePath !== undefined) {
+                    existing.filePath = filePath;
+                }
             } else {
-                scoreStates.set(key, { target, objective, type: "unknown", value: null, line: lineIndex, filePath });
+                scoreStates.set(key, mkUnknown(target, objective, lineIndex, filePath));
             }
         }
         return true;
@@ -247,18 +275,11 @@ export function processScoreboardLine(
     const resetMatch = trimmed.match(SCORE_RESET_RE);
     if (resetMatch) {
         const [, target, objective] = resetMatch;
-        if (!target.startsWith("@") && target !== "*") {
+        if (isTrackableTarget(target)) {
             if (objective) {
                 const key = `${target}:${objective}`;
                 if (isConditional) {
-                    scoreStates.set(key, {
-                        target,
-                        objective,
-                        type: "unknown",
-                        value: null,
-                        line: lineIndex,
-                        filePath,
-                    });
+                    scoreStates.set(key, mkUnknown(target, objective, lineIndex, filePath));
                 } else {
                     scoreStates.set(key, { target, objective, type: "reset", value: null, line: lineIndex, filePath });
                 }
@@ -273,7 +294,9 @@ export function processScoreboardLine(
                             state.value = null;
                         }
                         state.line = lineIndex;
-                        if (filePath !== undefined) state.filePath = filePath;
+                        if (filePath !== undefined) {
+                            state.filePath = filePath;
+                        }
                     }
                 }
             }
@@ -283,16 +306,124 @@ export function processScoreboardLine(
 
     const operationMatch = trimmed.match(SCORE_OPERATION_RE);
     if (operationMatch) {
-        const [, target, objective] = operationMatch;
-        if (!target.startsWith("@") && target !== "*") {
-            scoreStates.set(`${target}:${objective}`, {
-                target,
-                objective,
-                type: "unknown",
-                value: null,
-                line: lineIndex,
-                filePath,
-            });
+        const [, target, objective, op, srcTarget, srcObjective] = operationMatch;
+        if (isTrackableTarget(target)) {
+            const key = `${target}:${objective}`;
+            const srcKey = `${srcTarget}:${srcObjective}`;
+
+            if (isConditional) {
+                scoreStates.set(key, mkUnknown(target, objective, lineIndex, filePath));
+            } else {
+                const existing = scoreStates.get(key);
+                const srcState = scoreStates.get(srcKey);
+                const targetVal = existing?.type === "known" ? existing.value : null;
+                const srcVal = srcState?.type === "known" ? srcState.value : null;
+                const targetExprRaw = targetVal !== null ? String(targetVal) : (existing?.expression ?? key);
+                const srcExprRaw = srcVal !== null ? String(srcVal) : (srcState?.expression ?? srcKey);
+
+                if (op === "=") {
+                    if (srcVal !== null) {
+                        scoreStates.set(key, {
+                            target,
+                            objective,
+                            type: "known",
+                            value: srcVal,
+                            line: lineIndex,
+                            filePath,
+                        });
+                    } else {
+                        scoreStates.set(key, {
+                            target,
+                            objective,
+                            type: "unknown",
+                            value: null,
+                            line: lineIndex,
+                            filePath,
+                            expression: srcExprRaw,
+                        });
+                    }
+                } else if (op === "><") {
+                    scoreStates.set(key, {
+                        target,
+                        objective,
+                        type: srcVal !== null ? "known" : "unknown",
+                        value: srcVal,
+                        line: lineIndex,
+                        filePath,
+                        expression: srcVal === null ? srcExprRaw : undefined,
+                    });
+                    if (isTrackableTarget(srcTarget)) {
+                        scoreStates.set(srcKey, {
+                            target: srcTarget,
+                            objective: srcObjective,
+                            type: targetVal !== null ? "known" : "unknown",
+                            value: targetVal,
+                            line: lineIndex,
+                            filePath,
+                            expression: targetVal === null ? targetExprRaw : undefined,
+                        });
+                    }
+                } else if (targetVal !== null && srcVal !== null) {
+                    let result: number;
+                    switch (op) {
+                        case "+=":
+                            result = targetVal + srcVal;
+                            break;
+                        case "-=":
+                            result = targetVal - srcVal;
+                            break;
+                        case "*=":
+                            result = targetVal * srcVal;
+                            break;
+                        case "/=":
+                            if (srcVal === 0) {
+                                result = targetVal;
+                                break;
+                            }
+                            result = Math.trunc(targetVal / srcVal);
+                            break;
+                        case "%=":
+                            if (srcVal === 0) {
+                                result = targetVal;
+                                break;
+                            }
+                            result = targetVal % srcVal;
+                            break;
+                        case "<":
+                            result = Math.min(targetVal, srcVal);
+                            break;
+                        case ">":
+                            result = Math.max(targetVal, srcVal);
+                            break;
+                        default:
+                            scoreStates.set(key, mkUnknown(target, objective, lineIndex, filePath));
+                            return true;
+                    }
+                    existing!.value = result;
+                    existing!.expression = undefined;
+                    existing!.line = lineIndex;
+                    if (filePath !== undefined) {
+                        existing!.filePath = filePath;
+                    }
+                } else {
+                    const mathOp = OP_TO_MATH[op] ?? op;
+                    const targetPrec = existing?.expressionPrecedence;
+                    const srcPrec = srcState?.expressionPrecedence;
+                    const wrappedTarget = wrapIfNeeded(targetExprRaw, targetPrec, mathOp);
+                    const wrappedSrc = wrapIfNeeded(srcExprRaw, srcPrec, mathOp);
+                    const expr = `${wrappedTarget} ${mathOp} ${wrappedSrc}`;
+                    scoreStates.set(key, {
+                        target,
+                        objective,
+                        type: "unknown",
+                        value: null,
+                        line: lineIndex,
+                        filePath,
+                        expression: expr,
+                        expressionPrecedence: opPrecedence(mathOp),
+                    });
+                }
+            }
         }
         return true;
     }

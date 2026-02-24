@@ -34,6 +34,12 @@ Vscode Extension for minecraft datapack optimization.
     - Updates `function` and `schedule function` commands
     - Optionally updates references in comments
 
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/scoreboard.png)
+
+- Tracking scoreboard values
+    - Visible when holding `Ctrl + Alt`
+    - To always show them, set `editor.inlayHints.enabled` to `on`
+
 ## Configuration
 
 ### Project Configuration
