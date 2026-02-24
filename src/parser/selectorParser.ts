@@ -15,7 +15,9 @@
 
 /** Parses a raw args string (without the surrounding brackets) into key/raw pairs. */
 export function parseArgs(argsStr: string): { key: string; raw: string }[] {
-    if (!argsStr) return [];
+    if (!argsStr) {
+        return [];
+    }
     const args: { key: string; raw: string }[] = [];
     let current = "";
     let depth = 0;

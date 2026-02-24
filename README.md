@@ -78,6 +78,21 @@ default: `{dir}`
 
 default: `{name}_line_{line}`
 
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/config_scoreboard.png)
+
+### Scoreboard Inlay Hints Enabled
+
+Enable tracking scoreboard values.
+
+default: `true`
+
+### Scoreboard Inlay Hints Padding
+
+Number of padding spaces for Scoreboard Inlay Hints.
+Set to `0` to auto alignment.
+
+default: `1`
+
 ### Rename Behavior
 
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename_config.png)

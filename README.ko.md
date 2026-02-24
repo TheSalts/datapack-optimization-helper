@@ -78,6 +78,21 @@
 
 기본값: `{name}_line_{line}`
 
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/config_scoreboard.png)
+
+### 스코어보드 Inlay Hint 활성화
+
+스코어보드 값 추적 기능을 켜거나 끕니다.
+
+기본값: `true`
+
+### 스코어보드 Inlay Hint 여백
+
+스코어보드 Inlay Hint의 여백 개수를 설정합니다.
+`0`으로 설정하면 자동 정렬이 활성화됩니다.
+
+기본값: `1`
+
 ### 이름 변경 동작
 
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename_config.png)

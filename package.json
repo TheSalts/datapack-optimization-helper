@@ -116,6 +116,17 @@
           "patternErrorMessage": "Filename must contain only alphanumeric characters, underscores, hyphens, and placeholders: {name}, {line}",
           "markdownDescription": "%config.executeGroup.outputName.markdownDescription%"
         },
+        "datapackOptimization.scoreboardInlayHints.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "%config.scoreboardInlayHints.enabled.markdownDescription%"
+        },
+        "datapackOptimization.scoreboardInlayHints.padding": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 0,
+          "markdownDescription": "%config.scoreboardInlayHints.padding.markdownDescription%"
+        },
         "datapackOptimization.rename.behavior": {
           "type": "string",
           "enum": [
