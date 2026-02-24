@@ -8,19 +8,13 @@ import {
     isIndexInitialized,
 } from "../analyzer/functionIndex";
 
-/**
- * Matches all contexts where a score target + objective appear:
- * - scoreboard players set/add/remove/reset/operation <TARGET> <OBJECTIVE>
- * - execute store result/success score <TARGET> <OBJECTIVE>
- * - execute if/unless score <TARGET> <OBJECTIVE> matches <range>
- *
- * Groups: (1) target  (2) whitespace  (3) objective
- */
 const SCORE_HOVER_RE =
     /(?:scoreboard\s+players\s+(?:set|add|remove|reset|operation)\s+|store\s+(?:result|success)\s+score\s+|(?:if|unless)\s+score\s+)(\S+)(\s+)(\S+)/g;
 
+const SCORE_OP_SRC_RE = /scoreboard\s+players\s+operation\s+\S+\s+\S+\s+[+\-*/%<>=><]+\s+(\S+)(\s+)(\S+)/g;
+
 export class ScoreboardHoverProvider implements vscode.HoverProvider {
-    provideHover(document: vscode.TextDocument, position: vscode.Position): vscode.Hover | null {
+    async provideHover(document: vscode.TextDocument, position: vscode.Position): Promise<vscode.Hover | null> {
         const line = document.lineAt(position.line);
         const trimmed = line.text.trim();
         const leadingWs = line.text.length - line.text.trimStart().length;
@@ -29,47 +23,68 @@ export class ScoreboardHoverProvider implements vscode.HoverProvider {
             return null;
         }
 
-        const regex = new RegExp(SCORE_HOVER_RE.source, "g");
-        let match;
+        const patterns = [SCORE_HOVER_RE, SCORE_OP_SRC_RE];
+        for (const pattern of patterns) {
+            const regex = new RegExp(pattern.source, "g");
+            let match;
+            while ((match = regex.exec(trimmed)) !== null) {
+                const target = match[1];
+                const whitespace = match[2];
+                const objective = match[3];
 
-        while ((match = regex.exec(trimmed)) !== null) {
-            const target = match[1];
-            const whitespace = match[2];
-            const objective = match[3];
+                const matchEnd = match.index + match[0].length;
+                const targetStart = leadingWs + matchEnd - objective.length - whitespace.length - target.length;
+                const targetEnd = targetStart + target.length;
 
-            const matchEnd = match.index + match[0].length;
-            const targetStart = leadingWs + matchEnd - objective.length - whitespace.length - target.length;
-            const targetEnd = targetStart + target.length;
-
-            if (position.character >= targetStart && position.character < targetEnd) {
-                return this.buildHover(document, position.line, target, objective, targetStart, targetEnd);
+                if (position.character >= targetStart && position.character < targetEnd) {
+                    return await this.buildHover(document, position.line, target, objective, targetStart, targetEnd);
+                }
             }
         }
 
         return null;
     }
 
-    private buildHover(
+    private async buildHover(
         document: vscode.TextDocument,
         currentLine: number,
         target: string,
         objective: string,
         startChar: number,
         endChar: number,
-    ): vscode.Hover {
+    ): Promise<vscode.Hover> {
         const key = `${target}:${objective}`;
         const scoreStates = this.collectScoreStates(document, currentLine);
         const state = scoreStates.get(key);
 
         const md = new vscode.MarkdownString();
+        let valueStr: string;
         if (state?.type === "known" && state.value !== null) {
-            md.appendMarkdown(`\`${key}\` = \`${state.value}\``);
+            valueStr = String(state.value);
         } else if (state?.type === "reset") {
-            md.appendMarkdown(`\`${key}\` = \`(reset)\``);
+            valueStr = "(reset)";
         } else if (state?.expression) {
-            md.appendMarkdown(`\`${key}\` = \`${state.expression}\``);
+            valueStr = state.expression;
         } else {
-            md.appendMarkdown(`\`${key}\` = \`?\``);
+            valueStr = "?";
+        }
+        md.appendMarkdown(`\`\`\`swift\n${key} = ${valueStr}\n\`\`\``);
+
+        if (state && state.filePath && state.line >= 0) {
+            try {
+                const sourceDoc = vscode.workspace.textDocuments.find((d) => d.uri.fsPath === state.filePath);
+                let sourceLineText: string | undefined;
+                if (sourceDoc) {
+                    sourceLineText = sourceDoc.lineAt(state.line).text.trim();
+                } else {
+                    const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(state.filePath));
+                    const lines = Buffer.from(bytes).toString("utf-8").split(/\r?\n/);
+                    sourceLineText = lines[state.line]?.trim();
+                }
+                if (sourceLineText) {
+                    md.appendMarkdown(`\n\n\`\`\`mcfunction\n${sourceLineText}\n\`\`\``);
+                }
+            } catch {}
         }
 
         return new vscode.Hover(md, new vscode.Range(currentLine, startChar, currentLine, endChar));

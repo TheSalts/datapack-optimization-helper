@@ -34,6 +34,12 @@
     - `function` 및 `schedule function` 명령어 업데이트
     - 주석 내 참조도 선택적으로 업데이트
 
+![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/scoreboard.png)
+
+- 스코어보드 값 추적
+    - `Ctrl + Alt`를 누르고 있으면 표시
+    - 항상 표시되게 하려면 `설정` → `editor.inlayHints.enabled`를 `on`으로 변경하세요
+
 ## 설정
 
 ### 프로젝트 설정

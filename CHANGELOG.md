@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.35
+
+Improved tracking scoreboard
+
+Added Inlay hint for scoreboard
+
 ## 1.0.34
 
 Optimized the extension
