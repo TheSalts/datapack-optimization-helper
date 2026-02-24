@@ -41,3 +41,18 @@ export const SCORE_STORE_RE = /\bstore\s+(?:result|success)\s+score\s+(\S+)\s+(\
 
 /** Matches a score condition: `if|unless score <target> <objective> matches <range>` */
 export const SCORE_CONDITION_RE = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/;
+
+/**
+ * Hover patterns — each captures `(target)(\s+)(objective)` as groups 1–3.
+ * Used by ScoreboardHoverProvider to locate the score reference under the cursor.
+ */
+
+/** Matches the first target/objective in scoreboard commands, store, and if/unless score */
+export const SCORE_HOVER_RE =
+    /(?:scoreboard\s+players\s+(?:set|add|remove|reset|operation)\s+|store\s+(?:result|success)\s+score\s+|(?:if|unless)\s+score\s+)(\S+)(\s+)(\S+)/g;
+
+/** Matches the source target/objective in `scoreboard players operation` */
+export const SCORE_OP_SRC_RE = /scoreboard\s+players\s+operation\s+\S+\s+\S+\s+[+\-*/%<>=><]+\s+(\S+)(\s+)(\S+)/g;
+
+/** Matches the second target/objective in `if/unless score <t> <o> <op> <t2> <o2>` */
+export const SCORE_IF_COMPARE_RE = /(?:if|unless)\s+score\s+\S+\s+\S+\s+[<>=!]+\s+(\S+)(\s+)(\S+)/g;

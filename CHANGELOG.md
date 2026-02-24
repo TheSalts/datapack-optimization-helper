@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.37
+
+### Fixes
+
+- Fixed scoreboard hover not showing for the second target in `if/unless score` comparisons
+
 ## 1.0.36
 
 ### Fixes

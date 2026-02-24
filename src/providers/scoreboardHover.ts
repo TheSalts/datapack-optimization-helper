@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { FUNCTION_CALL_RE } from "../parser/patterns";
+import { FUNCTION_CALL_RE, SCORE_HOVER_RE, SCORE_OP_SRC_RE, SCORE_IF_COMPARE_RE } from "../parser/patterns";
 import { ScoreState, processScoreboardLine } from "../analyzer/scoreTracker";
 import {
     getFunctionInfoByFile,
@@ -7,11 +7,6 @@ import {
     getFunctionInfo,
     isIndexInitialized,
 } from "../analyzer/functionIndex";
-
-const SCORE_HOVER_RE =
-    /(?:scoreboard\s+players\s+(?:set|add|remove|reset|operation)\s+|store\s+(?:result|success)\s+score\s+|(?:if|unless)\s+score\s+)(\S+)(\s+)(\S+)/g;
-
-const SCORE_OP_SRC_RE = /scoreboard\s+players\s+operation\s+\S+\s+\S+\s+[+\-*/%<>=><]+\s+(\S+)(\s+)(\S+)/g;
 
 export class ScoreboardHoverProvider implements vscode.HoverProvider {
     async provideHover(document: vscode.TextDocument, position: vscode.Position): Promise<vscode.Hover | null> {
@@ -23,7 +18,7 @@ export class ScoreboardHoverProvider implements vscode.HoverProvider {
             return null;
         }
 
-        const patterns = [SCORE_HOVER_RE, SCORE_OP_SRC_RE];
+        const patterns = [SCORE_HOVER_RE, SCORE_OP_SRC_RE, SCORE_IF_COMPARE_RE];
         for (const pattern of patterns) {
             const regex = new RegExp(pattern.source, "g");
             let match;
