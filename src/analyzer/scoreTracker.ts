@@ -13,6 +13,8 @@ export interface ScoreState {
     value: number | null;
     line: number;
     filePath?: string;
+    /** Human-readable expression when value is unknown (e.g. "4 * #any:var") */
+    expression?: string;
 }
 
 export interface ScoreRange {
@@ -35,14 +37,22 @@ export function parseRange(rangeStr: string): ScoreRange {
 }
 
 export function matchesRange(value: number, range: ScoreRange): boolean {
-    if (range.min !== null && value < range.min) return false;
-    if (range.max !== null && value > range.max) return false;
+    if (range.min !== null && value < range.min) {
+        return false;
+    }
+    if (range.max !== null && value > range.max) {
+        return false;
+    }
     return true;
 }
 
 export function isConditionUnreachable(state: ScoreState, condType: string, rangeStr: string): boolean {
-    if (state.type === "unknown") return false;
-    if (state.type === "reset") return condType === "if";
+    if (state.type === "unknown") {
+        return false;
+    }
+    if (state.type === "reset") {
+        return condType === "if";
+    }
     if (state.type === "known" && state.value !== null) {
         const range = parseRange(rangeStr);
         const matches = matchesRange(state.value, range);
@@ -52,17 +62,27 @@ export function isConditionUnreachable(state: ScoreState, condType: string, rang
 }
 
 export function isConditionAlwaysTrue(state: ScoreState, condType: string, rangeStr: string): boolean {
-    if (state.type !== "known" || state.value === null) return false;
+    if (state.type !== "known" || state.value === null) {
+        return false;
+    }
     const range = parseRange(rangeStr);
     const matches = matchesRange(state.value, range);
     return condType === "if" ? matches : !matches;
 }
 
 export function isExecuteConditional(trimmed: string, scoreStates: Map<string, ScoreState>): boolean {
-    if (!trimmed.startsWith("execute")) return false;
-    if (/\bon\s/.test(trimmed)) return true;
-    if (/\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed)) return true;
-    if (/\b(if|unless)\s+(?!score\b)/.test(trimmed)) return true;
+    if (!trimmed.startsWith("execute")) {
+        return false;
+    }
+    if (/\bon\s/.test(trimmed)) {
+        return true;
+    }
+    if (/\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed)) {
+        return true;
+    }
+    if (/\b(if|unless)\s+(?!score\b)/.test(trimmed)) {
+        return true;
+    }
     if (/\b(if|unless)\s+score\b/.test(trimmed)) {
         const scoreCondRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
         let condMatch;
@@ -70,7 +90,9 @@ export function isExecuteConditional(trimmed: string, scoreStates: Map<string, S
             const [, condType, target, objective, rangeStr] = condMatch;
             const key = `${target}:${objective}`;
             const state = scoreStates.get(key);
-            if (!state || !isConditionAlwaysTrue(state, condType, rangeStr)) return true;
+            if (!state || !isConditionAlwaysTrue(state, condType, rangeStr)) {
+                return true;
+            }
         }
     }
     return false;
@@ -117,7 +139,9 @@ export function applyScoreChange(
         if (existing?.type === "known" && existing.value !== null && change.value !== null) {
             existing.value += change.operation === "add" ? change.value : -change.value;
             existing.line = lineIndex;
-            if (filePath !== undefined) existing.filePath = filePath;
+            if (filePath !== undefined) {
+                existing.filePath = filePath;
+            }
         } else {
             scoreStates.set(key, {
                 target: change.target,
@@ -138,7 +162,9 @@ export function applyScoreChange(
                     state.type = "reset";
                     state.value = null;
                     state.line = lineIndex;
-                    if (filePath !== undefined) state.filePath = filePath;
+                    if (filePath !== undefined) {
+                        state.filePath = filePath;
+                    }
                 }
             }
         } else {
@@ -229,14 +255,23 @@ export function processScoreboardLine(
                 if (isConditional) {
                     existing.type = "unknown";
                     existing.value = null;
+                    existing.expression = undefined;
                 } else if (existing.type === "known" && existing.value !== null) {
                     existing.value += op === "add" ? amount : -amount;
                 } else if (existing.type === "reset") {
-                    existing.type = "unknown";
-                    existing.value = null;
+                    existing.type = "known";
+                    existing.value = op === "add" ? amount : -amount;
+                    existing.expression = undefined;
+                } else if (existing.type === "unknown") {
+                    const baseExpr = existing.expression ?? key;
+                    const wrapped = baseExpr.includes(" ") ? `(${baseExpr})` : baseExpr;
+                    const sign = op === "add" ? "+" : "-";
+                    existing.expression = `${wrapped} ${sign} ${amount}`;
                 }
                 existing.line = lineIndex;
-                if (filePath !== undefined) existing.filePath = filePath;
+                if (filePath !== undefined) {
+                    existing.filePath = filePath;
+                }
             } else {
                 scoreStates.set(key, { target, objective, type: "unknown", value: null, line: lineIndex, filePath });
             }
@@ -273,7 +308,9 @@ export function processScoreboardLine(
                             state.value = null;
                         }
                         state.line = lineIndex;
-                        if (filePath !== undefined) state.filePath = filePath;
+                        if (filePath !== undefined) {
+                            state.filePath = filePath;
+                        }
                     }
                 }
             }
@@ -283,16 +320,135 @@ export function processScoreboardLine(
 
     const operationMatch = trimmed.match(SCORE_OPERATION_RE);
     if (operationMatch) {
-        const [, target, objective] = operationMatch;
+        const [, target, objective, op, srcTarget, srcObjective] = operationMatch;
         if (!target.startsWith("@") && target !== "*") {
-            scoreStates.set(`${target}:${objective}`, {
-                target,
-                objective,
-                type: "unknown",
-                value: null,
-                line: lineIndex,
-                filePath,
-            });
+            const key = `${target}:${objective}`;
+            const srcKey = `${srcTarget}:${srcObjective}`;
+
+            if (isConditional) {
+                scoreStates.set(key, { target, objective, type: "unknown", value: null, line: lineIndex, filePath });
+            } else {
+                const existing = scoreStates.get(key);
+                const srcState = scoreStates.get(srcKey);
+                const targetVal = existing?.type === "known" ? existing.value : null;
+                const srcVal = srcState?.type === "known" ? srcState.value : null;
+                const targetExprRaw = targetVal !== null ? String(targetVal) : (existing?.expression ?? key);
+                const srcExprRaw = srcVal !== null ? String(srcVal) : (srcState?.expression ?? srcKey);
+                const wrap = (e: string) => (e.includes(" ") ? `(${e})` : e);
+
+                const OP_TO_MATH: Record<string, string> = {
+                    "+=": "+",
+                    "-=": "-",
+                    "*=": "*",
+                    "/=": "/",
+                    "%=": "%",
+                };
+
+                if (op === "=") {
+                    if (srcVal !== null) {
+                        scoreStates.set(key, {
+                            target,
+                            objective,
+                            type: "known",
+                            value: srcVal,
+                            line: lineIndex,
+                            filePath,
+                        });
+                    } else {
+                        scoreStates.set(key, {
+                            target,
+                            objective,
+                            type: "unknown",
+                            value: null,
+                            line: lineIndex,
+                            filePath,
+                            expression: srcExprRaw,
+                        });
+                    }
+                } else if (op === "><") {
+                    scoreStates.set(key, {
+                        target,
+                        objective,
+                        type: srcVal !== null ? "known" : "unknown",
+                        value: srcVal,
+                        line: lineIndex,
+                        filePath,
+                        expression: srcVal === null ? srcExprRaw : undefined,
+                    });
+                    if (!srcTarget.startsWith("@") && srcTarget !== "*") {
+                        scoreStates.set(srcKey, {
+                            target: srcTarget,
+                            objective: srcObjective,
+                            type: targetVal !== null ? "known" : "unknown",
+                            value: targetVal,
+                            line: lineIndex,
+                            filePath,
+                            expression: targetVal === null ? targetExprRaw : undefined,
+                        });
+                    }
+                } else if (targetVal !== null && srcVal !== null) {
+                    let result: number;
+                    switch (op) {
+                        case "+=":
+                            result = targetVal + srcVal;
+                            break;
+                        case "-=":
+                            result = targetVal - srcVal;
+                            break;
+                        case "*=":
+                            result = targetVal * srcVal;
+                            break;
+                        case "/=":
+                            if (srcVal === 0) {
+                                result = targetVal;
+                                break;
+                            }
+                            result = Math.trunc(targetVal / srcVal);
+                            break;
+                        case "%=":
+                            if (srcVal === 0) {
+                                result = targetVal;
+                                break;
+                            }
+                            result = targetVal % srcVal;
+                            break;
+                        case "<":
+                            result = Math.min(targetVal, srcVal);
+                            break;
+                        case ">":
+                            result = Math.max(targetVal, srcVal);
+                            break;
+                        default:
+                            scoreStates.set(key, {
+                                target,
+                                objective,
+                                type: "unknown",
+                                value: null,
+                                line: lineIndex,
+                                filePath,
+                            });
+                            return true;
+                    }
+                    existing!.value = result;
+                    existing!.expression = undefined;
+                    existing!.line = lineIndex;
+                    if (filePath !== undefined) {
+                        existing!.filePath = filePath;
+                    }
+                } else {
+                    const mathOp = OP_TO_MATH[op] ?? op;
+                    const expr = `${wrap(targetExprRaw)} ${mathOp} ${wrap(srcExprRaw)}`;
+                    scoreStates.set(key, {
+                        target,
+                        objective,
+                        type: "unknown",
+                        value: null,
+                        line: lineIndex,
+                        filePath,
+                        expression: expr,
+                    });
+                }
+            }
         }
         return true;
     }

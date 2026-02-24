@@ -32,8 +32,9 @@ export const SCORE_ADD_RE =
 /** Matches `scoreboard players reset <target> [<objective>]` */
 export const SCORE_RESET_RE = /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+reset\s+(\S+)(?:\s+(\S+))?/;
 
-/** Matches `scoreboard players operation <target> <objective> …` */
-export const SCORE_OPERATION_RE = /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+/;
+/** Matches `scoreboard players operation <target> <objective> <op> <srcTarget> <srcObjective>` */
+export const SCORE_OPERATION_RE =
+    /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/;
 
 /** Matches `execute store result|success score <target> <objective>` */
 export const SCORE_STORE_RE = /\bstore\s+(?:result|success)\s+score\s+(\S+)\s+(\S+)/;
