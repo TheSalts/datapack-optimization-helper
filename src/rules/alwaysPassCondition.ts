@@ -17,6 +17,7 @@ import {
     processScoreboardLine,
     SCORE_CONDITION_RE,
 } from "../analyzer/scoreTracker";
+import { processTestScoreLine } from "../parser/testScore";
 
 export interface AlwaysReturnInfo {
     line: number;
@@ -51,7 +52,11 @@ export function checkAlwaysPassCondition(
         const trimmed = line.trim();
         const leadingWhitespace = line.length - line.trimStart().length;
 
-        if (trimmed === "" || trimmed.startsWith("#")) {
+        if (trimmed === "") {
+            continue;
+        }
+        if (trimmed.startsWith("#")) {
+            processTestScoreLine(trimmed, scoreStates, i);
             continue;
         }
 

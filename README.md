@@ -40,6 +40,18 @@ Vscode Extension for minecraft datapack optimization.
     - Visible when holding `Ctrl + Alt`
     - To always show them, set `editor.inlayHints.enabled` to `on`
 
+- Test scoreboard values with `# test-score`
+    - Insert `# test-score <target> <objective> <value>` anywhere in the file to pin a score to a specific value for testing
+    - The overridden value is reflected in inlay hints, hover, and diagnostics from that line onwards
+    - Right-click (or use the command palette) → **Datapack Optimization: Add Test Score** to insert interactively — shows all scores in the file with their current values at the cursor position
+
+    ```mcfunction
+    # test-score #counter obj 10
+
+    scoreboard players add #counter obj 3
+    # inlay hint: #counter:obj = 13
+    ```
+
 ## Configuration
 
 ### Project Configuration

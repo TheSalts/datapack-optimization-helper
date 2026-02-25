@@ -1,5 +1,18 @@
 # Change Log
 
+## 1.0.39
+
+### Features
+
+- Added `# test-score` comment to set test values for scoreboard scores
+    - Insert anywhere in the file to override score state from that line onwards
+    - Works with inlay hints, hover, unreachable/always-pass condition diagnostics
+    - Syntax: `# test-score <target> <objective> <value>` (e.g. `# test-score #counter obj 10`)
+- Added **Add Test Score** command (`Datapack Optimization: Add Test Score`)
+    - Available in the command palette and editor right-click context menu
+    - Shows a Quick Pick listing all scores used in the file with their current value at the cursor position
+    - Inserts the `# test-score` comment at the cursor line
+
 ## 1.0.37
 
 ### Fixes

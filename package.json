@@ -146,6 +146,22 @@
         }
       }
     },
+    "commands": [
+      {
+        "command": "datapackOptimization.addTestScore",
+        "title": "%command.addTestScore.title%",
+        "category": "Datapack Optimization"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "datapackOptimization.addTestScore",
+          "when": "resourceExtname == .mcfunction",
+          "group": "1_modification"
+        }
+      ]
+    },
     "jsonValidation": [
       {
         "fileMatch": "datapack.config.json",

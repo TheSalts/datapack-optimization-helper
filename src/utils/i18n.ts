@@ -69,7 +69,14 @@ export type MessageKey =
     | "configCreate"
     | "configDontShowAgain"
     | "conditionSourceNotFound"
-    | "reportIssue";
+    | "reportIssue"
+    | "testScorePrompt"
+    | "testScoreInvalidFormat"
+    | "testScoreInvalidValue"
+    | "testScoreSelectScore"
+    | "testScoreCustom"
+    | "testScoreCustomDesc"
+    | "testScoreValuePrompt";
 
 interface I18nData {
     codeLens?: Record<string, string>;

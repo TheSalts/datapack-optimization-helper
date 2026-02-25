@@ -44,7 +44,14 @@
         "configCreate": "datapack.config.json 생성",
         "configDontShowAgain": "다시 표시 안 함",
         "conditionSourceNotFound": "조건의 원인을 찾을 수 없습니다. 이슈로 제보하시겠습니까?",
-        "reportIssue": "이슈 제보"
+        "reportIssue": "이슈 제보",
+        "testScorePrompt": "target과 objective 입력 (예: #counter obj)",
+        "testScoreInvalidFormat": "형식: target objective (예: #counter obj)",
+        "testScoreInvalidValue": "값은 정수여야 합니다",
+        "testScoreSelectScore": "테스트 값을 설정할 스코어 선택",
+        "testScoreCustom": "직접 입력...",
+        "testScoreCustomDesc": "target과 objective를 직접 입력",
+        "testScoreValuePrompt": "{target} {objective}의 값 입력"
     },
     "fix": {
         "unreachableCode": "실행되지 않는 코드 삭제",

@@ -22,6 +22,7 @@ import { parseWarnOffFile, getDisabledRulesForLine, isRuleDisabled, ALL_RULE_IDS
 import { registerConditionDefinition } from "./providers/conditionDefinition";
 import { registerScoreboardInlayHints } from "./providers/scoreboardInlayHints";
 import { registerScoreboardHover } from "./providers/scoreboardHover";
+import { addTestScoreCommand } from "./commands/addTestScore";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -94,6 +95,8 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
     );
+
+    context.subscriptions.push(vscode.commands.registerCommand("datapackOptimization.addTestScore", addTestScoreCommand));
 
     registerRenameHandler(context);
     watchPackMeta(context);

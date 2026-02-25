@@ -42,5 +42,6 @@
     "config.rename.behavior.includeComments.label": "Include comments",
     "config.rename.behavior.skip.label": "Skip",
     "config.scoreboardInlayHints.enabled.markdownDescription": "Enable Scoreboard Inlay Hints",
-    "config.scoreboardInlayHints.padding.markdownDescription": "Number of padding spaces for Scoreboard Inlay Hints\n\nSet to `0` to enable auto alignment."
+    "config.scoreboardInlayHints.padding.markdownDescription": "Number of padding spaces for Scoreboard Inlay Hints\n\nSet to `0` to enable auto alignment.",
+    "command.addTestScore.title": "Add Test Score"
 }

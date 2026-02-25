@@ -7,6 +7,7 @@ import {
     getFunctionInfo,
     isIndexInitialized,
 } from "../analyzer/functionIndex";
+import { processTestScoreLine } from "../parser/testScore";
 
 export class ScoreboardHoverProvider implements vscode.HoverProvider {
     async provideHover(document: vscode.TextDocument, position: vscode.Position): Promise<vscode.Hover | null> {
@@ -109,7 +110,11 @@ export class ScoreboardHoverProvider implements vscode.HoverProvider {
 
         for (let i = 0; i <= currentLine && i < lines.length; i++) {
             const trimmed = lines[i].trim();
-            if (trimmed === "" || trimmed.startsWith("#")) {
+            if (trimmed === "") {
+                continue;
+            }
+            if (trimmed.startsWith("#")) {
+                processTestScoreLine(trimmed, scoreStates, i);
                 continue;
             }
 

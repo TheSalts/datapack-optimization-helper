@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { SCORE_SET_RE, SCORE_ADD_RE, SCORE_RESET_RE, SCORE_OPERATION_RE } from "../parser/patterns";
 import { ScoreState, processScoreboardLine } from "../analyzer/scoreTracker";
+import { processTestScoreLine } from "../parser/testScore";
 
 export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
     provideInlayHints(document: vscode.TextDocument, range: vscode.Range): vscode.InlayHint[] {
@@ -90,6 +91,7 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
             }
 
             if (text.startsWith("#")) {
+                processTestScoreLine(text, scoreStates, i);
                 continue;
             }
 

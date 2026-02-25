@@ -44,7 +44,14 @@
     "configCreate": "Create datapack.config.json",
     "configDontShowAgain": "Don't show again",
     "conditionSourceNotFound": "Cannot find source of this condition. Report as issue?",
-    "reportIssue": "Report Issue"
+    "reportIssue": "Report Issue",
+    "testScorePrompt": "Enter target and objective (e.g. #counter obj)",
+    "testScoreInvalidFormat": "Format: target objective (e.g. #counter obj)",
+    "testScoreInvalidValue": "Value must be an integer",
+    "testScoreSelectScore": "Select score to set test value",
+    "testScoreCustom": "Custom...",
+    "testScoreCustomDesc": "Enter target and objective manually",
+    "testScoreValuePrompt": "Enter value for {target} {objective}"
   },
   "fix": {
     "unreachableCode": "Remove unreachable code",

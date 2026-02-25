@@ -19,6 +19,7 @@ import {
     processScoreboardLine,
     SCORE_CONDITION_RE,
 } from "../analyzer/scoreTracker";
+import { processTestScoreLine } from "../parser/testScore";
 
 function rangesOverlap(r1: ScoreRange, r2: ScoreRange): boolean {
     const min1 = r1.min ?? -2147483648;
@@ -189,7 +190,11 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
         const trimmed = line.trim();
         const leadingWhitespace = line.length - line.trimStart().length;
 
-        if (trimmed === "" || trimmed.startsWith("#")) {
+        if (trimmed === "") {
+            continue;
+        }
+        if (trimmed.startsWith("#")) {
+            processTestScoreLine(trimmed, scoreStates, i);
             continue;
         }
 

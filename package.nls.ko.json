@@ -42,5 +42,6 @@
     "config.rename.behavior.includeComments.label": "주석 포함",
     "config.rename.behavior.skip.label": "건너뛰기",
     "config.scoreboardInlayHints.enabled.markdownDescription": "스코어보드 Inlay Hint 표시",
-    "config.scoreboardInlayHints.padding.markdownDescription": "스코어보드 Inlay Hint의 여백 개수\n\n`0`으로 설정하면 자동 정렬됩니다."
+    "config.scoreboardInlayHints.padding.markdownDescription": "스코어보드 Inlay Hint의 여백 개수\n\n`0`으로 설정하면 자동 정렬됩니다.",
+    "command.addTestScore.title": "테스트 스코어 추가"
 }
