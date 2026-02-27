@@ -9,6 +9,7 @@ import { getDiagnosticData } from "./utils/diagnosticData";
 import { checkUnreachableCondition } from "./rules/unreachableCondition";
 import { checkAlwaysPassCondition } from "./rules/alwaysPassCondition";
 import { checkInfiniteRecursion } from "./rules/infiniteRecursion";
+import { checkScoreboardDivideByZero } from "./rules/scoreboardDivideByZero";
 import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
 import {
     getRuleConfig,
@@ -209,6 +210,16 @@ function analyzeDocument(document: vscode.TextDocument) {
         for (const diag of condDiags) {
             const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
             if (!isRuleDisabled("unreachable-condition", lineDisabled)) {
+                diagnostics.push(diag);
+            }
+        }
+    }
+
+    if (config.scoreboardDivideByZero && !isRuleDisabled("scoreboard-divide-by-zero", fileDisabledRules)) {
+        const divZeroDiags = checkScoreboardDivideByZero(lines, document.uri.fsPath);
+        for (const diag of divZeroDiags) {
+            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
+            if (!isRuleDisabled("scoreboard-divide-by-zero", lineDisabled)) {
                 diagnostics.push(diag);
             }
         }

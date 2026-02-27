@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { FUNCTION_CALL_RE, SCORE_HOVER_RE, SCORE_OP_SRC_RE, SCORE_IF_COMPARE_RE } from "../parser/patterns";
 import { ScoreState, processScoreboardLine } from "../analyzer/scoreTracker";
+import { exprToString, simplifyExpr } from "../analyzer/exprNode";
 import {
     getFunctionInfoByFile,
     getConsensusScoreStates,
@@ -60,11 +61,18 @@ export class ScoreboardHoverProvider implements vscode.HoverProvider {
         } else if (state?.type === "reset") {
             valueStr = "(reset)";
         } else if (state?.expression) {
-            valueStr = state.expression;
+            valueStr = exprToString(state.expression);
         } else {
             valueStr = "?";
         }
         md.appendMarkdown(`\`\`\`swift\n${key} = ${valueStr}\n\`\`\``);
+
+        if (state?.expression) {
+            const simplified = exprToString(simplifyExpr(state.expression));
+            if (simplified !== valueStr) {
+                md.appendMarkdown(`\n\n\`\`\`swift\n≈ ${key} = ${simplified}\n\`\`\``);
+            }
+        }
 
         if (state && state.filePath && state.line >= 0) {
             try {

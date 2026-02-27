@@ -43,6 +43,7 @@ export type MessageKey =
     | "returnRunDuplicateFix"
     | "executeRunRedundantRunExecute"
     | "executeRunRedundantRunExecuteFix"
+    | "scoreboardDivideByZero"
     | "scoreboardFakePlayerMissingHash"
     | "scoreboardFakePlayerMissingHashFix"
     | "nbtItemsUseIfItems"

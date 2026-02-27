@@ -1,7 +1,32 @@
 import * as vscode from "vscode";
 import { SCORE_SET_RE, SCORE_ADD_RE, SCORE_RESET_RE, SCORE_OPERATION_RE } from "../parser/patterns";
 import { ScoreState, processScoreboardLine } from "../analyzer/scoreTracker";
+import { exprToString, simplifyExpr, detectCompoundAssignment, stripCommonObjective, varNode, numNode, binNode } from "../analyzer/exprNode";
 import { processTestScoreLine } from "../parser/testScore";
+
+function formatExprHint(key: string, expr: import("../analyzer/exprNode").ExprNode): string | null {
+    const keyNode = varNode(key);
+    const simplified = simplifyExpr(expr);
+    const compound = detectCompoundAssignment(key, simplified);
+    if (compound) {
+        // Strip objective only when key + rhs share the same one
+        const whole = stripCommonObjective(binNode(compound.op, keyNode, compound.rhs));
+        if (whole.kind === "bin") {
+            return ` ${exprToString(whole.left)} ${whole.op} ${exprToString(whole.right)}`;
+        }
+    }
+    // key = expr form: include key in strip check
+    const whole = stripCommonObjective(binNode("=", keyNode, simplified));
+    if (whole.kind === "bin") {
+        const left = exprToString(whole.left);
+        const right = exprToString(whole.right);
+        if (right === left) {
+            return null;
+        }
+        return ` ${left} = ${right}`;
+    }
+    return null;
+}
 
 export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
     provideInlayHints(document: vscode.TextDocument, range: vscode.Range): vscode.InlayHint[] {
@@ -108,6 +133,8 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
                 currentBlockMaxLen = Math.max(currentBlockMaxLen, logicalLineLength);
             }
 
+            const isConditional = text.startsWith("execute");
+
             const opMatch = SCORE_OPERATION_RE.exec(text);
             let opInfo: {
                 key: string;
@@ -130,6 +157,21 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
                 };
             }
 
+            // Capture conditional set/add info before processing
+            let conditionalSetAdd: { key: string; op: string; valueStr: string } | null = null;
+            if (isConditional && !opMatch) {
+                const setMatch = SCORE_SET_RE.exec(text);
+                if (setMatch) {
+                    conditionalSetAdd = { key: `${setMatch[1]}:${setMatch[2]}`, op: "?=", valueStr: setMatch[3] };
+                } else {
+                    const addMatch = SCORE_ADD_RE.exec(text);
+                    if (addMatch) {
+                        const addOp = addMatch[1] === "add" ? "?+=" : "?-=";
+                        conditionalSetAdd = { key: `${addMatch[2]}:${addMatch[3]}`, op: addOp, valueStr: addMatch[4] };
+                    }
+                }
+            }
+
             processScoreboardLine(text, scoreStates, i);
 
             let hintText: string | null = null;
@@ -140,20 +182,34 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
 
                 if (state?.type === "known" && state.value !== null) {
                     hintText = ` ${opInfo.key} = ${state.value}`;
+                } else if (state?.expression) {
+                    hintText = formatExprHint(opInfo.key, state.expression);
                 } else {
-                    const left = opInfo.targetVal !== null ? String(opInfo.targetVal) : opInfo.key;
-                    const right = opInfo.srcVal !== null ? String(opInfo.srcVal) : opInfo.srcKey;
-                    hintText = ` ${left} ${opInfo.op} ${right}`;
+                    // Conditional or no expression — show pre-op known values
+                    const qPrefix = isConditional ? "?" : "";
+                    const leftExpr = opInfo.targetVal !== null ? numNode(opInfo.targetVal) : varNode(opInfo.key);
+                    const rightExpr = opInfo.srcVal !== null ? numNode(opInfo.srcVal) : varNode(opInfo.srcKey);
+                    const combined = stripCommonObjective(binNode(opInfo.op, leftExpr, rightExpr));
+                    if (combined.kind === "bin") {
+                        const left = exprToString(combined.left);
+                        const right = exprToString(combined.right);
+                        if (isConditional || left !== opInfo.key || right !== opInfo.srcKey) {
+                            hintText = ` ${left} ${qPrefix}${combined.op} ${right}`;
+                        }
+                    }
                 }
 
                 if (
                     hintText &&
+                    opInfo.key !== opInfo.srcKey &&
                     opInfo.srcVal !== null &&
                     srcState?.type === "known" &&
                     srcState.value !== opInfo.srcVal
                 ) {
                     hintText += ` | ${opInfo.srcKey} = ${srcState.value}`;
                 }
+            } else if (conditionalSetAdd) {
+                hintText = ` ${conditionalSetAdd.key} ${conditionalSetAdd.op} ${conditionalSetAdd.valueStr}`;
             } else {
                 const target = this.getTarget(text);
                 if (target) {
@@ -163,7 +219,7 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
                     } else if (state?.type === "reset") {
                         hintText = ` ${target.key} = (reset)`;
                     } else if (state?.expression) {
-                        hintText = ` ${target.key} = ${state.expression}`;
+                        hintText = formatExprHint(target.key, state.expression);
                     }
                 }
             }

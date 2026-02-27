@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { t } from "../utils/i18n";
 import { ScoreState, processScoreboardLine } from "../analyzer/scoreTracker";
+import { exprToString } from "../analyzer/exprNode";
 import { processTestScoreLine, collectScoreReferences } from "../parser/testScore";
 import {
     getFunctionInfoByFile,
@@ -59,7 +60,7 @@ function formatStateValue(state: ScoreState): string {
         return "(reset)";
     }
     if (state.expression) {
-        return state.expression;
+        return exprToString(state.expression);
     }
     return "?";
 }

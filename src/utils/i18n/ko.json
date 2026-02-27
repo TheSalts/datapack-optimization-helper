@@ -37,6 +37,7 @@
         "alwaysPassCondition": "조건이 항상 통과함",
         "returnRunDuplicate": "중복된 'return' 구문",
         "executeRunRedundantRunExecute": "중복된 'execute'",
+        "scoreboardDivideByZero": "0으로 나눌 수 없습니다",
         "scoreboardFakePlayerMissingHash": "가짜 플레이어에 '#' 사용 권장",
         "nbtItemsUseIfItems": "아이템 nbt 대신 'if items' 구문 사용 권장",
         "infiniteRecursion": "무한 재귀 호출: {path}",
