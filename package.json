@@ -179,21 +179,24 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
+    "test:unit": "mocha --ui tdd --require out/test/vscode-mock.js \"out/test/{parser,codeActions,analyzer,rules}/**/*.test.js\"",
+    "test:bench": "mocha --ui tdd --require out/test/vscode-mock.js --timeout 30000 \"out/test/benchmark/**/*.bench.js\"",
     "pack": "node -e \"require('fs').mkdirSync('./release', { recursive: true })\" && vsce pack -o ./release/",
     "pub": "npm run publish",
     "publish": "vsce publish patch && ovsx publish"
   },
   "devDependencies": {
-    "@types/vscode": "^1.75.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "typescript-eslint": "^8.48.1",
-    "eslint": "^9.39.1",
-    "typescript": "^5.9.3",
-    "ts-loader": "^9.5.4",
-    "webpack": "^5.103.0",
-    "webpack-cli": "^6.0.1",
+    "@types/vscode": "^1.75.0",
     "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.1",
+    "mocha": "^11.7.5",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1",
+    "webpack": "^5.103.0",
+    "webpack-cli": "^6.0.1"
   }
 }

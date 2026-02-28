@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh issue view:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx tsc:*)",
+      "Bash(cd /c/Users/user/Desktop/File/datapack-optimization && git checkout -b refactoring 2>&1)",
+      "Bash(cd:*)",
+      "Bash(git:*)",
+      "Bash(npm run compile:*)",
+      "Bash(ls:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(node:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm install:*)",
+      "Bash(npx mocha:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

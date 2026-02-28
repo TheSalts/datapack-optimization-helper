@@ -3,6 +3,7 @@ dist
 node_modules
 .vscode-test/
 *.vsix
-test/
+src/test/datapack/
 release/
-.claude/
+.claude/worktrees/
+.claude/worktree/
