@@ -1,5 +1,28 @@
 # Change Log
 
+## 1.0.40
+
+### Features
+
+- Improved score expression tracking with AST-based expression tree
+    - Supports expression simplification (constant folding, like-term combining, algebraic identities)
+    - Hover now shows both raw and simplified expressions
+    - Inlay hints show compound assignment form (`+=`, `-=`, etc.) when applicable
+    - Common objective names are stripped for cleaner display
+- Added `execute store` support for score tracking
+    - `store result` shows `← result`, `store success` shows `← 0|1` in inlay hints
+    - `execute store` without conditions correctly treats subcommands as non-conditional
+    - Store target takes priority when the same score is modified by the subcommand
+- Added `scoreboard-divide-by-zero` diagnostic (Error)
+- Added `scoreboard-overflow` diagnostic (Warning)
+    - Detects 32-bit integer overflow in `add`/`remove`/`operation` commands
+    - Score values now correctly wrap to 32-bit range, matching in-game behavior
+
+### Improvements
+
+- Extracted shared inherited score state loading into `loadInheritedScoreStates` helper
+- `isConditional` detection now properly distinguishes conditional execute subcommands from `store`
+
 ## 1.0.39
 
 ### Features

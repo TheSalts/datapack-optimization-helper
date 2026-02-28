@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { SCORE_SET_RE, SCORE_ADD_RE, SCORE_RESET_RE, SCORE_OPERATION_RE, SCORE_STORE_RE } from "../parser/patterns";
-import { ScoreState, processScoreboardLine, isExecuteConditionalBeforeRun } from "../analyzer/scoreTracker";
+import { ScoreState, processScoreboardLine, isExecuteConditional } from "../analyzer/scoreTracker";
 import { ExprNode, exprToString, simplifyExpr, detectCompoundAssignment, stripCommonObjective, varNode, numNode, binNode } from "../analyzer/exprNode";
 import { processTestScoreLine } from "../parser/testScore";
 
@@ -134,7 +134,7 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
             }
 
             const hasExecute = text.startsWith("execute");
-            const isConditional = hasExecute && isExecuteConditionalBeforeRun(text);
+            const isConditional = isExecuteConditional(text, scoreStates);
 
             const storeMatch = hasExecute ? SCORE_STORE_RE.exec(text) : null;
             const storeInfo = storeMatch

@@ -22,12 +22,6 @@ function mkUnknown(target: string, objective: string, lineIndex: number, filePat
 /** Non-store execute subcommand keywords — any of these before `run` makes the command conditional. */
 const CONDITIONAL_EXECUTE_RE = /\b(as|at|if|unless|on|positioned|rotated|facing|align|anchored|summon|in)\b/;
 
-export function isExecuteConditionalBeforeRun(trimmed: string): boolean {
-    const runIdx = trimmed.indexOf(" run ");
-    const prefix = runIdx >= 0 ? trimmed.substring(0, runIdx) : trimmed;
-    return CONDITIONAL_EXECUTE_RE.test(prefix);
-}
-
 const OP_TO_MATH: Record<string, BinOp> = {
     "+=": "+",
     "-=": "-",
@@ -93,28 +87,38 @@ export function isExecuteConditional(trimmed: string, scoreStates: Map<string, S
     if (!trimmed.startsWith("execute")) {
         return false;
     }
-    if (/\bon\s/.test(trimmed)) {
-        return true;
+    const runIdx = trimmed.indexOf(" run ");
+    const prefix = runIdx >= 0 ? trimmed.substring(0, runIdx) : trimmed;
+
+    // No conditional subcommand at all (store-only or bare execute)
+    if (!CONDITIONAL_EXECUTE_RE.test(prefix)) {
+        return false;
     }
-    if (/\b(as|at|positioned\s+as|rotated\s+as|facing\s+entity)\s+@[aepnr]/.test(trimmed)) {
-        return true;
-    }
-    if (/\b(if|unless)\s+(?!score\b)/.test(trimmed)) {
-        return true;
-    }
-    if (/\b(if|unless)\s+score\b/.test(trimmed)) {
+
+    // if/unless score where all conditions are always true → not conditional
+    if (/\b(if|unless)\s+score\b/.test(prefix) && !/\b(if|unless)\s+(?!score\b)/.test(prefix)) {
+        // Only score conditions — check if ALL are always-true
         const scoreCondRegex = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/g;
+        let allAlwaysTrue = true;
         let condMatch;
-        while ((condMatch = scoreCondRegex.exec(trimmed)) !== null) {
+        while ((condMatch = scoreCondRegex.exec(prefix)) !== null) {
             const [, condType, target, objective, rangeStr] = condMatch;
             const key = `${target}:${objective}`;
             const state = scoreStates.get(key);
             if (!state || !isConditionAlwaysTrue(state, condType, rangeStr)) {
-                return true;
+                allAlwaysTrue = false;
+                break;
             }
         }
+        // Remove score conditions from consideration
+        const withoutScoreCond = prefix.replace(/\b(if|unless)\s+score\s+\S+\s+\S+\s+matches\s+\S+/g, "");
+        const hasOtherConditional = CONDITIONAL_EXECUTE_RE.test(withoutScoreCond);
+        if (allAlwaysTrue && !hasOtherConditional) {
+            return false;
+        }
     }
-    return false;
+
+    return true;
 }
 
 export function applyScoreChange(
@@ -215,7 +219,7 @@ export function processScoreboardLine(
     filePath?: string,
 ): boolean {
     const hasExecute = trimmed.startsWith("execute");
-    const isConditional = hasExecute && isExecuteConditionalBeforeRun(trimmed);
+    const isConditional = isExecuteConditional(trimmed, scoreStates);
 
     const storeMatch = hasExecute ? trimmed.match(SCORE_STORE_RE) : null;
     let storeKey: string | null = null;
