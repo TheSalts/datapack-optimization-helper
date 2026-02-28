@@ -70,7 +70,7 @@ export function collectScoreReferences(lines: string[]): ScoreReference[] {
             add(m[4], m[5]);
         }
         if ((m = SCORE_STORE_RE.exec(trimmed))) {
-            add(m[1], m[2]);
+            add(m[2], m[3]);
         }
 
         const condRegex = new RegExp(SCORE_CONDITION_RE.source, "g");

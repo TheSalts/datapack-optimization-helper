@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { FUNCTION_CALL_RE, SCORE_HOVER_RE, SCORE_OP_SRC_RE, SCORE_IF_COMPARE_RE } from "../parser/patterns";
-import { ScoreState, processScoreboardLine } from "../analyzer/scoreTracker";
+import { ScoreState, processScoreboardLine, loadInheritedScoreStates } from "../analyzer/scoreTracker";
 import { exprToString, simplifyExpr } from "../analyzer/exprNode";
 import {
     getFunctionInfoByFile,
@@ -101,16 +101,7 @@ export class ScoreboardHoverProvider implements vscode.HoverProvider {
         if (isIndexInitialized()) {
             const funcInfo = getFunctionInfoByFile(filePath);
             if (funcInfo) {
-                const inheritedStates = getConsensusScoreStates(funcInfo.fullPath);
-                for (const [key, state] of inheritedStates) {
-                    scoreStates.set(key, {
-                        target: state.target,
-                        objective: state.objective,
-                        type: state.value === null ? "unknown" : "known",
-                        value: state.value,
-                        line: -1,
-                    });
-                }
+                loadInheritedScoreStates(getConsensusScoreStates(funcInfo.fullPath), scoreStates);
             }
         }
 

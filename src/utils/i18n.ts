@@ -44,6 +44,7 @@ export type MessageKey =
     | "executeRunRedundantRunExecute"
     | "executeRunRedundantRunExecuteFix"
     | "scoreboardDivideByZero"
+    | "scoreboardOverflow"
     | "scoreboardFakePlayerMissingHash"
     | "scoreboardFakePlayerMissingHashFix"
     | "nbtItemsUseIfItems"

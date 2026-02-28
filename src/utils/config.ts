@@ -21,6 +21,7 @@ export const ALL_RULE_IDS = [
     "target-selector-no-type",
     "target-selector-type-order",
     "scoreboard-divide-by-zero",
+    "scoreboard-overflow",
     "unreachable-code",
     "unreachable-condition",
 ] as const;

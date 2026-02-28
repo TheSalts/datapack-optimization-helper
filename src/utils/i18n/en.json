@@ -38,6 +38,7 @@
     "returnRunDuplicate": "Duplicate 'return' statement",
     "executeRunRedundantRunExecute": "Duplicate 'execute'",
     "scoreboardDivideByZero": "Cannot divide by zero",
+    "scoreboardOverflow": "32-bit Integer overflow",
     "scoreboardFakePlayerMissingHash": "Recommend using '#' for fake player",
     "nbtItemsUseIfItems": "Recommend using 'if items' instead of item nbt",
     "infiniteRecursion": "Infinite recursion: {path}",

@@ -1,5 +1,5 @@
 import { SCORE_SET_RE, SCORE_ADD_RE, SCORE_RESET_RE, SCORE_OPERATION_RE, SCORE_STORE_RE } from "../parser/patterns";
-import { ExprNode, varNode, numNode, binNode } from "./exprNode";
+import { BinOp, ExprNode, varNode, numNode, binNode, toInt32 } from "./exprNode";
 
 export interface ScoreState {
     target: string;
@@ -19,7 +19,16 @@ function mkUnknown(target: string, objective: string, lineIndex: number, filePat
     return { target, objective, type: "unknown", value: null, line: lineIndex, filePath };
 }
 
-const OP_TO_MATH: Record<string, string> = {
+/** Non-store execute subcommand keywords — any of these before `run` makes the command conditional. */
+const CONDITIONAL_EXECUTE_RE = /\b(as|at|if|unless|on|positioned|rotated|facing|align|anchored|summon|in)\b/;
+
+export function isExecuteConditionalBeforeRun(trimmed: string): boolean {
+    const runIdx = trimmed.indexOf(" run ");
+    const prefix = runIdx >= 0 ? trimmed.substring(0, runIdx) : trimmed;
+    return CONDITIONAL_EXECUTE_RE.test(prefix);
+}
+
+const OP_TO_MATH: Record<string, BinOp> = {
     "+=": "+",
     "-=": "-",
     "*=": "*",
@@ -184,20 +193,53 @@ export {
     SCORE_CONDITION_RE,
 } from "../parser/patterns";
 
+export function loadInheritedScoreStates(
+    inheritedStates: Map<string, { target: string; objective: string; value: number | null }>,
+    scoreStates: Map<string, ScoreState>,
+): void {
+    for (const [key, state] of inheritedStates) {
+        scoreStates.set(key, {
+            target: state.target,
+            objective: state.objective,
+            type: state.value === null ? "unknown" : "known",
+            value: state.value,
+            line: -1,
+        });
+    }
+}
+
 export function processScoreboardLine(
     trimmed: string,
     scoreStates: Map<string, ScoreState>,
     lineIndex: number,
     filePath?: string,
 ): boolean {
-    const isConditional = trimmed.startsWith("execute");
+    const hasExecute = trimmed.startsWith("execute");
+    const isConditional = hasExecute && isExecuteConditionalBeforeRun(trimmed);
 
-    const storeMatch = trimmed.match(SCORE_STORE_RE);
+    const storeMatch = hasExecute ? trimmed.match(SCORE_STORE_RE) : null;
+    let storeKey: string | null = null;
     if (storeMatch) {
-        const [, target, objective] = storeMatch;
-        scoreStates.set(`${target}:${objective}`, mkUnknown(target, objective, lineIndex, filePath));
+        const [, , target, objective] = storeMatch;
+        storeKey = `${target}:${objective}`;
+        scoreStates.set(storeKey, mkUnknown(target, objective, lineIndex, filePath));
         // store is part of execute; do NOT return early — the run part follows.
+        // The run subcommand (set/add/operation) may also modify scores,
+        // but the store target is overwritten by the subcommand's return value.
     }
+
+    const restoreStoreKey = (result: boolean): boolean => {
+        if (storeKey) {
+            const storeState = scoreStates.get(storeKey);
+            if (storeState) {
+                storeState.type = "unknown";
+                storeState.value = null;
+                storeState.expression = undefined;
+                storeState.line = lineIndex;
+            }
+        }
+        return result;
+    };
 
     const setMatch = trimmed.match(SCORE_SET_RE);
     if (setMatch) {
@@ -211,7 +253,7 @@ export function processScoreboardLine(
                 scoreStates.set(key, { target, objective, type: "known", value, line: lineIndex, filePath });
             }
         }
-        return true;
+        return restoreStoreKey(true);
     }
 
     const addMatch = trimmed.match(SCORE_ADD_RE);
@@ -227,14 +269,14 @@ export function processScoreboardLine(
                     existing.value = null;
                     existing.expression = undefined;
                 } else if (existing.type === "known" && existing.value !== null) {
-                    existing.value += op === "add" ? amount : -amount;
+                    existing.value = toInt32(existing.value + (op === "add" ? amount : -amount));
                 } else if (existing.type === "reset") {
                     existing.type = "known";
-                    existing.value = op === "add" ? amount : -amount;
+                    existing.value = toInt32(op === "add" ? amount : -amount);
                     existing.expression = undefined;
                 } else if (existing.type === "unknown") {
                     const baseExpr = existing.expression ?? varNode(key);
-                    const sign = op === "add" ? "+" : "-";
+                    const sign: BinOp = op === "add" ? "+" : "-";
                     existing.expression = binNode(sign, baseExpr, numNode(amount));
                 }
                 existing.line = lineIndex;
@@ -245,7 +287,7 @@ export function processScoreboardLine(
                 scoreStates.set(key, mkUnknown(target, objective, lineIndex, filePath));
             }
         }
-        return true;
+        return restoreStoreKey(true);
     }
 
     const resetMatch = trimmed.match(SCORE_RESET_RE);
@@ -277,7 +319,7 @@ export function processScoreboardLine(
                 }
             }
         }
-        return true;
+        return restoreStoreKey(true);
     }
 
     const operationMatch = trimmed.match(SCORE_OPERATION_RE);
@@ -343,27 +385,27 @@ export function processScoreboardLine(
                     let result: number;
                     switch (op) {
                         case "+=":
-                            result = targetVal + srcVal;
+                            result = toInt32(targetVal + srcVal);
                             break;
                         case "-=":
-                            result = targetVal - srcVal;
+                            result = toInt32(targetVal - srcVal);
                             break;
                         case "*=":
-                            result = targetVal * srcVal;
+                            result = Math.imul(targetVal, srcVal);
                             break;
                         case "/=":
                             if (srcVal === 0) {
                                 result = targetVal;
                                 break;
                             }
-                            result = Math.trunc(targetVal / srcVal);
+                            result = toInt32(Math.trunc(targetVal / srcVal));
                             break;
                         case "%=":
                             if (srcVal === 0) {
                                 result = targetVal;
                                 break;
                             }
-                            result = targetVal % srcVal;
+                            result = toInt32(targetVal % srcVal);
                             break;
                         case "<":
                             result = Math.min(targetVal, srcVal);
@@ -373,7 +415,7 @@ export function processScoreboardLine(
                             break;
                         default:
                             scoreStates.set(key, mkUnknown(target, objective, lineIndex, filePath));
-                            return true;
+                            return restoreStoreKey(true);
                     }
                     existing!.value = result;
                     existing!.expression = undefined;
@@ -396,8 +438,8 @@ export function processScoreboardLine(
                 }
             }
         }
-        return true;
+        return restoreStoreKey(true);
     }
 
-    return false;
+    return restoreStoreKey(false);
 }

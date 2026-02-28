@@ -37,7 +37,7 @@ export const SCORE_OPERATION_RE =
     /^(?:\$?execute\s+.*\s+run\s+)?scoreboard\s+players\s+operation\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/;
 
 /** Matches `execute store result|success score <target> <objective>` */
-export const SCORE_STORE_RE = /\bstore\s+(?:result|success)\s+score\s+(\S+)\s+(\S+)/;
+export const SCORE_STORE_RE = /\bstore\s+(result|success)\s+score\s+(\S+)\s+(\S+)/;
 
 /** Matches a score condition: `if|unless score <target> <objective> matches <range>` */
 export const SCORE_CONDITION_RE = /\b(if|unless)\s+score\s+(\S+)\s+(\S+)\s+matches\s+(\S+)/;

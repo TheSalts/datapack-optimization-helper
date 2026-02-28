@@ -1,3 +1,5 @@
+export type BinOp = "+" | "-" | "*" | "/" | "%";
+
 export type ExprNode =
     | { kind: "var"; key: string }
     | { kind: "num"; value: number }
@@ -64,9 +66,6 @@ interface Term {
 function exprKey(node: ExprNode): string {
     if (node.kind === "var") {
         return `var:${node.key}`;
-    }
-    if (node.kind === "num") {
-        return `num:${node.value}`;
     }
     return `expr:${exprToString(node)}`;
 }
@@ -187,18 +186,22 @@ function simplifyAdditiveChain(node: ExprNode): ExprNode {
     return buildFromTerms(groups);
 }
 
-function foldConstBin(op: string, left: number, right: number): ExprNode {
+export function toInt32(n: number): number {
+    return n | 0;
+}
+
+function foldConstBin(op: BinOp, left: number, right: number): ExprNode {
     switch (op) {
-        case "+": return numNode(left + right);
-        case "-": return numNode(left - right);
-        case "*": return numNode(left * right);
-        case "/": return right === 0 ? binNode(op, numNode(left), numNode(right)) : numNode(Math.trunc(left / right));
-        case "%": return right === 0 ? binNode(op, numNode(left), numNode(right)) : numNode(left % right);
+        case "+": return numNode(toInt32(left + right));
+        case "-": return numNode(toInt32(left - right));
+        case "*": return numNode(Math.imul(left, right));
+        case "/": return right === 0 ? binNode(op, numNode(left), numNode(right)) : numNode(toInt32(Math.trunc(left / right)));
+        case "%": return right === 0 ? binNode(op, numNode(left), numNode(right)) : numNode(toInt32(left % right));
         default: return binNode(op, numNode(left), numNode(right));
     }
 }
 
-const COMPOUND_OPS: Record<string, string> = {
+const COMPOUND_OPS: Record<BinOp, string> = {
     "+": "+=",
     "-": "-=",
     "*": "*=",
@@ -217,7 +220,7 @@ export function detectCompoundAssignment(
     if (expr.kind !== "bin") {
         return null;
     }
-    const compoundOp = COMPOUND_OPS[expr.op];
+    const compoundOp = COMPOUND_OPS[expr.op as BinOp];
     if (!compoundOp) {
         return null;
     }
@@ -238,7 +241,7 @@ export function stripCommonObjective(node: ExprNode): ExprNode {
     if (objectives.size !== 1) {
         return node;
     }
-    const commonObj = objectives.values().next().value!;
+    const [commonObj] = objectives;
     return stripObjective(node, commonObj);
 }
 
@@ -340,7 +343,7 @@ export function simplifyExpr(node: ExprNode): ExprNode {
 
     // Constant folding for any binary op
     if (simplified.left.kind === "num" && simplified.right.kind === "num") {
-        return foldConstBin(simplified.op, simplified.left.value, simplified.right.value);
+        return foldConstBin(simplified.op as BinOp, simplified.left.value, simplified.right.value);
     }
 
     // Algebraic identities (x/x=1, x*1=x, etc.)

@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
-import { SCORE_SET_RE, SCORE_ADD_RE, SCORE_RESET_RE, SCORE_OPERATION_RE } from "../parser/patterns";
-import { ScoreState, processScoreboardLine } from "../analyzer/scoreTracker";
-import { exprToString, simplifyExpr, detectCompoundAssignment, stripCommonObjective, varNode, numNode, binNode } from "../analyzer/exprNode";
+import { SCORE_SET_RE, SCORE_ADD_RE, SCORE_RESET_RE, SCORE_OPERATION_RE, SCORE_STORE_RE } from "../parser/patterns";
+import { ScoreState, processScoreboardLine, isExecuteConditionalBeforeRun } from "../analyzer/scoreTracker";
+import { ExprNode, exprToString, simplifyExpr, detectCompoundAssignment, stripCommonObjective, varNode, numNode, binNode } from "../analyzer/exprNode";
 import { processTestScoreLine } from "../parser/testScore";
 
-function formatExprHint(key: string, expr: import("../analyzer/exprNode").ExprNode): string | null {
+function formatExprHint(key: string, expr: ExprNode): string | null {
     const keyNode = varNode(key);
     const simplified = simplifyExpr(expr);
     const compound = detectCompoundAssignment(key, simplified);
@@ -133,7 +133,13 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
                 currentBlockMaxLen = Math.max(currentBlockMaxLen, logicalLineLength);
             }
 
-            const isConditional = text.startsWith("execute");
+            const hasExecute = text.startsWith("execute");
+            const isConditional = hasExecute && isExecuteConditionalBeforeRun(text);
+
+            const storeMatch = hasExecute ? SCORE_STORE_RE.exec(text) : null;
+            const storeInfo = storeMatch
+                ? { key: `${storeMatch[2]}:${storeMatch[3]}`, type: storeMatch[1] as "result" | "success" }
+                : null;
 
             const opMatch = SCORE_OPERATION_RE.exec(text);
             let opInfo: {
@@ -157,20 +163,8 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
                 };
             }
 
-            // Capture conditional set/add info before processing
-            let conditionalSetAdd: { key: string; op: string; valueStr: string } | null = null;
-            if (isConditional && !opMatch) {
-                const setMatch = SCORE_SET_RE.exec(text);
-                if (setMatch) {
-                    conditionalSetAdd = { key: `${setMatch[1]}:${setMatch[2]}`, op: "?=", valueStr: setMatch[3] };
-                } else {
-                    const addMatch = SCORE_ADD_RE.exec(text);
-                    if (addMatch) {
-                        const addOp = addMatch[1] === "add" ? "?+=" : "?-=";
-                        conditionalSetAdd = { key: `${addMatch[2]}:${addMatch[3]}`, op: addOp, valueStr: addMatch[4] };
-                    }
-                }
-            }
+            const conditionalSetAdd = isConditional && !opMatch
+                ? this.getConditionalSetAdd(text) : null;
 
             processScoreboardLine(text, scoreStates, i);
 
@@ -224,6 +218,16 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
                 }
             }
 
+            if (storeInfo) {
+                const storeLabel = storeInfo.type === "success" ? "0|1" : "result";
+                const storeHint = `${storeInfo.key} ← ${storeLabel}`;
+                if (hintText) {
+                    hintText += ` | ${storeHint}`;
+                } else {
+                    hintText = ` ${storeHint}`;
+                }
+            }
+
             if (hintText) {
                 currentBlockHints.push({
                     lineIndex: i,
@@ -237,6 +241,19 @@ export class ScoreboardInlayHintsProvider implements vscode.InlayHintsProvider {
         flushBlock();
 
         return hints;
+    }
+
+    private getConditionalSetAdd(text: string): { key: string; op: string; valueStr: string } | null {
+        const setMatch = SCORE_SET_RE.exec(text);
+        if (setMatch) {
+            return { key: `${setMatch[1]}:${setMatch[2]}`, op: "?=", valueStr: setMatch[3] };
+        }
+        const addMatch = SCORE_ADD_RE.exec(text);
+        if (addMatch) {
+            const addOp = addMatch[1] === "add" ? "?+=" : "?-=";
+            return { key: `${addMatch[2]}:${addMatch[3]}`, op: addOp, valueStr: addMatch[4] };
+        }
+        return null;
     }
 
     private getTarget(text: string): { key: string } | null {

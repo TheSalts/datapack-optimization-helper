@@ -3,6 +3,7 @@ import { createDiagnostic } from "../utils/diagnostic";
 import {
     ScoreState,
     processScoreboardLine,
+    loadInheritedScoreStates,
     SCORE_OPERATION_RE,
 } from "../analyzer/scoreTracker";
 import {
@@ -19,16 +20,7 @@ export function checkScoreboardDivideByZero(lines: string[], filePath?: string):
     if (filePath && isIndexInitialized()) {
         const funcInfo = getFunctionInfoByFile(filePath);
         if (funcInfo) {
-            const inheritedStates = getConsensusScoreStates(funcInfo.fullPath);
-            for (const [key, state] of inheritedStates) {
-                scoreStates.set(key, {
-                    target: state.target,
-                    objective: state.objective,
-                    type: state.value === null ? "unknown" : "known",
-                    value: state.value,
-                    line: -1,
-                });
-            }
+            loadInheritedScoreStates(getConsensusScoreStates(funcInfo.fullPath), scoreStates);
         }
     }
 
@@ -44,7 +36,7 @@ export function checkScoreboardDivideByZero(lines: string[], filePath?: string):
         }
 
         // Check for /= or %= with known zero source BEFORE processing
-        const opMatch = trimmed.match(SCORE_OPERATION_RE);
+        const opMatch = SCORE_OPERATION_RE.exec(trimmed);
         if (opMatch) {
             const [fullMatch, , , op, srcTarget, srcObjective] = opMatch;
             if (op === "/=" || op === "%=") {
@@ -52,8 +44,7 @@ export function checkScoreboardDivideByZero(lines: string[], filePath?: string):
                 const srcState = scoreStates.get(srcKey);
                 if (srcState?.type === "known" && srcState.value === 0) {
                     const leadingWs = line.length - line.trimStart().length;
-                    const opIndex = trimmed.indexOf(fullMatch);
-                    const startIndex = leadingWs + opIndex;
+                    const startIndex = leadingWs + opMatch.index;
                     const range = new vscode.Range(i, startIndex, i, startIndex + fullMatch.length);
                     diagnostics.push(
                         createDiagnostic(

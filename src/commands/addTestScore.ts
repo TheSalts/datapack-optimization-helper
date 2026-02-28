@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { t } from "../utils/i18n";
-import { ScoreState, processScoreboardLine } from "../analyzer/scoreTracker";
+import { ScoreState, processScoreboardLine, loadInheritedScoreStates } from "../analyzer/scoreTracker";
 import { exprToString } from "../analyzer/exprNode";
 import { processTestScoreLine, collectScoreReferences } from "../parser/testScore";
 import {
@@ -24,16 +24,7 @@ function collectStatesAtLine(
     if (isIndexInitialized()) {
         const funcInfo = getFunctionInfoByFile(filePath);
         if (funcInfo) {
-            const inheritedStates = getConsensusScoreStates(funcInfo.fullPath);
-            for (const [key, state] of inheritedStates) {
-                scoreStates.set(key, {
-                    target: state.target,
-                    objective: state.objective,
-                    type: state.value === null ? "unknown" : "known",
-                    value: state.value,
-                    line: -1,
-                });
-            }
+            loadInheritedScoreStates(getConsensusScoreStates(funcInfo.fullPath), scoreStates);
         }
     }
 

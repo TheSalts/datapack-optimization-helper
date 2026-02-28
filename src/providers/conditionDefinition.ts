@@ -11,6 +11,7 @@ import {
     isConditionUnreachable,
     isConditionAlwaysTrue,
     processScoreboardLine,
+    loadInheritedScoreStates,
     SCORE_CONDITION_RE,
 } from "../analyzer/scoreTracker";
 
@@ -78,16 +79,7 @@ export class ConditionDefinitionProvider implements vscode.DefinitionProvider {
         if (isIndexInitialized()) {
             const funcInfo = getFunctionInfoByFile(filePath);
             if (funcInfo) {
-                const inheritedStates = getConsensusScoreStates(funcInfo.fullPath);
-                for (const [key, state] of inheritedStates) {
-                    scoreStates.set(key, {
-                        target: state.target,
-                        objective: state.objective,
-                        type: state.value === null ? "unknown" : "known",
-                        value: state.value,
-                        line: -1,
-                    });
-                }
+                loadInheritedScoreStates(getConsensusScoreStates(funcInfo.fullPath), scoreStates);
             }
         }
 

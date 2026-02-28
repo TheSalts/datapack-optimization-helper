@@ -17,6 +17,7 @@ import {
     isExecuteConditional,
     applyScoreChange,
     processScoreboardLine,
+    loadInheritedScoreStates,
     SCORE_CONDITION_RE,
 } from "../analyzer/scoreTracker";
 import { processTestScoreLine } from "../parser/testScore";
@@ -172,16 +173,7 @@ export function checkUnreachableCondition(lines: string[], filePath?: string): v
     if (filePath && isIndexInitialized()) {
         const funcInfo = getFunctionInfoByFile(filePath);
         if (funcInfo) {
-            const inheritedStates = getConsensusScoreStates(funcInfo.fullPath);
-            for (const [key, state] of inheritedStates) {
-                scoreStates.set(key, {
-                    target: state.target,
-                    objective: state.objective,
-                    type: state.value === null ? "unknown" : "known",
-                    value: state.value,
-                    line: -1,
-                });
-            }
+            loadInheritedScoreStates(getConsensusScoreStates(funcInfo.fullPath), scoreStates);
         }
     }
 

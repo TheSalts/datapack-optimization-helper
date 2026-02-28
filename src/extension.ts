@@ -10,6 +10,7 @@ import { checkUnreachableCondition } from "./rules/unreachableCondition";
 import { checkAlwaysPassCondition } from "./rules/alwaysPassCondition";
 import { checkInfiniteRecursion } from "./rules/infiniteRecursion";
 import { checkScoreboardDivideByZero } from "./rules/scoreboardDivideByZero";
+import { checkScoreboardOverflow } from "./rules/scoreboardOverflow";
 import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
 import {
     getRuleConfig,
@@ -220,6 +221,16 @@ function analyzeDocument(document: vscode.TextDocument) {
         for (const diag of divZeroDiags) {
             const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
             if (!isRuleDisabled("scoreboard-divide-by-zero", lineDisabled)) {
+                diagnostics.push(diag);
+            }
+        }
+    }
+
+    if (config.scoreboardOverflow && !isRuleDisabled("scoreboard-overflow", fileDisabledRules)) {
+        const overflowDiags = checkScoreboardOverflow(lines, document.uri.fsPath);
+        for (const diag of overflowDiags) {
+            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
+            if (!isRuleDisabled("scoreboard-overflow", lineDisabled)) {
                 diagnostics.push(diag);
             }
         }
