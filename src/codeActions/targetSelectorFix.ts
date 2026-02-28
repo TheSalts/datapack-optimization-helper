@@ -6,7 +6,11 @@ import { parseSelectors } from "../rules/targetSelector";
 
 export function fixTargetSelectorTypeOrder(line: string): string | null {
     const result = line.replace(/@([aeprns])\[([^\]]*)\]/g, (match, selector: string, args: string) => {
-        const typeMatch = args.match(/\btype\s*=\s*[^,\]]+/);
+        // Only move positive (non-negated, non-tag) type args to the end.
+        // Negated (type=!...) and tag (type=#...) types can appear multiple
+        // times and must stay in place — moving them causes infinite
+        // oscillation in the applyAllFixes loop (issue #17).
+        const typeMatch = args.match(/\btype\s*=\s*(?![!#])[^,\]]+/);
         if (typeMatch) {
             const typeArg = typeMatch[0];
             const otherArgs = args.replace(typeArg, "").replace(/^,|,$/g, "").replace(/,,/g, ",");

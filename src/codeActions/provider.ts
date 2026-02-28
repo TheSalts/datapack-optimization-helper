@@ -129,8 +129,11 @@ export class McfunctionCodeActionProvider implements vscode.CodeActionProvider {
 
         let result = text;
         let changed = true;
-        while (changed) {
+        let iterations = 0;
+        const MAX_ITERATIONS = 10;
+        while (changed && iterations < MAX_ITERATIONS) {
             changed = false;
+            iterations++;
             for (const fix of fixPasses) {
                 const next = fix(result);
                 if (next !== null && next !== result) {

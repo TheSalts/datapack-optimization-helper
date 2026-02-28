@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.41
+
+### Fixes
+
+- [Extension freezes when using two or more types in the selector.](https://github.com/TheSalts/datapack-optimization-helper/issues/17)
+
 ## 1.0.40
 
 ### Features
