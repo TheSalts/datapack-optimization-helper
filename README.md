@@ -1,6 +1,6 @@
 # Datapack Optimization Helper
 
-[![Visual Studio Marketplace](https://vsmarketplacebadges.dev/downloads-short/TheSalt.datapack-optimization.svg)](https://marketplace.visualstudio.com/items?itemName=TheSalt.datapack-optimization)
+[![Visual Studio Marketplace](https://vsmarketplacebadges.dev/installs-short/TheSalt.datapack-optimization.svg)](https://marketplace.visualstudio.com/items?itemName=TheSalt.datapack-optimization)
 [![Open VSX](https://img.shields.io/open-vsx/dt/TheSalt/datapack-optimization?logo=eclipse&label=Open%20VSX)](https://open-vsx.org/extension/TheSalt/datapack-optimization)
 
 Vscode Extension for minecraft datapack optimization.
