@@ -25,6 +25,7 @@ export interface FunctionInfo {
     filePath: string;
     calls: FunctionCall[];
     scoreChanges: ScoreChange[];
+    hasMacro: boolean;
 }
 
 interface DatapackRoot {
@@ -36,6 +37,12 @@ interface DatapackRoot {
 interface CallerInfo {
     callerPath: string;
     line: number;
+    isConditional: boolean;
+}
+
+export interface CallGraphEdge {
+    from: string;
+    to: string;
     isConditional: boolean;
 }
 
@@ -86,7 +93,9 @@ export class FunctionIndex {
     }
 
     async indexWorkspace(): Promise<void> {
-        if (this._indexing) return;
+        if (this._indexing) {
+            return;
+        }
         this._indexing = true;
         this._functionIndex.clear();
         this._fileToFunction.clear();
@@ -184,18 +193,28 @@ export class FunctionIndex {
         const result: Map<string, BasicScoreState[]> = new Map();
         const origPath = originalFunctionPath ?? functionPath;
 
-        if (visited.has(functionPath)) return result;
+        if (visited.has(functionPath)) {
+            return result;
+        }
         visited.add(functionPath);
 
         const callers = this.getCallers(functionPath);
-        if (callers.length === 0) return result;
+        if (callers.length === 0) {
+            return result;
+        }
 
         for (const caller of callers) {
-            if (caller.isConditional) continue;
-            if (caller.callerPath === origPath) continue;
+            if (caller.isConditional) {
+                continue;
+            }
+            if (caller.callerPath === origPath) {
+                continue;
+            }
 
             const callerInfo = this._functionIndex.get(caller.callerPath);
-            if (!callerInfo) continue;
+            if (!callerInfo) {
+                continue;
+            }
 
             const parentStates = this.collectScoreStatesFromCallers(caller.callerPath, visited, origPath);
             const stateMap: Map<string, BasicScoreState> = new Map();
@@ -210,7 +229,9 @@ export class FunctionIndex {
             }
 
             for (const change of callerInfo.scoreChanges) {
-                if (change.line >= caller.line) break;
+                if (change.line >= caller.line) {
+                    break;
+                }
                 const key = `${change.target}:${change.objective}`;
                 const existing = stateMap.get(key);
 
@@ -234,7 +255,9 @@ export class FunctionIndex {
                         for (const [k] of stateMap) {
                             if (k.startsWith(`${change.target}:`)) {
                                 const s = stateMap.get(k);
-                                if (s) s.value = null;
+                                if (s) {
+                                    s.value = null;
+                                }
                             }
                         }
                     } else {
@@ -250,7 +273,9 @@ export class FunctionIndex {
             }
 
             for (const [key, state] of stateMap) {
-                if (!result.has(key)) result.set(key, []);
+                if (!result.has(key)) {
+                    result.set(key, []);
+                }
                 result.get(key)!.push(state);
             }
         }
@@ -259,7 +284,9 @@ export class FunctionIndex {
     }
 
     isRecursiveFunction(functionPath: string, visited: Set<string> = new Set()): boolean {
-        if (visited.has(functionPath)) return true;
+        if (visited.has(functionPath)) {
+            return true;
+        }
         visited.add(functionPath);
         const funcInfo = this._functionIndex.get(functionPath);
         if (!funcInfo) {
@@ -267,7 +294,9 @@ export class FunctionIndex {
             return false;
         }
         for (const call of funcInfo.calls) {
-            if (call.isConditional) continue;
+            if (call.isConditional) {
+                continue;
+            }
             if (this.isRecursiveFunction(call.functionName, visited)) {
                 visited.delete(functionPath);
                 return true;
@@ -283,13 +312,17 @@ export class FunctionIndex {
             (c) => !c.isConditional && c.callerPath !== functionPath,
         ).length;
 
-        if (this.isRecursiveFunction(functionPath)) return new Map();
+        if (this.isRecursiveFunction(functionPath)) {
+            return new Map();
+        }
 
         const allStates = this.collectScoreStatesFromCallers(functionPath);
         const consensus: Map<string, BasicScoreState> = new Map();
 
         for (const [key, states] of allStates) {
-            if (states.length === 0) continue;
+            if (states.length === 0) {
+                continue;
+            }
             if (states.length < nonConditionalCallerCount) {
                 consensus.set(key, { target: states[0].target, objective: states[0].objective, value: null });
                 continue;
@@ -306,12 +339,28 @@ export class FunctionIndex {
         return consensus;
     }
 
+    getCallGraph(): { nodes: string[]; edges: CallGraphEdge[] } {
+        const nodes: string[] = [];
+        const edges: CallGraphEdge[] = [];
+        for (const [funcPath, info] of this._functionIndex) {
+            nodes.push(funcPath);
+            for (const call of info.calls) {
+                edges.push({ from: funcPath, to: call.functionName, isConditional: call.isConditional });
+            }
+        }
+        return { nodes, edges };
+    }
+
     getAllScoreChanges(functionPath: string, visited: Set<string> = new Set()): ScoreChange[] {
-        if (visited.has(functionPath)) return [];
+        if (visited.has(functionPath)) {
+            return [];
+        }
         visited.add(functionPath);
 
         const funcInfo = this._functionIndex.get(functionPath);
-        if (!funcInfo) return [];
+        if (!funcInfo) {
+            return [];
+        }
 
         const allChanges: ScoreChange[] = [...funcInfo.scoreChanges];
         for (const call of funcInfo.calls) {
@@ -433,6 +482,7 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
         filePath,
         calls: [],
         scoreChanges: [],
+        hasMacro: false,
     };
 
     try {
@@ -464,6 +514,10 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
 
             if (trimmed === "" || trimmed.startsWith("#")) {
                 continue;
+            }
+
+            if (trimmed.startsWith("$")) {
+                info.hasMacro = true;
             }
 
             if (/\breturn\b/.test(trimmed)) {
@@ -604,6 +658,9 @@ export function getConsensusScoreStates(functionPath: string): Map<string, Basic
 }
 export function getAllScoreChanges(functionPath: string, visited?: Set<string>): ScoreChange[] {
     return functionIndexInstance.getAllScoreChanges(functionPath, visited);
+}
+export function isMacroFunction(functionPath: string): boolean {
+    return functionIndexInstance.getFunctionInfo(functionPath)?.hasMacro ?? false;
 }
 
 export interface BasicScoreState {

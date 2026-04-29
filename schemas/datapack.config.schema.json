@@ -19,9 +19,14 @@
                             "execute-run-redundant",
                             "execute-run-redundant-run-execute",
                             "execute-unnecessary",
+                            "infinite-recursion",
+                            "macro-function-without-with",
+                            "naming-convention",
                             "nbt-items-use-if-items",
                             "return-run-duplicate",
+                            "scoreboard-divide-by-zero",
                             "scoreboard-fake-player-missing-hash",
+                            "scoreboard-overflow",
                             "target-selector-no-dimension",
                             "target-selector-no-type",
                             "target-selector-type-order",
@@ -44,6 +49,24 @@
                 "outputName": {
                     "type": "string",
                     "description": "Output filename for grouped functions. Placeholders: {name}, {line}"
+                }
+            }
+        },
+        "namingConvention": {
+            "type": "object",
+            "description": "Naming convention patterns for tags, teams, and scoreboard objectives. Use preset names (camelCase, snake_case, PascalCase, kebab-case, SCREAMING_SNAKE_CASE) or a custom regex.",
+            "properties": {
+                "scoreboardObjective": {
+                    "type": "string",
+                    "description": "Naming pattern for scoreboard objectives (camelCase, snake_case, PascalCase, kebab-case, SCREAMING_SNAKE_CASE, or custom regex)"
+                },
+                "tag": {
+                    "type": "string",
+                    "description": "Naming pattern for entity tags"
+                },
+                "team": {
+                    "type": "string",
+                    "description": "Naming pattern for teams"
                 }
             }
         }

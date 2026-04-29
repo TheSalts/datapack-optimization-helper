@@ -28,6 +28,11 @@
 
 - CodeLens로 함수 참조 표시
 
+- **함수 의존성 그래프** 표시
+    - 커맨드 팔레트에서 `Datapack Optimization: 함수 의존성 그래프 표시`를 실행하세요
+    - D3.js 기반의 대화형 그래프로 함수 간 호출 관계를 시각화합니다
+    - 확대/축소, 드래그, 네임스페이스별 색상 구분을 지원합니다
+
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename.png)
 
 - `.mcfunction` 파일 이름 변경 시 함수 참조 자동 업데이트

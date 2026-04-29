@@ -14,6 +14,8 @@ export const ALL_RULE_IDS = [
     "execute-run-redundant-run-execute",
     "execute-unnecessary",
     "infinite-recursion",
+    "macro-function-without-with",
+    "naming-convention",
     "nbt-items-use-if-items",
     "return-run-duplicate",
     "scoreboard-fake-player-missing-hash",
@@ -41,6 +43,11 @@ export interface DatapackConfig {
     executeGroup?: {
         outputPath?: string;
         outputName?: string;
+    };
+    namingConvention?: {
+        scoreboardObjective?: string;
+        tag?: string;
+        team?: string;
     };
 }
 
@@ -90,6 +97,11 @@ const DEFAULT_CONFIG: DatapackConfig = {
     executeGroup: {
         outputPath: "{dir}",
         outputName: "{name}_line_{line}",
+    },
+    namingConvention: {
+        scoreboardObjective: "",
+        tag: "",
+        team: "",
     },
 };
 

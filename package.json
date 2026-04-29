@@ -2,7 +2,7 @@
   "name": "datapack-optimization",
   "displayName": "Datapack Optimization Helper",
   "description": "An extension for datapack(mcfunction) optimization",
-  "version": "1.0.41",
+  "version": "1.0.42",
   "publisher": "TheSalt",
   "repository": "https://github.com/TheSalts/datapack-optimization-helper",
   "icon": "image/icon.png",
@@ -14,7 +14,8 @@
     "Programming Languages"
   ],
   "activationEvents": [
-    "workspaceContains:**/*.mcfunction"
+    "workspaceContains:**/*.mcfunction",
+    "workspaceContains:**/pack.mcmeta"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -48,9 +49,14 @@
               "execute-run-redundant",
               "execute-run-redundant-run-execute",
               "execute-unnecessary",
+              "infinite-recursion",
+              "macro-function-without-with",
+              "naming-convention",
               "nbt-items-use-if-items",
               "return-run-duplicate",
+              "scoreboard-divide-by-zero",
               "scoreboard-fake-player-missing-hash",
+              "scoreboard-overflow",
               "target-selector-no-dimension",
               "target-selector-no-type",
               "target-selector-type-order",
@@ -67,9 +73,14 @@
               "%config.rules.disabled.executeRunRedundant.label%",
               "%config.rules.disabled.executeRunRedundantRunExecute.label%",
               "%config.rules.disabled.executeUnnecessary.label%",
+              "%config.rules.disabled.infiniteRecursion.label%",
+              "%config.rules.disabled.macroFunctionWithoutWith.label%",
+              "%config.rules.disabled.namingConvention.label%",
               "%config.rules.disabled.nbtItemsUseIfItems.label%",
               "%config.rules.disabled.returnRunDuplicate.label%",
+              "%config.rules.disabled.scoreboardDivideByZero.label%",
               "%config.rules.disabled.scoreboardFakePlayerMissingHash.label%",
+              "%config.rules.disabled.scoreboardOverflow.label%",
               "%config.rules.disabled.targetSelectorNoDimension.label%",
               "%config.rules.disabled.targetSelectorNoType.label%",
               "%config.rules.disabled.targetSelectorTypeOrder.label%",
@@ -86,9 +97,14 @@
               "%config.rules.disabled.executeRunRedundant.description%",
               "%config.rules.disabled.executeRunRedundantRunExecute.description%",
               "%config.rules.disabled.executeUnnecessary.description%",
+              "%config.rules.disabled.infiniteRecursion.description%",
+              "%config.rules.disabled.macroFunctionWithoutWith.description%",
+              "%config.rules.disabled.namingConvention.description%",
               "%config.rules.disabled.nbtItemsUseIfItems.description%",
               "%config.rules.disabled.returnRunDuplicate.description%",
+              "%config.rules.disabled.scoreboardDivideByZero.description%",
               "%config.rules.disabled.scoreboardFakePlayerMissingHash.description%",
+              "%config.rules.disabled.scoreboardOverflow.description%",
               "%config.rules.disabled.targetSelectorNoDimension.description%",
               "%config.rules.disabled.targetSelectorNoType.description%",
               "%config.rules.disabled.targetSelectorTypeOrder.description%",
@@ -127,6 +143,16 @@
           "minimum": 0,
           "markdownDescription": "%config.scoreboardInlayHints.padding.markdownDescription%"
         },
+        "datapackOptimization.packMetaInlayHints.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "%config.packMetaInlayHints.enabled.markdownDescription%"
+        },
+        "datapackOptimization.packMetaVersionHints.showSnapshots": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "%config.packMetaVersionHints.showSnapshots.markdownDescription%"
+        },
         "datapackOptimization.rename.behavior": {
           "type": "string",
           "enum": [
@@ -150,6 +176,11 @@
       {
         "command": "datapackOptimization.addTestScore",
         "title": "%command.addTestScore.title%",
+        "category": "Datapack Optimization"
+      },
+      {
+        "command": "datapackOptimization.showDependencyGraph",
+        "title": "%command.showDependencyGraph.title%",
         "category": "Datapack Optimization"
       }
     ],

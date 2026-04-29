@@ -28,6 +28,11 @@ Vscode Extension for minecraft datapack optimization.
 
 - Show function references with CodeLens
 
+- **Function Dependency Graph**
+    - Run `Datapack Optimization: Show Function Dependency Graph` from the command palette
+    - Visualize function call relationships with an interactive D3.js graph
+    - Supports zoom, pan, drag, and namespace-based coloring
+
 ![image](https://raw.githubusercontent.com/TheSalts/datapack-optimization-helper/refs/heads/master/image/rename.png)
 
 - Automatically update function references when renaming `.mcfunction` files

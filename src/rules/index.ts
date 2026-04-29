@@ -7,6 +7,7 @@ import { checkExecuteAsIfEntity } from "./executeAsIfEntity";
 import { checkScoreboardFakePlayer } from "./scoreboardFakePlayer";
 import { checkNbtItems } from "./nbtItems";
 import { checkReturnRunDuplicate } from "./returnRunDuplicate";
+import { checkNamingConvention } from "./namingConvention";
 import { getRuleConfig } from "../utils/config";
 
 export function analyzeCommand(lineIndex: number, line: string): vscode.Diagnostic[] {
@@ -38,6 +39,8 @@ export function analyzeCommand(lineIndex: number, line: string): vscode.Diagnost
     if (returnRunDuplicateDiag) {
         diagnostics.push(returnRunDuplicateDiag);
     }
+
+    diagnostics.push(...checkNamingConvention(lineIndex, line, config));
 
     return diagnostics;
 }

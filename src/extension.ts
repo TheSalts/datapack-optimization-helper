@@ -9,15 +9,11 @@ import { getDiagnosticData } from "./utils/diagnosticData";
 import { checkUnreachableCondition } from "./rules/unreachableCondition";
 import { checkAlwaysPassCondition } from "./rules/alwaysPassCondition";
 import { checkInfiniteRecursion } from "./rules/infiniteRecursion";
+import { checkMacroSafety } from "./rules/macroSafety";
 import { checkScoreboardDivideByZero } from "./rules/scoreboardDivideByZero";
 import { checkScoreboardOverflow } from "./rules/scoreboardOverflow";
 import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
-import {
-    getRuleConfig,
-    watchDatapackConfig,
-    clearDatapackConfigCache,
-    checkAndNotifyConfigMissing,
-} from "./utils/config";
+import { getRuleConfig, watchDatapackConfig, checkAndNotifyConfigMissing } from "./utils/config";
 import { registerReferencesCodeLens } from "./providers/referencesCodeLens";
 import { t } from "./utils/i18n";
 import { parseWarnOffFile, getDisabledRulesForLine, isRuleDisabled, ALL_RULE_IDS } from "./utils/warnOff";
@@ -25,6 +21,11 @@ import { registerConditionDefinition } from "./providers/conditionDefinition";
 import { registerScoreboardInlayHints } from "./providers/scoreboardInlayHints";
 import { registerScoreboardHover } from "./providers/scoreboardHover";
 import { addTestScoreCommand } from "./commands/addTestScore";
+import { showDependencyGraph } from "./commands/dependencyGraph";
+import { fetchVersionData } from "./utils/versionData";
+import { registerPackMetaCompletion } from "./providers/packMetaCompletion";
+import { registerPackMetaInlayHints } from "./providers/packMetaInlayHints";
+import { registerConfigCompletion } from "./providers/configCompletion";
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -98,7 +99,12 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
     );
 
-    context.subscriptions.push(vscode.commands.registerCommand("datapackOptimization.addTestScore", addTestScoreCommand));
+    context.subscriptions.push(
+        vscode.commands.registerCommand("datapackOptimization.addTestScore", addTestScoreCommand),
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand("datapackOptimization.showDependencyGraph", showDependencyGraph),
+    );
 
     registerRenameHandler(context);
     watchPackMeta(context);
@@ -113,6 +119,9 @@ export async function activate(context: vscode.ExtensionContext) {
     registerConditionDefinition(context);
     registerScoreboardInlayHints(context);
     registerScoreboardHover(context);
+    registerPackMetaCompletion(context);
+    registerPackMetaInlayHints(context);
+    registerConfigCompletion(context);
 
     await vscode.window.withProgress(
         {
@@ -120,7 +129,7 @@ export async function activate(context: vscode.ExtensionContext) {
             title: t("initializing"),
         },
         async () => {
-            await indexWorkspace();
+            await Promise.all([indexWorkspace(), fetchVersionData()]);
             codeLensProvider.refresh();
             vscode.workspace.textDocuments.forEach(analyzeDocument);
         },
@@ -156,6 +165,36 @@ function isMcfunction(document: vscode.TextDocument): boolean {
     return document.fileName.endsWith(".mcfunction") || document.languageId === "mcfunction";
 }
 
+function pushFilteredDiagnostics(
+    diagnostics: vscode.Diagnostic[],
+    newDiags: vscode.Diagnostic[],
+    lineDisabledRules: Set<string>,
+): void {
+    for (const diag of newDiags) {
+        const ruleId = typeof diag.code === "string" ? diag.code : "";
+        if (!isRuleDisabled(ruleId, lineDisabledRules)) {
+            diagnostics.push(diag);
+        }
+    }
+}
+
+function pushFilteredFileDiagnostics(
+    diagnostics: vscode.Diagnostic[],
+    newDiags: vscode.Diagnostic[],
+    ruleId: string,
+    lines: string[],
+    fileDisabledRules: Set<string>,
+    getCheckLine?: (diag: vscode.Diagnostic) => number,
+): void {
+    for (const diag of newDiags) {
+        const checkLine = getCheckLine ? getCheckLine(diag) : diag.range.start.line;
+        const lineDisabled = getDisabledRulesForLine(lines, checkLine, fileDisabledRules);
+        if (!isRuleDisabled(ruleId, lineDisabled)) {
+            diagnostics.push(diag);
+        }
+    }
+}
+
 function analyzeDocument(document: vscode.TextDocument) {
     if (!isMcfunction(document)) {
         return;
@@ -184,66 +223,61 @@ function analyzeDocument(document: vscode.TextDocument) {
             unreachableFrom = i + 1;
         }
 
-        const lineDiagnostics = analyzeCommand(i, line);
         const lineDisabledRules = getDisabledRulesForLine(lines, i, fileDisabledRules);
-        for (const diag of lineDiagnostics) {
-            const ruleId = typeof diag.code === "string" ? diag.code : "";
-            if (!isRuleDisabled(ruleId, lineDisabledRules)) {
-                diagnostics.push(diag);
-            }
-        }
+        const lineDiagnostics = analyzeCommand(i, line);
+        pushFilteredDiagnostics(diagnostics, lineDiagnostics, lineDisabledRules);
     }
 
     const config = getRuleConfig();
     if (config.executeGroup && !isRuleDisabled("execute-group", fileDisabledRules)) {
-        const groupDiags = checkExecuteGroup(lines);
-        for (const diag of groupDiags) {
-            const data = getDiagnosticData<{ lineIndices?: number[] }>(diag);
-            const checkLine = data?.lineIndices?.[0] ?? diag.range.start.line;
-            const lineDisabled = getDisabledRulesForLine(lines, checkLine, fileDisabledRules);
-            if (!isRuleDisabled("execute-group", lineDisabled)) {
-                diagnostics.push(diag);
-            }
-        }
+        pushFilteredFileDiagnostics(
+            diagnostics,
+            checkExecuteGroup(lines),
+            "execute-group",
+            lines,
+            fileDisabledRules,
+            (diag) => getDiagnosticData<{ lineIndices?: number[] }>(diag)?.lineIndices?.[0] ?? diag.range.start.line,
+        );
     }
     if (config.unreachableCondition && !isRuleDisabled("unreachable-condition", fileDisabledRules)) {
-        const condDiags = checkUnreachableCondition(lines, document.uri.fsPath);
-        for (const diag of condDiags) {
-            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
-            if (!isRuleDisabled("unreachable-condition", lineDisabled)) {
-                diagnostics.push(diag);
-            }
-        }
+        pushFilteredFileDiagnostics(
+            diagnostics,
+            checkUnreachableCondition(lines, document.uri.fsPath),
+            "unreachable-condition",
+            lines,
+            fileDisabledRules,
+        );
     }
 
     if (config.scoreboardDivideByZero && !isRuleDisabled("scoreboard-divide-by-zero", fileDisabledRules)) {
-        const divZeroDiags = checkScoreboardDivideByZero(lines, document.uri.fsPath);
-        for (const diag of divZeroDiags) {
-            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
-            if (!isRuleDisabled("scoreboard-divide-by-zero", lineDisabled)) {
-                diagnostics.push(diag);
-            }
-        }
+        pushFilteredFileDiagnostics(
+            diagnostics,
+            checkScoreboardDivideByZero(lines, document.uri.fsPath),
+            "scoreboard-divide-by-zero",
+            lines,
+            fileDisabledRules,
+        );
     }
 
     if (config.scoreboardOverflow && !isRuleDisabled("scoreboard-overflow", fileDisabledRules)) {
-        const overflowDiags = checkScoreboardOverflow(lines, document.uri.fsPath);
-        for (const diag of overflowDiags) {
-            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
-            if (!isRuleDisabled("scoreboard-overflow", lineDisabled)) {
-                diagnostics.push(diag);
-            }
-        }
+        pushFilteredFileDiagnostics(
+            diagnostics,
+            checkScoreboardOverflow(lines, document.uri.fsPath),
+            "scoreboard-overflow",
+            lines,
+            fileDisabledRules,
+        );
     }
 
     if (config.alwaysPassCondition && !isRuleDisabled("always-pass-condition", fileDisabledRules)) {
         const alwaysPassResult = checkAlwaysPassCondition(lines, document.uri.fsPath);
-        for (const diag of alwaysPassResult.diagnostics) {
-            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
-            if (!isRuleDisabled("always-pass-condition", lineDisabled)) {
-                diagnostics.push(diag);
-            }
-        }
+        pushFilteredFileDiagnostics(
+            diagnostics,
+            alwaysPassResult.diagnostics,
+            "always-pass-condition",
+            lines,
+            fileDisabledRules,
+        );
 
         if (alwaysPassResult.alwaysReturns.length > 0) {
             const firstReturn = alwaysPassResult.alwaysReturns[0];
@@ -256,23 +290,33 @@ function analyzeDocument(document: vscode.TextDocument) {
     }
 
     if (config.infiniteRecursion && !isRuleDisabled("infinite-recursion", fileDisabledRules)) {
-        const recursionDiags = checkInfiniteRecursion(document, config);
-        for (const diag of recursionDiags) {
-            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
-            if (!isRuleDisabled("infinite-recursion", lineDisabled)) {
-                diagnostics.push(diag);
-            }
-        }
+        pushFilteredFileDiagnostics(
+            diagnostics,
+            checkInfiniteRecursion(document, config),
+            "infinite-recursion",
+            lines,
+            fileDisabledRules,
+        );
+    }
+
+    if (config.macroFunctionWithoutWith && !isRuleDisabled("macro-function-without-with", fileDisabledRules)) {
+        pushFilteredFileDiagnostics(
+            diagnostics,
+            checkMacroSafety(document, config),
+            "macro-function-without-with",
+            lines,
+            fileDisabledRules,
+        );
     }
 
     if (config.unreachableCode && !isRuleDisabled("unreachable-code", fileDisabledRules) && unreachableFrom !== null) {
-        const unreachableDiagnostics = createUnreachableDiagnostics(lines, unreachableFrom);
-        for (const diag of unreachableDiagnostics) {
-            const lineDisabled = getDisabledRulesForLine(lines, diag.range.start.line, fileDisabledRules);
-            if (!isRuleDisabled("unreachable-code", lineDisabled)) {
-                diagnostics.push(diag);
-            }
-        }
+        pushFilteredFileDiagnostics(
+            diagnostics,
+            createUnreachableDiagnostics(lines, unreachableFrom),
+            "unreachable-code",
+            lines,
+            fileDisabledRules,
+        );
     }
 
     diagnosticCollection.set(document.uri, diagnostics);

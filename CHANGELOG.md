@@ -1,5 +1,28 @@
 # Change Log
 
+## 1.0.42
+
+### Features
+
+- Added Function Dependency Graph command (`Datapack Optimization: Show Function Dependency Graph`)
+    - Visualizes function call relationships as an interactive graph
+    - Supports zoom, pan, drag, and namespace-based coloring
+- Added `macro-function-without-with` diagnostic (Error)
+    - Reports calls to macro functions (those containing `$`-prefixed lines) that omit `with` or a literal `{...}` argument
+    - Accepts both `function ns:foo with <source>` and direct object literals (e.g., `function ns:foo {x:1}`)
+- Added `naming-convention` diagnostic
+    - Warns when scoreboard objectives, tags, or teams don't match a configured pattern
+    - Built-in presets: `camelCase`, `snake_case`, `PascalCase`, `kebab-case`, `SCREAMING_SNAKE_CASE`; custom regex patterns are also supported
+    - Configure per project via `datapack.config.json` under `namingConvention`, with autocomplete for preset names
+- Added `pack.mcmeta` version hints
+    - Shows the matching Minecraft version range as inlay hints next to `pack_format`, `supported_formats`, `min_format`/`max_format`, etc.
+    - Autocomplete for pack format numbers, including `[major, minor]` array forms
+    - Toggle with `datapackOptimization.packMetaInlayHints.enabled`; include snapshots with `datapackOptimization.packMetaVersionHints.showSnapshots`
+
+### Improvements
+
+- `rules.disabled` settings dropdown now lists the previously unlisted rules: `infinite-recursion`, `scoreboard-divide-by-zero`, `scoreboard-overflow`
+
 ## 1.0.41
 
 ### Fixes
