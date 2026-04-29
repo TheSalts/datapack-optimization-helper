@@ -43,6 +43,7 @@
     "nbtItemsUseIfItems": "Recommend using 'if items' instead of item nbt",
     "infiniteRecursion": "Infinite recursion: {path}",
     "macroFunctionWithoutWith": "Expected <arguments: nbt_compound_tag>|with",
+    "macroFunctionWithoutWithArgs": "Expected {args} argument(s)",
     "namingConventionViolation": "'{name}' doesn't match naming convention ({expected})",
     "dependencyGraphTitle": "Function Dependency Graph",
     "dependencyGraphNoFunctions": "No functions found",

@@ -26,6 +26,7 @@ export interface FunctionInfo {
     calls: FunctionCall[];
     scoreChanges: ScoreChange[];
     hasMacro: boolean;
+    macroArgs: string[];
 }
 
 interface DatapackRoot {
@@ -483,7 +484,9 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
         calls: [],
         scoreChanges: [],
         hasMacro: false,
+        macroArgs: [],
     };
+    const seenMacroArgs = new Set<string>();
 
     try {
         const content = fs.readFileSync(filePath, "utf-8");
@@ -518,6 +521,14 @@ function parseFunctionFile(filePath: string, root: DatapackRoot): FunctionInfo {
 
             if (trimmed.startsWith("$")) {
                 info.hasMacro = true;
+                const macroArgRegex = /\$\(([A-Za-z0-9_]+)\)/g;
+                let argMatch: RegExpExecArray | null;
+                while ((argMatch = macroArgRegex.exec(trimmed)) !== null) {
+                    if (!seenMacroArgs.has(argMatch[1])) {
+                        seenMacroArgs.add(argMatch[1]);
+                        info.macroArgs.push(argMatch[1]);
+                    }
+                }
             }
 
             if (/\breturn\b/.test(trimmed)) {

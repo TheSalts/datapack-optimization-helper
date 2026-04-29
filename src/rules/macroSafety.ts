@@ -34,13 +34,18 @@ export function checkMacroSafety(document: vscode.TextDocument, config: RuleConf
         }
 
         const range = new vscode.Range(call.line, match.index, call.line, match.index + match[0].length);
+        const messageKey =
+            calledFunc.macroArgs.length > 0 ? "macroFunctionWithoutWithArgs" : "macroFunctionWithoutWith";
         diagnostics.push(
             createDiagnostic(
                 range,
-                "macroFunctionWithoutWith",
+                messageKey,
                 "macro-function-without-with",
                 vscode.DiagnosticSeverity.Error,
-                { function: call.functionName },
+                {
+                    function: call.functionName,
+                    args: calledFunc.macroArgs.join(", "),
+                },
             ),
         );
     }

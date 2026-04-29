@@ -50,6 +50,7 @@ export type MessageKey =
     | "nbtItemsUseIfItems"
     | "infiniteRecursion"
     | "macroFunctionWithoutWith"
+    | "macroFunctionWithoutWithArgs"
     | "namingConventionViolation"
     | "dependencyGraphTitle"
     | "dependencyGraphNoFunctions"

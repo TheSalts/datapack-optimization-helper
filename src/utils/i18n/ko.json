@@ -43,6 +43,7 @@
         "nbtItemsUseIfItems": "아이템 nbt 대신 'if items' 구문 사용 권장",
         "infiniteRecursion": "무한 재귀 호출: {path}",
         "macroFunctionWithoutWith": "<arguments: nbt_compound_tag>|with 필요",
+        "macroFunctionWithoutWithArgs": "인자 {args} 필요",
         "namingConventionViolation": "'{name}'은(는) {expected} 규칙에 맞지 않습니다",
         "dependencyGraphTitle": "함수 의존성 그래프",
         "dependencyGraphNoFunctions": "함수가 없습니다",
