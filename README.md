@@ -71,6 +71,11 @@ Create `datapack.config.json` in the same folder as `pack.mcmeta`:
     "executeGroup": {
         "outputPath": "{dir}",
         "outputName": "{name}_line_{line}"
+    },
+    "namingConvention": {
+        "scoreboardObjective": "",
+        "tag": "",
+        "team": ""
     }
 }
 ```
@@ -109,6 +114,25 @@ Number of padding spaces for Scoreboard Inlay Hints.
 Set to `0` to auto alignment.
 
 default: `1`
+
+### Naming Convention
+
+Enforces naming patterns for scoreboard objectives, entity tags, and teams. Leave a field empty to disable that check. Names starting with `#`, `@`, or `*` are skipped.
+
+Accepts a preset or a custom regex:
+
+- Presets: `camelCase`, `snake_case`, `PascalCase`, `kebab-case`, `SCREAMING_SNAKE_CASE`
+- Custom: any regex string (e.g. `^obj_[a-z]+$`)
+
+```json
+"namingConvention": {
+    "scoreboardObjective": "snake_case",
+    "tag": "kebab-case",
+    "team": "PascalCase"
+}
+```
+
+default: all empty (disabled)
 
 ### Rename Behavior
 

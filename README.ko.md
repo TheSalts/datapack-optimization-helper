@@ -70,6 +70,11 @@
     "executeGroup": {
         "outputPath": "{dir}",
         "outputName": "{name}_line_{line}"
+    },
+    "namingConvention": {
+        "scoreboardObjective": "",
+        "tag": "",
+        "team": ""
     }
 }
 ```
@@ -108,6 +113,25 @@
 `0`으로 설정하면 자동 정렬이 활성화됩니다.
 
 기본값: `1`
+
+### 네이밍 컨벤션
+
+스코어보드 목표, 엔티티 태그, 팀의 이름 패턴을 검사합니다. 값을 빈 문자열로 두면 해당 항목 검사는 비활성화됩니다. `#`, `@`, `*`로 시작하는 이름은 검사에서 제외됩니다.
+
+프리셋 이름 또는 직접 정의한 정규식을 사용할 수 있습니다:
+
+- 프리셋: `camelCase`, `snake_case`, `PascalCase`, `kebab-case`, `SCREAMING_SNAKE_CASE`
+- 커스텀: 임의의 정규식 문자열 (예: `^obj_[a-z]+$`)
+
+```json
+"namingConvention": {
+    "scoreboardObjective": "snake_case",
+    "tag": "kebab-case",
+    "team": "PascalCase"
+}
+```
+
+기본값: 모두 빈 문자열 (비활성)
 
 ### 이름 변경 동작
 
