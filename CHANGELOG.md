@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.43
+
+### Fixes
+
+- Fixed false positive scoreboard tracking
+
 ## 1.0.42
 
 ### Features
