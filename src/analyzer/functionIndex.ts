@@ -295,9 +295,11 @@ export class FunctionIndex {
             return false;
         }
         for (const call of funcInfo.calls) {
-            if (call.isConditional) {
-                continue;
-            }
+            // Real recursion is always reached through a conditional call (the
+            // base case). Following only unconditional calls here would miss
+            // every genuinely recursive function, causing it to inherit a
+            // constant entry state from callers (e.g. `a = 0`) and produce
+            // false "always pass" diagnostics on recursion-driven conditions.
             if (this.isRecursiveFunction(call.functionName, visited)) {
                 visited.delete(functionPath);
                 return true;
