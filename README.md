@@ -5,6 +5,9 @@
 
 Vscode Extension for minecraft datapack optimization.
 
+> [!WARNING]
+> Due to my mandatory military service, this project will receive minimal to no updates or maintenance until **December 2027**. Thank you for your understanding.
+
 [English](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.md) | [한국어](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.ko.md)
 
 ## Features
