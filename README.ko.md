@@ -5,6 +5,9 @@
 
 마인크래프트 데이터팩 최적화를 위한 VSCode 확장 프로그램입니다.
 
+> [!WARNING]
+> 개발자의 군 입대로 인해 **2027년 12월**까지 업데이트가 거의 없을 예정입니다. 휴가 나오면 간간히 작업할 듯 합니다.
+
 [English](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.md) | [한국어](https://github.com/TheSalts/datapack-optimization-helper/blob/master/README.ko.md)
 
 ## 기능
