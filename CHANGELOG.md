@@ -1,6 +1,6 @@
 # Change Log
 
-## 1.0.45
+## 1.0.46
 
 ### Features
 
