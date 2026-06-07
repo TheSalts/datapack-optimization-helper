@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.45
+
+### Features
+
+- [what about using `dx` instead of `x`](https://github.com/TheSalts/datapack-optimization-helper/issues/18)
+
 ## 1.0.43
 
 ### Fixes
