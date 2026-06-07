@@ -36,7 +36,7 @@
     "config.rules.disabled.scoreboardFakePlayerMissingHash.label": "Fake Player '#'",
     "config.rules.disabled.scoreboardOverflow.description": "32-bit integer overflow in scoreboard operations",
     "config.rules.disabled.scoreboardOverflow.label": "Scoreboard Overflow",
-    "config.rules.disabled.targetSelectorNoDimension.description": "Recommend using x, y, z, or distance in selectors",
+    "config.rules.disabled.targetSelectorNoDimension.description": "Recommend using x, y, z, dx, dy, dz or distance in selectors",
     "config.rules.disabled.targetSelectorNoDimension.label": "Missing Dimension",
     "config.rules.disabled.targetSelectorNoType.description": "Recommend using 'type' argument in selectors",
     "config.rules.disabled.targetSelectorNoType.label": "Missing Type",

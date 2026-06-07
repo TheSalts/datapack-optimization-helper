@@ -36,7 +36,7 @@
     "config.rules.disabled.scoreboardFakePlayerMissingHash.label": "가짜 플레이어 '#'",
     "config.rules.disabled.scoreboardOverflow.description": "스코어보드 연산에서 32비트 정수 오버플로",
     "config.rules.disabled.scoreboardOverflow.label": "스코어보드 오버플로",
-    "config.rules.disabled.targetSelectorNoDimension.description": "x, y, z 또는 distance 사용 권장",
+    "config.rules.disabled.targetSelectorNoDimension.description": "x, y, z, dx, dy, dz 또는 distance 사용 권장",
     "config.rules.disabled.targetSelectorNoDimension.label": "차원 제한 누락",
     "config.rules.disabled.targetSelectorNoType.description": "'type' 인자 사용 권장",
     "config.rules.disabled.targetSelectorNoType.label": "타입 누락",

@@ -21,7 +21,7 @@
         "initializing": "Datapack Optimization Helper 초기화 중...",
         "unreachableCode": "실행되지 않는 코드",
         "targetSelectorNoType": "'type' 인자 사용 권장",
-        "targetSelectorNoDimension": "x, y, z 또는 distance 사용 권장",
+        "targetSelectorNoDimension": "x, y, z, dx, dy, dz 또는 distance 사용 권장",
         "targetSelectorTypeOrder": "'type'을 마지막에 배치 권장",
         "executeGroup": "함수 그룹화로 최적화 가능",
         "executeRunRedundant": "불필요한 'execute run' 구문",
