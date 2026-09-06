@@ -1,5 +1,5 @@
 import { SCORE_SET_RE, SCORE_ADD_RE, SCORE_RESET_RE, SCORE_OPERATION_RE, SCORE_STORE_RE } from "../parser/patterns";
-import { BinOp, ExprNode, varNode, numNode, binNode, toInt32 } from "./exprNode";
+import { BinOp, ExprNode, varNode, numNode, binNode, toInt32, floorDiv, floorMod } from "./exprNode";
 
 export interface ScoreState {
     target: string;
@@ -402,14 +402,14 @@ export function processScoreboardLine(
                                 result = targetVal;
                                 break;
                             }
-                            result = toInt32(Math.trunc(targetVal / srcVal));
+                            result = floorDiv(targetVal, srcVal);
                             break;
                         case "%=":
                             if (srcVal === 0) {
                                 result = targetVal;
                                 break;
                             }
-                            result = toInt32(targetVal % srcVal);
+                            result = floorMod(targetVal, srcVal);
                             break;
                         case "<":
                             result = Math.min(targetVal, srcVal);

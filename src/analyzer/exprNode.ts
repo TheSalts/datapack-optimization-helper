@@ -190,13 +190,21 @@ export function toInt32(n: number): number {
     return n | 0;
 }
 
+export function floorDiv(a: number, b: number): number {
+    return toInt32(Math.floor(a / b));
+}
+
+export function floorMod(a: number, b: number): number {
+    return toInt32(a - Math.floor(a / b) * b);
+}
+
 function foldConstBin(op: BinOp, left: number, right: number): ExprNode {
     switch (op) {
         case "+": return numNode(toInt32(left + right));
         case "-": return numNode(toInt32(left - right));
         case "*": return numNode(Math.imul(left, right));
-        case "/": return right === 0 ? binNode(op, numNode(left), numNode(right)) : numNode(toInt32(Math.trunc(left / right)));
-        case "%": return right === 0 ? binNode(op, numNode(left), numNode(right)) : numNode(toInt32(left % right));
+        case "/": return right === 0 ? binNode(op, numNode(left), numNode(right)) : numNode(floorDiv(left, right));
+        case "%": return right === 0 ? binNode(op, numNode(left), numNode(right)) : numNode(floorMod(left, right));
         default: return binNode(op, numNode(left), numNode(right));
     }
 }

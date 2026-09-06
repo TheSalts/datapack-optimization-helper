@@ -7,6 +7,8 @@ import {
     exprToString,
     simplifyExpr,
     toInt32,
+    floorDiv,
+    floorMod,
     detectCompoundAssignment,
     stripCommonObjective,
 } from "../../analyzer/exprNode";
@@ -94,6 +96,34 @@ suite("toInt32", () => {
     });
 });
 
+suite("floorDiv and floorMod", () => {
+    test("positive division and modulo", () => {
+        assert.strictEqual(floorDiv(7, 3), 2);
+        assert.strictEqual(floorMod(7, 3), 1);
+    });
+
+    test("negative dividend", () => {
+        assert.strictEqual(floorDiv(-3, 5), -1);
+        assert.strictEqual(floorMod(-3, 5), 2);
+        assert.strictEqual(floorDiv(-7, 3), -3);
+        assert.strictEqual(floorMod(-7, 3), 2);
+    });
+
+    test("negative divisor", () => {
+        assert.strictEqual(floorDiv(3, -5), -1);
+        assert.strictEqual(floorMod(3, -5), -2);
+        assert.strictEqual(floorDiv(7, -3), -3);
+        assert.strictEqual(floorMod(7, -3), -2);
+    });
+
+    test("both negative", () => {
+        assert.strictEqual(floorDiv(-3, -5), 0);
+        assert.strictEqual(floorMod(-3, -5), -3);
+        assert.strictEqual(floorDiv(-7, -3), 2);
+        assert.strictEqual(floorMod(-7, -3), -1);
+    });
+});
+
 suite("simplifyExpr", () => {
     test("constant folding addition", () => {
         const expr = binNode("+", numNode(3), numNode(4));
@@ -107,6 +137,20 @@ suite("simplifyExpr", () => {
         const result = simplifyExpr(expr);
         assert.strictEqual(result.kind, "num");
         assert.strictEqual(result.value, 12);
+    });
+
+    test("constant folding division with negative values", () => {
+        const expr = binNode("/", numNode(-3), numNode(5));
+        const result = simplifyExpr(expr);
+        assert.strictEqual(result.kind, "num");
+        assert.strictEqual((result as { value: number }).value, -1);
+    });
+
+    test("constant folding modulo with negative values", () => {
+        const expr = binNode("%", numNode(-3), numNode(5));
+        const result = simplifyExpr(expr);
+        assert.strictEqual(result.kind, "num");
+        assert.strictEqual((result as { value: number }).value, 2);
     });
 
     test("x * 1 = x", () => {

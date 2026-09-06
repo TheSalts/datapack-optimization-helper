@@ -235,6 +235,22 @@ suite("processScoreboardLine", () => {
         assert.strictEqual(states.get("#a:v")!.value, 13);
     });
 
+    test("processes division operation with negative values", () => {
+        const states = new Map<string, ScoreState>();
+        states.set("#input2:test", { target: "#input2", objective: "test", type: "known", value: -3, line: 0 });
+        states.set("#mod2:test", { target: "#mod2", objective: "test", type: "known", value: 5, line: 1 });
+        processScoreboardLine("scoreboard players operation #input2 test /= #mod2 test", states, 2);
+        assert.strictEqual(states.get("#input2:test")!.value, -1);
+    });
+
+    test("processes modulo operation with negative values", () => {
+        const states = new Map<string, ScoreState>();
+        states.set("#input1:test", { target: "#input1", objective: "test", type: "known", value: -3, line: 0 });
+        states.set("#mod1:test", { target: "#mod1", objective: "test", type: "known", value: 5, line: 1 });
+        processScoreboardLine("scoreboard players operation #input1 test %= #mod1 test", states, 2);
+        assert.strictEqual(states.get("#input1:test")!.value, 2);
+    });
+
     test("non-scoreboard line returns false", () => {
         const states = new Map<string, ScoreState>();
         assert.strictEqual(processScoreboardLine("say hello", states, 0), false);
