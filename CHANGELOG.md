@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.47
+
+### Fixes
+
+- [Scoreboard division with negative values differs from Minecraft](https://github.com/TheSalts/datapack-optimization-helper/issues/19)
+
 ## 1.0.46
 
 ### Features
