@@ -13,7 +13,12 @@ import { checkMacroSafety } from "./rules/macroSafety";
 import { checkScoreboardDivideByZero } from "./rules/scoreboardDivideByZero";
 import { checkScoreboardOverflow } from "./rules/scoreboardOverflow";
 import { indexWorkspace, watchMcfunctionFiles } from "./analyzer/functionIndex";
-import { getRuleConfig, watchDatapackConfig, checkAndNotifyConfigMissing } from "./utils/config";
+import {
+    getRuleConfig,
+    watchDatapackConfig,
+    checkAndNotifyConfigMissing,
+    getMacroFunctionWithoutWithOnlyFullCommands,
+} from "./utils/config";
 import { registerReferencesCodeLens } from "./providers/referencesCodeLens";
 import { t } from "./utils/i18n";
 import { parseWarnOffFile, getDisabledRulesForLine, isRuleDisabled, ALL_RULE_IDS } from "./utils/warnOff";
@@ -302,7 +307,7 @@ function analyzeDocument(document: vscode.TextDocument) {
     if (config.macroFunctionWithoutWith && !isRuleDisabled("macro-function-without-with", fileDisabledRules)) {
         pushFilteredFileDiagnostics(
             diagnostics,
-            checkMacroSafety(document, config),
+            checkMacroSafety(document, config, getMacroFunctionWithoutWithOnlyFullCommands()),
             "macro-function-without-with",
             lines,
             fileDisabledRules,

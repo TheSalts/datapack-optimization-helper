@@ -52,6 +52,15 @@
                 }
             }
         },
+        "macroFunctionWithoutWith": {
+            "type": "object",
+            "properties": {
+                "onlyFullCommands": {
+                    "type": "boolean",
+                    "description": "When true, the macro-function-without-with rule only checks direct command contexts."
+                }
+            }
+        },
         "namingConvention": {
             "type": "object",
             "description": "Naming convention patterns for tags, teams, and scoreboard objectives. Use preset names (camelCase, snake_case, PascalCase, kebab-case, SCREAMING_SNAKE_CASE) or a custom regex.",

@@ -46,6 +46,7 @@
     "config.rules.disabled.unreachableCode.label": "실행되지 않는 코드",
     "config.rules.disabled.unreachableCondition.description": "조건이 항상 실패함",
     "config.rules.disabled.unreachableCondition.label": "항상 실패하는 조건",
+    "config.macroFunctionWithoutWith.onlyFullCommands.markdownDescription": "`macro-function-without-with` 규칙을 직접적인 함수 명령어 컨텍스트에서만 검사합니다. NBT 값 같은 문자열 내부는 무시됩니다.",
     "config.rename.behavior.markdownDescription": "함수 파일 이름 변경 시 리팩토링 동작",
     "config.rename.behavior.ask.label": "매번 물어보기",
     "config.rename.behavior.codeOnly.label": "코드 참조만",

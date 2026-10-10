@@ -3,7 +3,50 @@ import { RuleConfig } from "../utils/config";
 import { functionIndexInstance } from "../analyzer/functionIndex";
 import { createDiagnostic } from "../utils/diagnostic";
 
-export function checkMacroSafety(document: vscode.TextDocument, config: RuleConfig): vscode.Diagnostic[] {
+function isInsideQuotedString(line: string, index: number): boolean {
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let escaped = false;
+
+    for (let i = 0; i < index; i++) {
+        const char = line[i];
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+
+        if (char === "\\") {
+            escaped = true;
+            continue;
+        }
+
+        if (char === "'" && !inDoubleQuote) {
+            inSingleQuote = !inSingleQuote;
+            continue;
+        }
+
+        if (char === `"` && !inSingleQuote) {
+            inDoubleQuote = !inDoubleQuote;
+        }
+    }
+
+    return inSingleQuote || inDoubleQuote;
+}
+
+function isFullFunctionCommandContext(line: string, functionKeywordIndex: number): boolean {
+    if (isInsideQuotedString(line, functionKeywordIndex)) {
+        return false;
+    }
+
+    const before = line.slice(0, functionKeywordIndex).trimEnd();
+    return before === "" || /\b(run|schedule)$/.test(before);
+}
+
+export function checkMacroSafety(
+    document: vscode.TextDocument,
+    config: RuleConfig,
+    onlyFullCommands = false,
+): vscode.Diagnostic[] {
     if (!config.macroFunctionWithoutWith) {
         return [];
     }
@@ -25,6 +68,10 @@ export function checkMacroSafety(document: vscode.TextDocument, config: RuleConf
         const escapedName = call.functionName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const match = new RegExp(`\\bfunction\\s+${escapedName}\\b`).exec(lineText);
         if (!match) {
+            continue;
+        }
+
+        if (onlyFullCommands && !isFullFunctionCommandContext(lineText, match.index)) {
             continue;
         }
 

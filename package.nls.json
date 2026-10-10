@@ -46,6 +46,7 @@
     "config.rules.disabled.unreachableCode.label": "Unreachable Code",
     "config.rules.disabled.unreachableCondition.description": "Always Fail Condition Check",
     "config.rules.disabled.unreachableCondition.label": "Always Fail Condition",
+    "config.macroFunctionWithoutWith.onlyFullCommands.markdownDescription": "Only check direct function command contexts for the `macro-function-without-with` rule. Embedded strings such as NBT values are ignored.",
     "config.rename.behavior.markdownDescription": "Refactoring behavior when renaming function files",
     "config.rename.behavior.ask.label": "Ask every time",
     "config.rename.behavior.codeOnly.label": "Code references only",

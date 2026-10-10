@@ -153,6 +153,11 @@
           "default": false,
           "markdownDescription": "%config.packMetaVersionHints.showSnapshots.markdownDescription%"
         },
+        "datapackOptimization.macroFunctionWithoutWith.onlyFullCommands": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "%config.macroFunctionWithoutWith.onlyFullCommands.markdownDescription%"
+        },
         "datapackOptimization.rename.behavior": {
           "type": "string",
           "enum": [

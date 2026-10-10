@@ -40,6 +40,9 @@ export interface DatapackConfig {
     rules?: {
         disabled?: RuleName[];
     };
+    macroFunctionWithoutWith?: {
+        onlyFullCommands?: boolean;
+    };
     executeGroup?: {
         outputPath?: string;
         outputName?: string;
@@ -182,6 +185,16 @@ export function getRuleConfig(): RuleConfig {
         result[kebabToCamel(id)] = !disabledSet.has(id);
     }
     return result as RuleConfig;
+}
+
+export function getMacroFunctionWithoutWithOnlyFullCommands(): boolean {
+    const datapackConfig = getDatapackConfig();
+    if (datapackConfig?.macroFunctionWithoutWith?.onlyFullCommands !== undefined) {
+        return datapackConfig.macroFunctionWithoutWith.onlyFullCommands;
+    }
+
+    const config = vscode.workspace.getConfiguration("datapackOptimization");
+    return config.get<boolean>("macroFunctionWithoutWith.onlyFullCommands", false);
 }
 
 export function getExecuteGroupOutputPath(): string {
