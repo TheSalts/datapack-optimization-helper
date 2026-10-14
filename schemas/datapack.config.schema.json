@@ -52,6 +52,15 @@
                 }
             }
         },
+        "macroFunctionWithoutWith": {
+            "type": "object",
+            "properties": {
+                "fullCommandOnly": {
+                    "type": "boolean",
+                    "description": "If true, the macro-function-without-with rule only checks invocations that appear as full commands, ignoring those embedded inside strings like NBT data."
+                }
+            }
+        },
         "namingConvention": {
             "type": "object",
             "description": "Naming convention patterns for tags, teams, and scoreboard objectives. Use preset names (camelCase, snake_case, PascalCase, kebab-case, SCREAMING_SNAKE_CASE) or a custom regex.",

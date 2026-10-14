@@ -1,13 +1,15 @@
 import * as vscode from "vscode";
-import { RuleConfig } from "../utils/config";
+import { getMacroFunctionWithoutWithFullCommandOnly, RuleConfig } from "../utils/config";
 import { functionIndexInstance } from "../analyzer/functionIndex";
 import { createDiagnostic } from "../utils/diagnostic";
+import { tokenize } from "../parser/tokenizer";
 
 export function checkMacroSafety(document: vscode.TextDocument, config: RuleConfig): vscode.Diagnostic[] {
     if (!config.macroFunctionWithoutWith) {
         return [];
     }
 
+    const fullCommandOnly = getMacroFunctionWithoutWithFullCommandOnly();
     const funcInfo = functionIndexInstance.getFunctionInfoByFile(document.uri.fsPath);
     if (!funcInfo) {
         return [];
@@ -26,6 +28,43 @@ export function checkMacroSafety(document: vscode.TextDocument, config: RuleConf
         const match = new RegExp(`\\bfunction\\s+${escapedName}\\b`).exec(lineText);
         if (!match) {
             continue;
+        }
+
+        if (fullCommandOnly) {
+            const tokens = tokenize(lineText.slice(0, match.index));
+            let i = 0;
+            if (tokens.length > 0 && tokens[0].text === "$") {
+                i++;
+            }
+            if (tokens.length > i && tokens[i].text === "execute") {
+                while (i < tokens.length) {
+                    if (tokens[i].text === "run") {
+                        if (i + 1 < tokens.length && tokens[i + 1].text === "execute") {
+                            i += 2;
+                            continue;
+                        } else {
+                            i++;
+                            break;
+                        }
+                    }
+                    i++;
+                }
+            }
+            if (tokens.length > i && tokens[i].text === "return") {
+                i++;
+                if (tokens.length > i && tokens[i].text === "run") {
+                    i++;
+                }
+            }
+            if (tokens.length > i && tokens[i].text === "schedule") {
+                i++;
+                if (tokens.length > i && tokens[i].text === "function") {
+                    i++;
+                }
+            }
+            if (i !== tokens.length) {
+                continue; // Not a clean prefix
+            }
         }
 
         const after = lineText.slice(match.index + match[0].length).trimStart();

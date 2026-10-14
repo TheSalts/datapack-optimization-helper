@@ -132,6 +132,11 @@
           "patternErrorMessage": "Filename must contain only alphanumeric characters, underscores, hyphens, and placeholders: {name}, {line}",
           "markdownDescription": "%config.executeGroup.outputName.markdownDescription%"
         },
+        "datapackOptimization.macroFunctionWithoutWith.fullCommandOnly": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "%config.macroFunctionWithoutWith.fullCommandOnly.markdownDescription%"
+        },
         "datapackOptimization.scoreboardInlayHints.enabled": {
           "type": "boolean",
           "default": true,

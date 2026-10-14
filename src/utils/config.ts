@@ -44,6 +44,9 @@ export interface DatapackConfig {
         outputPath?: string;
         outputName?: string;
     };
+    macroFunctionWithoutWith?: {
+        fullCommandOnly?: boolean;
+    };
     namingConvention?: {
         scoreboardObjective?: string;
         tag?: string;
@@ -200,4 +203,13 @@ export function getExecuteGroupOutputName(): string {
     }
     const config = vscode.workspace.getConfiguration("datapackOptimization");
     return config.get<string>("executeGroup.outputName", "{name}_line_{line}");
+}
+
+export function getMacroFunctionWithoutWithFullCommandOnly(): boolean {
+    const datapackConfig = getDatapackConfig();
+    if (datapackConfig?.macroFunctionWithoutWith?.fullCommandOnly !== undefined) {
+        return datapackConfig.macroFunctionWithoutWith.fullCommandOnly;
+    }
+    const config = vscode.workspace.getConfiguration("datapackOptimization");
+    return config.get<boolean>("macroFunctionWithoutWith.fullCommandOnly", false);
 }
