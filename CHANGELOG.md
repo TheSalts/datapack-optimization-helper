@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.0.48
+
+### Fixes
+
+- [Ignore `macro-function-without-with` inside strings](https://github.com/TheSalts/datapack-optimization-helper/issues/20)
+
 ## 1.0.47
 
 ### Fixes
